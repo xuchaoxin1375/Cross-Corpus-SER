@@ -1,0 +1,14 @@
+DEBUG:root:Adding 1 and 2
+INFO:root:Result: 3
+DEBUG:root:Adding 1 and 2
+INFO:root:Result: 3
+DEBUG:root:Adding 1 and 100
+INFO:root:Result: 101
+DEBUG:root:Adding 19 and 100
+INFO:root:Result: 119
+2023-04-11 11:28:49,675 INFO: Starting calculation with 2 and 3
+2023-04-11 11:28:49,675 DEBUG: Adding 2 and 3
+2023-04-11 11:28:49,675 DEBUG: Result: 5
+2023-04-11 11:28:49,675 DEBUG: Multiplying 2 and 3
+2023-04-11 11:28:49,675 DEBUG: Result: 6
+2023-04-11 11:28:49,675 INFO: Calculation finished: 5 6
