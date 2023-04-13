@@ -286,9 +286,14 @@ def chroma_extract(sample_rate, stft):
     return chroma
 
 
-def get_best_estimators(classification_task=True):
+def best_estimators(classification_task=True,fast=True):
     """
     从grid目录中读取经过计算的各个模型对应的最优超参数
+    注意在做超参数搜索前是没有可用的文件可供读取,需要通过grid_search调用本类
+    实例进行计算后才有的用
+
+    其中,GradientBoostingRegressor比较耗时(1min左右才能计算出来)
+    其他模型只要若干秒
 
     params:
     -
@@ -297,15 +302,25 @@ def get_best_estimators(classification_task=True):
         False:回归任务,读取各个回归模型及其最优超参数
     """
     if classification_task:
-        return load(bclf)
+        res= load(bclf)
     else:
-        return load(brgr)
+        res= load(brgr)
+    if fast:
+        for i,estimator_tuple in enumerate(res):
+            # print(estimator.__class__.__name__)
+            estimator,_,_ = estimator_tuple
+            if 'GradientBoosting' in estimator.__class__.__name__:
+                res.remove(res[i])
+    return res
 
+def test1():
+    from EF import f_config_def
+    audio_path="data/emodb/wav/03a01Fa.wav"
+    features = extract_feature(audio_path, f_config_def)
+    return features
 
 if __name__ == "__main__":
     audio_config = MCM
     # res = get_audio_config(audio_config)
     # print(res)
-    from EF import f_config_def
-    audio_path="data/emodb/wav/03a01Fa.wav"
-    features = extract_feature(audio_path, f_config_def)
+    res=best_estimators()

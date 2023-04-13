@@ -94,18 +94,35 @@ class AudioExtractor:
         self.test_features = []
         # 使用字典打包
 
-    def get_partition_features(self, partition):
+    def get_partition_features(self, partition) -> np.ndarray:
+        """将包含若干个二维ndarray的列表vstack成1个二维ndarray
+
+        Parameters
+        ----------
+        partition : str
+            "train"|"test"
+
+        Returns
+        -------
+        np.ndarray
+            合并完成的矩阵
+
+        Raises
+        ------
+        ValueError
+            _description_
+        """
         # print("len(self.train_features),len(self.test_features):")
         # print(len(self.train_features),len(self.test_features))
         # return
+        partition=validate_partition(partition)
         if partition == "test":
             res = np.vstack(self.test_features) if self.test_features else np.array([])
-        elif partition == "train":
+        else :
             res = (
                 np.vstack(self.train_features) if self.train_features else np.array([])
             )
-        else:
-            raise ValueError("Invalid partition, choose from test|train ")
+      
         return res
 
     def load_metadata(self, meta_file):
@@ -218,11 +235,11 @@ class AudioExtractor:
         if features is not None:
             features_attr += [features]  # 将features打包为列表在并入
             # np.vstack(features)
-        if verbose:
+        if verbose>=2:
             #检查训练集和测试集属性情况
             check_1=self.partition_attributes_set(partition)
             for attr in check_1:
-                nd_attr=np.array(attr)
+                nd_attr=np.array(attr,dtype=object)
                 print(nd_attr.shape,id(attr))
             
 
@@ -647,11 +664,11 @@ def shuffle_data(audio_paths, emotions, features):
 def load_data(
     train_meta_files=None,
     test_meta_files=None,
-    f_config=None,
-    e_config=None,
-    classification=True,
+    f_config=f_config_def,
+    e_config=e_config_def,
+    classification_task=True,
     shuffle=False,
-    balance=True,
+    balance=False,
 ) -> dict:
     """导入语音数据,并返回numpy打包train/test dataset相关属性的ndarray类型
 
@@ -681,7 +698,7 @@ def load_data(
     ae = AudioExtractor(
         f_config=f_config,
         e_config=e_config,
-        classification_task=classification,
+        classification_task=classification_task,
         balance=balance,
         verbose=True,
     )
@@ -689,9 +706,11 @@ def load_data(
     ae.load_data_preprocessing(train_meta_files, partition="train", shuffle=shuffle)
     # Loads testing data
     ae.load_data_preprocessing(test_meta_files, partition="test", shuffle=shuffle)
+
     #以train集为例检查self属性
     # print("ae.train_audio_paths:\n", ae.train_audio_paths)
     # X_train, X_test, y_train, y_test
+    
     return {
         # "X_train": np.array(ae.train_features),
         # "X_test": np.array(ae.test_features),
@@ -711,7 +730,7 @@ if __name__ == "__main__":
     # ae = AudioExtractor(f_config=f_config_def)
     # print(ae)
 
-    res = load_data(
+    data = load_data(
         # train_meta_files=train_emodb_csv,
         test_meta_files=test_emodb_csv,
         f_config=f_config_def,

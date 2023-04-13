@@ -8,7 +8,7 @@ from array import array
 from struct import pack
 from sklearn.ensemble import GradientBoostingClassifier, BaggingClassifier
 
-from utils import get_best_estimators
+from utils import best_estimators
 
 THRESHOLD = 500
 CHUNK_SIZE = 1024
@@ -129,7 +129,7 @@ def get_estimators_name(estimators):
 
 
 if __name__ == "__main__":
-    estimators = get_best_estimators(True)
+    estimators = best_estimators(True)
     estimators_str, estimator_dict = get_estimators_name(estimators)
     import argparse
     parser = argparse.ArgumentParser(description="""

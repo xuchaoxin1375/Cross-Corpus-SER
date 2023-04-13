@@ -334,15 +334,20 @@ def _meta_names_all(dbs=dbs, partition=None, e_config=e_config_def):
     list
         meta文件名list
     """
+    if isinstance(dbs,str):
+        dbs=[dbs]
     meta_partition = [create_tag_name(db, partition, e_config=e_config) for db in dbs]
     return meta_partition
 
 
-def meta_paths_all(dbs=dbs, partition=None, e_config=e_config_def):
+def meta_paths_dbs(dbs=dbs, partition=None, e_config=e_config_def):
     """计算dbs中配置的所有语料库的train/test meta文件路径
 
        Parameters
        ----------
+       dbs=dbs: list|str
+           语料库列表, by default dbs
+           通常只需要选择一个语料库即可
        e_config : list, optional
            情感组合, by default e_config_def
 
@@ -353,21 +358,30 @@ def meta_paths_all(dbs=dbs, partition=None, e_config=e_config_def):
 
        e.g.
        -
-       >>> meta_paths_all(dbs=[emodb],partition="test")
+       >>> meta_paths_dbs(dbs=[emodb],partition="test")
        >>> [WindowsPath('meta_files/test_emodb_HNS.csv')]
 
-       >>> meta_paths_all(dbs=[ravdess,emodb],partition="test")
-       >>> [WindowsPath('meta_files/test_ravdess_HNS.csv'),
-    WindowsPath('meta_files/test_emodb_HNS.csv')]
+       >>> meta_paths_dbs(dbs=[ravdess,emodb],partition="test")
+       >>> 
+            [WindowsPath('meta_files/test_ravdess_HNS.csv'),
+            WindowsPath('meta_files/test_emodb_HNS.csv')]
+    
+       >>> meta_paths_bs(dbs=[emodb,ravdess])
+       >>> 
+       [WindowsPath('meta_files/train_emodb_HNS.csv'),
+        WindowsPath('meta_files/test_emodb_HNS.csv'),
+        WindowsPath('meta_files/train_ravdess_HNS.csv'),
+        WindowsPath('meta_files/test_ravdess_HNS.csv')]
     """
     meta_trains = _meta_names_all(dbs=dbs, partition="train", e_config=e_config)
     meta_tests = _meta_names_all(dbs=dbs, partition="test", e_config=e_config)
 
-    partition = validate_partition(partition)
 
     res = []
     train_paths = prepend_dir(meta_trains)
     test_paths = prepend_dir(meta_tests)
+
+    partition = validate_partition(partition)
     if partition:
         if partition == "train":
             res = train_paths
@@ -389,17 +403,27 @@ def test1():
 
 
 def test2():
-    res = meta_paths_all(e_config=None)
+    res = meta_paths_dbs(e_config=None)
     for path in res:
         print(path)
 
 
 ##
 
-partition_meta_files = meta_paths_all(e_config=e_config_def)
+partition_meta_files = meta_paths_dbs(e_config=e_config_def)
 train_emodb_csv, test_emodb_csv, train_ravdess_csv, test_ravdess_csv = [
     str(meta) for meta in partition_meta_files
 ]
+
+pair1=(train_ravdess_csv,test_ravdess_csv)
+pair2=(train_emodb_csv,test_emodb_csv)
+pair3=(train_ravdess_csv,test_emodb_csv)
+pair4=(train_emodb_csv,test_ravdess_csv)
+
+def select_meta_dict(pair):
+    
+    meta_files_dict={"train_meta_files":pair[0],"test_meta_files":pair[1]}
+    return meta_files_dict
 ##
 
 
@@ -409,4 +433,6 @@ if __name__ == "__main__":
     # test1()
     # test2()
     # res = meta_paths(ravdess)
-    print(partition_meta_files)
+    # print(partition_meta_files)
+    meta_paths_dbs()
+    

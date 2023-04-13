@@ -48,7 +48,7 @@
 
 This repository used 4 datasets (including this repo's custom dataset) which are downloaded and formatted already in `data` folder:
 
-#### RAVDE
+### RAVDE
 
 - [**RAVDESS**](https://zenodo.org/record/1188976) : The **R**yson **A**udio-**V**isual **D**atabase of **E**motional **S**peech and **S**ong that contains 24 actors (12 male, 12 female), vocalizing two lexically-matched statements in a neutral North American accent.
 - [RAVDESS Emotional speech audio | Kaggle](https://www.kaggle.com/datasets/uwrfkaggler/ravdess-emotional-speech-audio?resource=download)
@@ -85,7 +85,7 @@ This repository used 4 datasets (including this repo's custom dataset) which are
 
   RAVDESS语料库是一个广泛应用于语音情感识别和分类领域的标准数据集，它已经被广泛应用于语音情感识别和分类算法的开发和评估。该数据库的开放访问使得研究人员可以更方便地进行情感识别和分类算法的开发和评估，同时也为智能语音应用的开发提供了有用的资源。
 
-#### TESS
+### TESS
 
 - [**TESS**](https://tspace.library.utoronto.ca/handle/1807/24487) : **T**oronto **E**motional **S**peech **S**et that was modeled on the Northwestern University Auditory Test No. 6 (NU-6; Tillman & Carhart, 1966). A set of 200 target words were spoken in the carrier phrase "Say the word _____' by two actresses (aged 26 and 64 years).
 - [Toronto emotional speech set (TESS) | Kaggle](https://www.kaggle.com/datasets/ejlok1/toronto-emotional-speech-set-tess)
@@ -107,7 +107,7 @@ This repository used 4 datasets (including this repo's custom dataset) which are
 
   因此，这个文件名告诉我们，这个音频记录来自TESS语料库中的第一个演员，表演的是说出“back”这个短语时表现出的愤怒情感状态。该文件的格式为.wav格式。TESS语料库的文件命名方式非常规范，这些信息对于进行情感识别和分类等研究非常有用。
 
-#### EMODB
+### EMODB
 
 - [**EMO-DB**](http://emodb.bilderbar.info/docu/) : As a part of the DFG funded research project SE462/3-1 in 1997 and 1999 we recorded a database of emotional utterances spoken by actors. The recordings took place in the anechoic chamber of the Technical University Berlin, department of Technical Acoustics. Director of the project was Prof. Dr. W. Sendlmeier, Technical University of Berlin, Institute of Speech and Communication, department of communication science. Members of the project were mainly Felix Burkhardt, Miriam Kienast, Astrid Paeschke and Benjamin Weiss.
 - [EmoDB Dataset | Kaggle](https://www.kaggle.com/datasets/piyushagni5/berlin-database-of-emotional-speech-emodb?resource=download)
@@ -150,15 +150,31 @@ This repository used 4 datasets (including this repo's custom dataset) which are
 
   Example: 03a01Fa.wav is the audio file from Speaker 03 speaking text a01 with the emotion "Freude" (Happiness).
 
-#### Custom
+### Urdu
 
-- **Custom** : Some unbalanced noisy dataset that is located in `data/train-custom` for training and `data/test-custom` for testing in which you can add/remove recording samples easily by converting the raw audio to 16000 sample rate, mono channel (this is provided in `create_wavs.py` script in ``convert_audio(audio_path)`` method which requires [ffmpeg](https://ffmpeg.org/) to be installed and in *PATH*) and adding the emotion to the end of audio file name separated with '_' (e.g "20190616_125714_happy.wav" will be parsed automatically as happy)
+- [Urdu Language Speech Dataset | Kaggle](https://www.kaggle.com/datasets/bitlord/urdu-language-speech-dataset)
+
+- Urdu-language speech dataset是一个包含120个乌尔都语音频文件和其对应文本转录的数据集。该数据集可以用于语音识别、说话人识别和语言模型等多种任务。
+
+  这个数据集由Bitlord在Kaggle上发布，其中包含乌尔都语的口语，涵盖了不同的方言和口音。每个音频文件的时长约为5-10秒，文本转录是以Unicode编码的纯文本格式。
+
+  这个数据集可以用于机器学习模型的训练和评估，以提高乌尔都语言任务的性能。如果需要更大的数据集，您可以考虑使用其他来源的数据，或者通过数据增强来扩充这个数据集。
+
+  总的来说，Urdu-language speech dataset是一个适用于乌尔都语言任务的有用资源，对于对乌尔都语言感兴趣的人来说是一个很好的起点。
+
+### EmoVO
+
+EmoVO（Emotion in Voice Over）数据集是一个用于情感识别和情感分析任务的音频和视频录制的数据集。该数据集包含10,000个音频视频录制，每个录制都包含音频和视频数据。音频数据以16 kHz PCM单声道WAV文件的形式保存，视频数据以每秒25帧（FPS）的MPEG-4文件形式保存。
+
+每个录制都标有八种情感之一 - 愤怒、厌恶、恐惧、快乐、中性、愉快的惊喜、悲伤和不愉快的惊喜。数据集还包括声优的人口统计信息，例如性别、年龄和母语。
 
 ### 语料库文件在项目中的组织
 
 - 将EMODB语料库放在单独的目录`data/emodb`
-- 将TESS,RAVDESS语料库的大部分样本放在了训练集目录`data/training`
-  - 少部分样本作为测试集(验证集)放到目录`data/validation`
+- 将RAVDESS语料库
+  - 大部分样本放在了训练集目录`data/ravdess`
+
+- 测试集(验证集)目录`data/validation`
 
 #### powershell递归统计脚本:
 
@@ -177,8 +193,6 @@ This repository used 4 datasets (including this repo's custom dataset) which are
 #### 文件统计结果
 
 - EMODB:535
-
-- TESS:2800
 
 - RAVDESS:1440
 
@@ -757,6 +771,32 @@ SVR（Support Vector Regression）是一种基于支持向量机（SVM）的回�
 
 另一种常见的方法是使用逻辑函数（如sigmoid函数）将回归输出映射到[0,1]区间上，并将映射后的输出视为正类概率。
 
+## DeepLearning method
+
+### Tensorflow.Keras
+
+- Keras是一个用于构建和训练深度学习模型的高级神经网络API，由Francois Chollet创建。以下是Keras的主要信息：
+
+  - Keras支持多种深度学习模型，包括卷积神经网络(CNN)、循环神经网络(RNN)、自编码器(Autoencoder)等。
+  - Keras提供了一个简单的API，使得构建和训练深度学习模型变得更加容易和快速。
+  - Keras的后端引擎支持多种深度学习框架，包括TensorFlow、Theano和CNTK等，因此可以在不同的硬件和软件平台上运行。
+  - Keras的文档和社区支持非常完善，有大量的教程、示例和论坛可以供用户参考和交流。
+  - Keras在2017年正式被纳入TensorFlow的官方API，成为了TensorFlow 2.0的默认API。
+
+  总的来说，Keras是一个功能强大、易于使用、高度灵活的深度学习API，为用户提供了一个快速构建和训练深度学习模型的平台。
+
+#### 主要内容
+
+- Keras主要内容包括以下方面：
+  1. 模型构建：Keras提供了简单的API，使得用户可以轻松地构建各种深度学习模型，包括卷积神经网络(CNN)、循环神经网络(RNN)、自编码器(Autoencoder)等。
+  2. 模型训练：Keras可以使用多种优化器和损失函数来训练模型，并支持多种训练技巧，如批量归一化、dropout等，以提高模型的性能和鲁棒性。
+  3. 模型评估：Keras提供了多种评估指标，如准确率、精度、召回率等，可以帮助用户评估模型的性能。
+  4. 模型部署：Keras支持多种后端引擎，包括TensorFlow、Theano和CNTK等，因此可以在不同的硬件和软件平台上运行，并支持多种部署方式，如本地部署、云端部署等。
+  5. 模型调优：Keras支持网格搜索和随机搜索等方式来进行模型调优，并提供了可视化工具，帮助用户分析模型在训练中的表现。
+  6. 社区支持：Keras拥有一个庞大的社区，在网站上提供了大量的文档、教程、示例和论坛等资源，用户可以方便地获取帮助和交流。
+
+- [KerasBasic](KerasBasic)
+
 ### RNN+LSTM
 
 - RNN（Recurrent Neural Network，循环神经网络）是一类用于处理序列数据的神经网络，它的每个时间步都会接收一个输入和一个来自上一个时间步的隐藏状态，并输出一个新的隐藏状态和一个输出。
@@ -765,28 +805,6 @@ SVR（Support Vector Regression）是一种基于支持向量机（SVM）的回�
 
 - 总之，LSTM和GRU是RNN的改进版本，它们在处理序列数据时可以更好地捕捉长期依赖性信息。
 
-- Adam（Adaptive Moment Estimation，自适应矩估计）是一种用于优化神经网络参数的优化算法，它是对随机梯度下降算法的改进。
-
-  Adam算法的核心思想是自适应地调整每个参数的学习率，以便更好地适应不同参数的梯度。Adam算法维护了每个参数的一阶矩估计（即梯度的平均值）和二阶矩估计（即梯度的平方的平均值），并使用这些估计来计算每个参数的更新步长。
-
-### Optimizer
-
-具体来说，Adam算法的更新规则如下：
-
-1. 计算梯度$g_t$。
-2. 计算一阶矩估计$m_t$和二阶矩估计$v_t$：
-   $$m_t = \beta_1 m_{t-1} + (1-\beta_1) g_t$$
-   $$v_t = \beta_2 v_{t-1} + (1-\beta_2) g_t^2$$
-   其中，$\beta_1$和$\beta_2$是衰减率，通常取值为0.9和0.999。
-3. 对于每个参数$\theta_i$，计算更新步长$\Delta \theta_i$：
-   $$\Delta \theta_i = -\frac{\eta}{\sqrt{\hat{v}_t}+\epsilon} \hat{m}_t$$
-   其中，$\eta$是学习率，$\epsilon$是一个很小的常数（例如$10^{-8}$），$\hat{m}_t$和$\hat{v}_t$是对一阶矩估计和二阶矩估计进行修正的估计值：
-   $$\hat{m}_t = \frac{m_t}{1-\beta_1^t}$$
-   $$\hat{v}_t = \frac{v_t}{1-\beta_2^t}$$
-4. 更新参数$\theta_i$：
-   $$\theta_i \leftarrow \theta_i + \Delta \theta_i$$
-
-- Adam算法的优点是可以自适应地调整每个参数的学习率，可以在处理大规模数据时提高收敛速度，并且相对于其他优化算法具有较好的鲁棒性。但是，它也存在一些缺点，例如需要调整多个超参数，对于一些非凸优化问题可能存在问题等。
 
 ## 优化
 

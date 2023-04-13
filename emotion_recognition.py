@@ -1,6 +1,5 @@
 ##
 # from typing_extensions import deprecated
-import os
 import random
 from time import time
 
@@ -8,18 +7,44 @@ import matplotlib.pyplot as pl
 import numpy as np
 import pandas as pd
 import tqdm
-from deprecated import deprecated
-from sklearn.metrics import (accuracy_score, confusion_matrix, fbeta_score,
-                             make_scorer, mean_absolute_error,
-                             mean_squared_error)
+
+# from deprecated import deprecated
+from sklearn.metrics import (
+    accuracy_score,
+    classification_report,
+    confusion_matrix,
+    fbeta_score,
+    make_scorer,
+    mean_absolute_error,
+    mean_squared_error,
+)
 from sklearn.model_selection import GridSearchCV
 
 from create_csv import write_emodb_csv, write_ravdess_csv
 from data_extractor import load_data
-from EF import (AHNPS, AVAILABLE_EMOTIONS, HNS, MCM, ava_emotions,
-                e_config_def, f_config_def, get_f_config_dict)
-from MetaPath import dbs, emodb, meta_dir, meta_paths_all, ravdess
-from utils import extract_feature, get_best_estimators
+from EF import (
+    AHNPS,
+    AVAILABLE_EMOTIONS,
+    HNS,
+    MCM,
+    ava_emotions,
+    e_config_def,
+    f_config_def,
+    get_f_config_dict,
+    validate_emotions,
+)
+from MetaPath import (
+    dbs,
+    emodb,
+    meta_dir,
+    meta_paths_dbs,
+    ravdess,
+    test_emodb_csv,
+    test_ravdess_csv,
+    train_emodb_csv,
+    train_ravdess_csv,
+)
+from utils import best_estimators, extract_feature
 
 
 class EmotionRecognizer:
@@ -33,6 +58,8 @@ class EmotionRecognizer:
         dbs=None,
         e_config=None,
         f_config=None,
+        train_meta_files=None,
+        test_meta_files=None,
         balance=False,
         override_csv=True,
         verbose=1,
@@ -70,122 +97,45 @@ class EmotionRecognizer:
         # emotions
         self.e_config = e_config if e_config else e_config_def
         # make sure that there are only available emotions
-        self._verify_emotions()
+        validate_emotions(self.e_config)
         self.f_config = f_config if f_config else f_config_def
 
         # 转换为字典格式(待优化)
         # @deprecated(version='1.0', reason='请使用 new_function() 代替')
         self._f_config_dict: dict[str, bool] = get_f_config_dict(self.f_config)
-
-        # datasets(默认使用三个数据库:ravdess交叉数据库,和单库emodb数据库)
-        # self.ravdess = kwargs.get("ravdess", True)
-        # self.emodb = kwargs.get("emodb", True)
-        # 为例防止用户关闭所有可用的语料库选项导致试验无法进行,在这种情况下,强制启用其中的ravdess语料库
-        # if [self.ravdess, self.emodb] == [False] * 2:
-        #     self.ravdess = True
-        #
-        self.train_meta_files=[]
-        self.test_meta_files=[]
-  
+        self.train_meta_files = train_meta_files
+        self.test_meta_files = test_meta_files
         # 可以使用python 默认参数来改造写法
         # 默认执行分类任务
         self.classification_task = classification_task
         self.balance = balance
         self.override_csv = override_csv
         self.verbose = verbose
-        self.dbs=dbs if dbs else [ravdess]
-    
-        # set metadata path file names
-        # self._set_metadata_filenames()
-
-        # write csv's anyway
-        self.write_meta_csv()
-
         # boolean attributes
+        self.balance = False
         self.data_loaded = False
         self.model_trained = False
+        self.model = model if model is not None else self.best_model()
 
-        self.model = model if model else get_best_estimators(self.classification_task)
+        self.dbs = dbs if dbs else [ravdess]
+        # 鉴于数据集(特征和标签)在评估方法时将反复用到,因此这里将设置相应的属性来保存它们
+        # 另一方面,如果模仿sklearn中的编写风格,其实是将数据和模型计算分布在不同的模块(类)中,比如
+        # sklearn.datasets负责数据集生成
+        # sklearn.model_selection负责划分数据集和训练集
+        # sklearn.algorithms* 负责创建模型
+        # sklearn.metrics 负责评估模型
+        # 设置相应的属性的方便之处在于方法的调用可以少传参
+        self.X_train = None
+        self.X_test = None
+        self.y_train = None
+        self.y_test = None
+        self.train_audio_paths = None
+        self.test_audio_paths = None
+
+        # if self.model is None:
+        # 依赖于boolean attributes
+
     # def prepare():
-
-    def _set_metadata_filenames(self):
-        """
-        初始化辅助方法,设置语料库元数据文件名(不包含目录)
-        划分为训练集和测试集
-        构建2个列表,分别保存 training CSVs和testting CSVs文件
-        通常2个列表的的长度是一样的)
-        Protected method to get all CSV (metadata) filenames into two instance attributes:
-        - `self.train_desc_files` for training CSVs
-        - `self.test_desc_files` for testing CSVs
-        """
-        dbs=self.dbs
-        train_meta_files = meta_paths_all(dbs=dbs,partition="train")
-        test_meta_files = meta_paths_all(dbs=dbs,partition="test")
-        # set them to be object attributes
-        self.train_meta_files = train_meta_files
-        self.test_meta_files = test_meta_files
-
-    def _verify_emotions(self):
-        """
-        This method makes sure that emotions passed in parameters are valid.
-        """
-        for emotion in self.e_config:
-            assert emotion in ava_emotions, "Emotion not recognized."
-
-    def write_meta_csv(self):
-        """
-        Write available CSV files in `self.train_desc_files` and `self.test_desc_files`
-        determined by `self._set_metadata_filenames()` method.
-
-        ## Note:
-        硬编码实现:
-        if emodb in train_csv_file:
-                write_emodb_csv(
-                    self.e_config,
-                    train_name=train_csv_file,
-                    test_name=test_csv_file,
-                    verbose=self.verbose,
-                )
-                if self.verbose:
-                    print("[I] Generated EMO-DB  CSV meta File")
-            elif ravdess in train_csv_file:
-                write_ravdess_csv(
-                    self.e_config,
-                    train_name=train_csv_file,
-                    test_name=test_csv_file,
-                    verbose=self.verbose,
-                )
-                if self.verbose:
-                    print("[I] Generated RAVDESS CSV meta File")
-        """
-        for train_csv_file, test_csv_file in zip(
-            self.train_meta_files, self.test_meta_files
-        ):
-            # 使用Path对象的`/`操作符连接路径
-            # train_csv_file = (meta_dir / train_csv_file).name
-            # test_csv_file = (meta_dir / test_csv_file).name
-            # 兼容性的写法
-            if os.path.isfile(train_csv_file) and os.path.isfile(test_csv_file):
-                # file already exists, just skip writing csv files
-                if not self.override_csv:
-                    continue
-            meta_handler_dict={
-                emodb:write_emodb_csv,
-                ravdess: write_ravdess_csv
-            }
-            for db in dbs:
-                if(meta_handler_dict.get(db) is None):
-                    raise ValueError(f"{db} not recognized")
-                meta_handler_dict[db](
-                    self.e_config,
-                    train_name=train_csv_file,
-                    test_name=test_csv_file,
-                    verbose=self.verbose,
-                )
-                if self.verbose:
-                    print(f"[I] Generated {db} CSV meta File")
-            
-
 
     def load_data(self):
         """
@@ -195,41 +145,48 @@ class EmotionRecognizer:
         # 判断是否已经导入过数据.如果已经导入,则跳过,否则执行导入
         if not self.data_loaded:
             # 调用data_extractor中的数据导入函数
-            result = load_data(
+            data = load_data(
                 train_meta_files=self.train_meta_files,
-                test_meta_files= self.test_meta_files,
-               f_config= self._f_config_dict,
-               classification =self.classification_task,
+                test_meta_files=self.test_meta_files,
+                f_config=self.f_config,
+                classification_task=self.classification_task,
                 e_config=self.e_config,
                 balance=self.balance,
             )
             # 设置实例的各个属性
-            self.X_train = result["X_train"]
-            self.X_test = result["X_test"]
-            self.y_train = result["y_train"]
-            self.y_test = result["y_test"]
-            self.train_audio_paths = result["train_audio_paths"]
-            self.test_audio_paths = result["test_audio_paths"]
-            self.balance = result["balance"]
+            self.X_train = data["X_train"]
+            self.X_test = data["X_test"]
+            self.y_train = data["y_train"]
+            self.y_test = data["y_test"]
+            self.train_audio_paths = data["train_audio_paths"]
+            self.test_audio_paths = data["test_audio_paths"]
+            self.balance = data["balance"]
             if self.verbose:
                 print("[+] Data loaded")
             self.data_loaded = True
 
     def train(self, verbose=1):
         """
+
         Train the model, if data isn't loaded, it 'll be loaded automatically
+
+        X_train=None, y_train=None
         """
         if not self.data_loaded:
             # if data isn't loaded yet, load it then
             self.load_data()
+
         if not self.model_trained:
-            self.model.fit(X=self.X_train, y=self.y_train)
+            X_train = self.X_train
+            y_train = self.y_train
+            self.model.fit(X=X_train, y=y_train)
             self.model_trained = True
             if verbose:
                 print("[+] Model trained")
 
     def predict(self, audio_path):
         """
+        预测单个音频的情感
         given an `audio_path`, this method extracts the features
         and predicts the emotion
         """
@@ -267,15 +224,19 @@ class EmotionRecognizer:
             verbose=verbose,
             cv=3,
         )
-        # 调用fit开始搜索
-        grid_result = grid.fit(self.X_train, self.y_train)
+        # 调用fit开始传入数据集并搜索
+        X_train, y_train = self.X_train, self.y_train
+        if X_train is None or y_train is None:
+            raise ValueError("X_train and y_train are None")
+        # fit过程是一个耗时的过程
+        grid_result = grid.fit(X_train, y_train)
         return (
             grid_result.best_estimator_,
             grid_result.best_params_,
             grid_result.best_score_,
         )
 
-    def determine_best_model(self):
+    def best_model(self):
         """
         从常见的模型中计算出最好的Estimator(model)
         Loads best estimators and determine which is best for test data,
@@ -290,22 +251,23 @@ class EmotionRecognizer:
             self.load_data()
 
         # loads estimators
-        estimators = self.get_best_estimators()
+        estimators = best_estimators()
 
         result = []
 
         if self.verbose:
+            # 控制是否显示进度条
+            # 通过tqdm封装estimator这个可迭代对象,就可以在遍历estimator时,控制进度条的显示
             estimators = tqdm.tqdm(estimators)
 
         for estimator, params, cv_score in estimators:
             if self.verbose:
                 estimators.set_description(f"Evaluating {estimator.__class__.__name__}")
+            # self.model = estimator
+
             detector = EmotionRecognizer(
-                estimator,
+                model=estimator,
                 emotions=self.e_config,
-                ravdess=self.ravdess,
-                emodb=self.emodb,
-                # custom_db=self.custom_db,
                 classification_task=self.classification_task,
                 features=self.f_config,
                 balance=self.balance,
@@ -317,11 +279,17 @@ class EmotionRecognizer:
             detector.y_train = self.y_train
             detector.y_test = self.y_test
             detector.data_loaded = True
-            # train the model
+            # train(fit) the model
+            # 如果设置verbose=1,则会逐个打印当前计算的模型(进度不是同一条)
             detector.train(verbose=0)
-            # get test accuracy
+
+            # train(fit) the model
+            # self.train(verbose=1)
+
             accuracy = detector.test_score()
+            # print(f"[I] {estimator.__class__.__name__} with {accuracy} test accuracy")
             # append to result
+
             result.append((detector.model, accuracy))
 
         # sort the result
@@ -332,6 +300,7 @@ class EmotionRecognizer:
         )
         best_estimator = result[0][0]
         accuracy = result[0][1]
+
         self.model = best_estimator
         self.model_trained = True
         if self.verbose:
@@ -343,6 +312,7 @@ class EmotionRecognizer:
                 print(
                     f"[+] Best model determined: {self.model.__class__.__name__} with {accuracy:.5f} mean absolute error"
                 )
+        return best_estimator
 
     def test_score(self):
         """
@@ -350,31 +320,47 @@ class EmotionRecognizer:
         if `self.classification` is True, the metric used is accuracy,
         Mean-Squared-Error is used otherwise (regression)
         """
-        y_pred = self.model.predict(self.X_test)
-        if self.classification_task:
-            return accuracy_score(y_true=self.y_test, y_pred=y_pred)
-        else:
-            return mean_squared_error(y_true=self.y_test, y_pred=y_pred)
+        X_test = self.X_test
+        y_test = self.y_test
+        y_pred = self.model.predict(X_test)
+        if X_test is None or y_test is None:
+            raise ValueError("X_test and y_test are None")
 
-    def train_score(self):
+        if self.classification_task:
+            res = accuracy_score(y_true=y_test, y_pred=y_pred)
+        else:
+            res = mean_squared_error(y_true=y_test, y_pred=y_pred)
+        if self.verbose >= 2:
+            report = classification_report(y_true=y_test, y_pred=y_pred)
+            print(report, self.model.__class__.__name__)
+        return res
+
+    def train_score(self, X_train, y_train):
         """
         Calculates accuracy score on training data
         if `self.classification` is True, the metric used is accuracy,
         Mean-Squared-Error is used otherwise (regression)
         """
-        y_pred = self.model.predict(self.X_train)
+        y_pred = self.model.predict(X_train, y_train)
         if self.classification_task:
-            return accuracy_score(y_true=self.y_train, y_pred=y_pred)
+            return accuracy_score(y_true=y_train, y_pred=y_pred)
         else:
-            return mean_squared_error(y_true=self.y_train, y_pred=y_pred)
+            return mean_squared_error(y_true=y_train, y_pred=y_pred)
 
     def train_fbeta_score(self, beta):
         y_pred = self.model.predict(self.X_train)
-        return fbeta_score(self.y_train, y_pred, beta, average="micro")
+        y_train = self.y_train
+        if y_train is None:
+            raise ValueError("y_train is None")
+
+        return fbeta_score(y_true=y_train, y_pred=y_pred, beta=beta, average="micro")
 
     def test_fbeta_score(self, beta):
         y_pred = self.model.predict(self.X_test)
-        return fbeta_score(self.y_test, y_pred, beta, average="micro")
+        y_test = self.y_test
+        if y_test is None:
+            raise ValueError("y_test is None")
+        return fbeta_score(y_true=y_test, y_pred=y_pred, beta=beta, average="micro")
 
     def confusion_matrix(self, percentage=True, labeled=True):
         """
@@ -389,9 +375,12 @@ class EmotionRecognizer:
                 "Confusion matrix works only when it is a classification problem"
             )
         y_pred = self.model.predict(self.X_test)
-        matrix = confusion_matrix(self.y_test, y_pred, labels=self.e_config).astype(
-            np.float32
-        )
+        y_test = self.y_test
+        if y_test is None:
+            raise ValueError("y_test is None")
+        matrix = confusion_matrix(
+            y_true=y_test, y_pred=y_pred, labels=self.e_config
+        ).astype(np.float32)
         if percentage:
             for i in range(len(matrix)):
                 matrix[i] = matrix[i] / np.sum(matrix[i])
@@ -416,10 +405,16 @@ class EmotionRecognizer:
         """Returns number data samples of the `emotion` class in a particular `partition`
         ('test' or 'train')
         """
+        res = 0
         if partition == "test":
-            return len([y for y in self.y_test if y == emotion])
+            if self.y_test is None:
+                raise ValueError("y_test is None")
+            res = len([y for y in self.y_test if y == emotion])
         elif partition == "train":
-            return len([y for y in self.y_train if y == emotion])
+            if self.y_train is None:
+                raise ValueError("y_train is None")
+            res = len([y for y in self.y_train if y == emotion])
+        return res
 
     def get_samples_by_class(self):
         """
@@ -475,7 +470,7 @@ def plot_histograms(classifiers=True, beta=0.5, n_classes=3, verbose=1):
         n_classes (int): number of classes
     """
     # get the estimators from the performed grid search result
-    estimators = get_best_estimators(classifiers)
+    estimators = best_estimators(classifiers)
 
     final_result = {}
     for estimator, params, cv_score in estimators:
@@ -615,6 +610,8 @@ def visualize(results, n_classes):
     pl.show()
 
 
+from MetaPath import pair1, select_meta_dict, test_emodb_csv, train_emodb_csv
+
 if __name__ == "__main__":
     # from emotion_recognition import EmotionRecognizer
     from sklearn.svm import SVC
@@ -623,12 +620,28 @@ if __name__ == "__main__":
     my_model = SVC()
     # pass model to EmotionRecognizer instance
     # and balance the dataset
-    rec = EmotionRecognizer(
-        # model=my_model
-    )
     # train the model
-    rec.train()
-    # # check the test accuracy for that model
-    # print("Test score:", rec.test_score())
-    # # check the train accuracy for that model
-    # print("Train score:", rec.train_score())
+    # train_meta_files= meta_paths_dbs(partition="train",dbs=db)
+    # test_meta_files =meta_paths_dbs(partition="test",dbs=db)
+
+    train_meta_files = train_ravdess_csv
+    test_meta_files = test_ravdess_csv
+
+    # rec = EmotionRecognizer(train_meta_files=train_meta_files,test_meta_files=test_meta_files,model=my_model, verbose=1)
+
+    from MetaPath import pair2, pair3, pair4
+
+    meta_files_dict = select_meta_dict(pair3)
+    rec = EmotionRecognizer(**meta_files_dict, verbose=1)
+
+    # data=rec.load_data()
+
+    # data = load_data(
+    #     train_meta_files=train_meta_files,
+    #     test_meta_files=test_meta_files,
+    #     balance=False,
+    # )
+
+    # X_train = data["X_train"]
+    # y_train = data["y_train"]
+    # rec.train(X_train=X_train, y_train=y_train)

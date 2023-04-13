@@ -1,7 +1,7 @@
 ##
 from sklearn.model_selection import RandomizedSearchCV, GridSearchCV
 from sklearn.datasets import make_classification
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import GradientBoostingClassifier, RandomForestRegressor
 from sklearn.datasets import load_iris
 from sklearn.datasets import fetch_california_housing
 from sklearn.model_selection import GridSearchCV
@@ -13,31 +13,45 @@ from scipy.stats import randint
 from sklearn.ensemble import RandomForestClassifier, BaggingClassifier,BaggingRegressor
 from sklearn.model_selection import RandomizedSearchCV
 from joblib import load, dump
-best_clf = "best_clf.joblib"
-best_rgr = "best_rgr.joblib"
-# bclf_job=dump(bclf,'best_clf.joblib')
-# brgr_job=dump(brgr,'best_rgr.joblib')
+best_clf = "bclf.joblib"
+best_rgr = "brgr.joblib"
 
 bclf = load(best_clf)
 brgr = load(best_rgr)
 ##
-b = BaggingClassifier(max_features=0.5, n_estimators=50)
-print(b)
-bag_best = (BaggingClassifier(max_features=0.5, n_estimators=50),
+bclf
+##
+bag=BaggingClassifier(max_features=0.5, n_estimators=50)
+bag_best = (bag,
             {'max_features': 0.5, 'max_samples': 1.0, 'n_estimators': 50},
             0.9210651450309082)
-bclf[-1] = bag_best
 
-# tuple(x[0])
+rf_best=(RandomForestClassifier(max_depth=7, max_features=0.5, n_estimators=40), {'max_depth': 7, 'max_features': 0.5, 'min_samples_leaf': 1, 'min_samples_split': 2, 'n_estimators': 40}, 0.8854018069424631)
+
+gb=GradientBoostingClassifier(learning_rate=0.3, loss='log_loss', max_depth=7,
+                           subsample=0.7)
+gb_best=(gb, {'learning_rate': 0.3, 'max_depth': 7, 'max_features': None, 'min_samples_leaf': 1, 'min_samples_split': 2, 'n_estimators': 100, 'subsample': 0.7}, 0.9476937708036139)
+
+
+bclf[1]=rf_best
+bclf[2]=gb_best
+##
+# dump(bclf, "bclf.joblib")
+# bclf[-1] = bag_best
 ##
 for item in bclf:
     print(item)
 
 ##
+brgr
+##
+# 修改回归模型
 bag_rgr_best = (BaggingRegressor(max_features=1, max_samples=0.1),
                 {'max_features': 1, 'max_samples': 0.1, 'n_estimators': 10},
                 0.6521001743540973)
-brgr[-1]=bag_rgr_best
+
+                
+# brgr[-1]=bag_rgr_best
 ##
 # 生成二分类数据集
 X, y = make_classification(n_samples=500, n_features=5,
