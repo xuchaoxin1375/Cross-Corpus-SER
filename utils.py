@@ -1,14 +1,15 @@
 ##
 
-import soundfile
+import os
+
 import librosa
 import numpy as np
-import os
+import soundfile
 from joblib import load
 
-from MetaPath import bclf, brgr
 from convert_wavs import convert_audio
-from EF import MCM
+from EF import MCM, ava_features
+from MetaPath import bclf, brgr
 
 
 def get_dropout_str(dropout, n_layers=3):
@@ -76,7 +77,6 @@ def extract_feature(audio_file_name, f_config):
     # contrast = kwargs.get("contrast",False)
     # tonnetz = kwargs.get("tonnetz",False)
 
-    from EF import ava_features
 
     if not set(f_config) <= set(ava_features):
         raise ValueError(f"{f_config}包含不受支持的特征名字,请在{ava_features}中选取")
@@ -174,7 +174,7 @@ def extract_features_handler(new_filename, f_config):
         # 根据参数情况,提取需要的情感特征
         # 对于chroma和constrast两种特征,计算stft的幅值矩阵(复数取模,实数化)
         stft = []
-        from EF import chroma, contrast, mfcc, mel, tonnetz
+        from EF import chroma, contrast, mel, mfcc, tonnetz
         global extractors_debug
         extractors1 = {mfcc: mfcc_extract, mel: mel_extract, tonnetz: tonnetz_extract}
         extractors2 = {chroma: chroma_extract, contrast: contrast_extract}

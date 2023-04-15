@@ -41,7 +41,7 @@ from data_extractor import *
 from MetaPath import *
 
 pair_dict=select_meta_dict(pair2)
-data=load_data(**pair_dict)
+data=load_data_from_meta(**pair_dict)
 X_train=data["X_train"]
 y_train=data["y_train"]
 X_test=data["X_test"]

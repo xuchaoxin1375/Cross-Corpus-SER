@@ -879,11 +879,83 @@ from emotion_recognition import plot_histograms
 plot_histograms(classifiers=True)
 ```
 
-**Output:**
 
-<img src="images/Figure.png">
-<p align="center">A Histogram shows different algorithms metric results on different data sizes as well as time consumed to train/predict.</p>
 
-[ProjectStructure.md]:
+## 客户端
 
-[ProjectStructure]:
+- "Tkinter" 的全称是 "Tk Interface"，它是 Python 标准库之一，提供了创建 GUI 应用程序的工具。
+- 它的缩写是 "Tk" 或 "Tkinter"，在 Python 中可以使用 `import tkinter` 或 `import Tkinter` 来导入 Tkinter 模块。
+
+### Tkinter vs PyQt@pyside
+
+- Tkinter 和 PyQt 都是用于创建 GUI 应用程序的 Python 库，它们都提供了创建窗口、按钮、文本框等 GUI 元素的工具，但它们在使用和功能上有一些不同。在 Python 的 GUI 编程库 Tkinter 中，TK 代表 "Toolkit"（工具包），因为 Tkinter 是基于 Tk 工具包开发的。Tk 是一个跨平台的图形用户界面工具包，它提供了一组用于构建 GUI 应用程序的库和工具。"inter" 是 "Interface" 的缩写，表示 Tkinter 是一个用于创建用户界面的库。
+
+  1. 语法不同：Tkinter 是 Python 的标准库，语法较为简单，易于上手，而 PyQt 则需要安装额外的 PyQT 库，并且语法较为复杂，需要一定的学习成本。
+  2. 平台支持不同：Tkinter 是跨平台的，可以在 Windows、Linux、Mac OS 等系统上使用，而 PyQt 在某些平台上可能存在兼容性问题。
+  3. GUI 设计工具不同：PyQt 提供了 Qt Designer 工具，可以可视化地设计 GUI 界面，而 Tkinter 没有提供类似的工具，需要手动编写代码设计界面。
+  4. 功能差异：PyQt 提供了更多的功能和小部件，例如支持多线程、数据库连接、图形绘制等，而 Tkinter 的功能相对较为简单，适合开发简单的 GUI 应用程序。
+
+  综上所述，选择使用 Tkinter 还是 PyQt 取决于具体的需求和开发经验。对于初学者或开发简单应用，Tkinter 是一个不错的选择，而对于需要更复杂功能和更好的界面设计的应用，PyQt 可能更适合。
+
+## 部分实验结果
+
+### 跨库识别
+
+- train_emodb_AS.csv+test_ravdess_AS.csv
+
+  - ```bash
+    meta_files\train_emodb_AS.csv meta_files\test_ravdess_AS.csv
+    meta_files\test_ravdess_AS.csv @{test_meta_files} in load_data_from_meta
+    partition='train'
+    meta_files\train_emodb_AS.csv @{meta_files}in load_data_preprosscing
+    cast the 'meta_files\train_emodb_AS.csv' to [str]
+    meta_files\train_emodb_AS.csv @🎈{meta_file}
+    [I] Loading audio file paths and its corresponding labels...
+    meta_files: ['meta_files\\train_emodb_AS.csv']
+    存在meta_files\train_emodb_AS.csv文件!
+    meta_path='meta_files\\train_emodb_AS.csv'@
+    db='emodb'@
+    检查特征文件features\emodb_mfcc_AS_151.npy是否存在...
+    self.e_config=['angry', 'sad']
+    特征矩阵文件(.npy)已经存在,直接导入:loading...
+    (151, 40) @{feature.shape}
+    [Info] Adding  train samples
+    partition='test'
+    meta_files\test_ravdess_AS.csv @{meta_files}in load_data_preprosscing
+    cast the 'meta_files\test_ravdess_AS.csv' to [str]
+    meta_files\test_ravdess_AS.csv @🎈{meta_file}
+    [I] Loading audio file paths and its corresponding labels...
+    meta_files: ['meta_files\\test_ravdess_AS.csv']
+    存在meta_files\test_ravdess_AS.csv文件!
+    meta_path='meta_files\\test_ravdess_AS.csv'@
+    db='ravdess'@
+    检查特征文件features\ravdess_mfcc_AS_406.npy是否存在...
+    self.e_config=['angry', 'sad']
+    特征矩阵文件(.npy)已经存在,直接导入:loading...
+    (406, 40) @{feature.shape}
+    [Info] Adding  test samples
+    [+] Data loaded
+    2796338002912
+    None @{self.model}
+    Evaluating RandomForestClassifier:   0%|          | 0/5 [00:00<?, ?it/s]
+    SVC(C=10, gamma=0.001) @{self.model}
+    RandomForestClassifier(max_depth=7, max_features=0.5, n_estimators=40) @{self.model}
+    Evaluating KNeighborsClassifier:  40%|████      | 2/5 [00:00<00:00, 14.40it/s]  
+    KNeighborsClassifier(n_neighbors=3, p=1, weights='distance') @{self.model}
+    Evaluating MLPClassifier:  40%|████      | 2/5 [00:00<00:00, 14.40it/s]       d:\condaPythonEnvs\tf2.10\lib\site-packages\sklearn\neural_network\_multilayer_perceptron.py:603: UserWarning: Got `batch_size` less than 1 or larger than sample size. It is going to be clipped
+      warnings.warn(
+    Evaluating BaggingClassifier:  80%|████████  | 4/5 [00:00<00:00,  6.96it/s]
+    MLPClassifier(alpha=0.01, batch_size=512, hidden_layer_sizes=(300,),
+                  learning_rate='adaptive', max_iter=400) @{self.model}
+    BaggingClassifier(max_features=0.5, n_estimators=50) @{self.model}
+    Evaluating BaggingClassifier: 100%|██████████| 5/5 [00:00<00:00,  7.09it/s]
+    [+] Best model determined: RandomForestClassifier with 77.094% test accuracy
+    test_score=0.770935960591133
+    ```
+
+    
+
+
+
+
+

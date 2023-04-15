@@ -6,6 +6,8 @@ from time import time
 import matplotlib.pyplot as pl
 import numpy as np
 import pandas as pd
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import LinearSVR
 import tqdm
 
 # from deprecated import deprecated
@@ -20,29 +22,32 @@ from sklearn.metrics import (
 )
 from sklearn.model_selection import GridSearchCV
 
-from create_csv import write_emodb_csv, write_ravdess_csv
-from data_extractor import load_data
+from create_csv import create_emodb_csv, create_ravdess_csv
+from data_extractor import load_data_from_meta
 from EF import (
     AHNPS,
     AVAILABLE_EMOTIONS,
     HNS,
     MCM,
     ava_emotions,
+    ava_features,
     e_config_def,
     f_config_def,
     get_f_config_dict,
     validate_emotions,
 )
 from MetaPath import (
-    dbs,
+    ava_dbs,
     emodb,
     meta_dir,
-    meta_paths_dbs,
+    create_meta_paths_dbs,
+    meta_paths_of_db,
     ravdess,
     test_emodb_csv,
     test_ravdess_csv,
     train_emodb_csv,
     train_ravdess_csv,
+    validate_partition,
 )
 from utils import best_estimators, extract_feature
 
@@ -58,8 +63,8 @@ class EmotionRecognizer:
         dbs=None,
         e_config=None,
         f_config=None,
-        train_meta_files=None,
-        test_meta_files=None,
+        train_dbs=None,
+        test_dbs=None,
         balance=False,
         override_csv=True,
         verbose=1,
@@ -102,9 +107,38 @@ class EmotionRecognizer:
 
         # 转换为字典格式(待优化)
         # @deprecated(version='1.0', reason='请使用 new_function() 代替')
-        self._f_config_dict: dict[str, bool] = get_f_config_dict(self.f_config)
-        self.train_meta_files = train_meta_files
-        self.test_meta_files = test_meta_files
+        # self._f_config_dict: dict[str, bool] = get_f_config_dict(self.f_config)
+        self.train_dbs = train_dbs
+        self.test_dbs = test_dbs
+
+        self.train_meta_files = meta_paths_of_db(
+            db=self.train_dbs,
+            e_config=self.e_config,
+            change_type="str",
+            partition="train",
+        )
+
+        self.test_meta_files = meta_paths_of_db(
+            db=self.test_dbs,
+            e_config=self.e_config,
+            change_type="str",
+            partition="test",
+        )
+
+        print(self.train_meta_files, self.test_meta_files)
+
+        # if self.train_dbs and self.test_dbs:
+        #     if isinstance( self.train_dbs,str):
+        #         self.train_dbs = [self.train_dbs]
+        #         self.train_meta_files=[
+        #             meta_paths_of_db(db,e_config=self.e_config) for db in self.train_dbs
+        #         ]
+        #     if isinstance( self.test_dbs,str):
+        #         self.test_dbs = [self.test_dbs]
+        #         self.test_meta_files=[
+        #             meta_paths_of_db(db,e_config=self.e_config) for db in self.test_dbs
+        #         ]
+
         # 可以使用python 默认参数来改造写法
         # 默认执行分类任务
         self.classification_task = classification_task
@@ -115,7 +149,7 @@ class EmotionRecognizer:
         self.balance = False
         self.data_loaded = False
         self.model_trained = False
-        self.model = model if model is not None else self.best_model()
+        self.model_selected = False
 
         self.dbs = dbs if dbs else [ravdess]
         # 鉴于数据集(特征和标签)在评估方法时将反复用到,因此这里将设置相应的属性来保存它们
@@ -125,13 +159,17 @@ class EmotionRecognizer:
         # sklearn.algorithms* 负责创建模型
         # sklearn.metrics 负责评估模型
         # 设置相应的属性的方便之处在于方法的调用可以少传参
-        self.X_train = None
-        self.X_test = None
-        self.y_train = None
-        self.y_test = None
-        self.train_audio_paths = None
-        self.test_audio_paths = None
-
+        self.X_train = []
+        self.X_test = []
+        self.y_train = []
+        self.y_test = []
+        self.y_pred = []
+        self.train_audio_paths = []
+        self.test_audio_paths = []
+        # 开始填充数据(最先开始的步骤,放在init中随着初始化实例的时候执行)
+        # self.load_data()
+        # 属性的先后位置会影响程序的运行
+        self.model = model if model else None
         # if self.model is None:
         # 依赖于boolean attributes
 
@@ -145,12 +183,12 @@ class EmotionRecognizer:
         # 判断是否已经导入过数据.如果已经导入,则跳过,否则执行导入
         if not self.data_loaded:
             # 调用data_extractor中的数据导入函数
-            data = load_data(
+            data = load_data_from_meta(
                 train_meta_files=self.train_meta_files,
                 test_meta_files=self.test_meta_files,
                 f_config=self.f_config,
-                classification_task=self.classification_task,
                 e_config=self.e_config,
+                classification_task=self.classification_task,
                 balance=self.balance,
             )
             # 设置实例的各个属性
@@ -164,8 +202,11 @@ class EmotionRecognizer:
             if self.verbose:
                 print("[+] Data loaded")
             self.data_loaded = True
+            # print(id(self))
+            if self.verbose > 1:
+                print(vars(self))
 
-    def train(self, verbose=1):
+    def train(self, choosing=False, verbose=1):
         """
 
         Train the model, if data isn't loaded, it 'll be loaded automatically
@@ -175,30 +216,55 @@ class EmotionRecognizer:
         if not self.data_loaded:
             # if data isn't loaded yet, load it then
             self.load_data()
-
-        if not self.model_trained:
+        print(self.model,"@{self.model}")
+        model = self.model if self.model is not None else self.best_model()
+        if not self.model_trained or choosing:
             X_train = self.X_train
             y_train = self.y_train
-            self.model.fit(X=X_train, y=y_train)
+            model.fit(X=X_train, y=y_train)
             self.model_trained = True
-            if verbose:
-                print("[+] Model trained")
+        if verbose:
+            if choosing == True:
+                print(
+                    f"[I] Model trained with{choosing=},choosing the best model,override the trained model.."
+                )
 
     def predict(self, audio_path):
         """
         预测单个音频的情感
+        由于是单个音频的情感预测,因此不需要考虑shuffle和balance这些操作,只需要提取语音特征,然后进行调用模型预测即可
         given an `audio_path`, this method extracts the features
         and predicts the emotion
         """
-        feature = extract_feature(audio_path, **self._f_config_dict).reshape(1, -1)
-        return self.model.predict(feature)[0]
+        feature1 = extract_feature(audio_path, self.f_config)
+        # print(feature1.shape)
+        # print(feature1,"@{feature1}",feature1.shape)
+        # feature2=feature1.T
+        # print(feature2,"@{feature2}",feature2.shape)
+
+        feature = feature1.reshape(1, -1)
+        # print(feature3,"@{feature3}",feature3.shape)
+        model = self.model if self.model else self.best_model()
+        res = model.predict(feature)
+        print(res, "@{res}")
+        return feature
+        # return self.model.predict(feature2)[0]
+
+    def peek_test_set(self, n=5):
+        res = [
+            self.test_audio_paths[:n],
+            self.X_test[:n],
+            self.y_test[:n],
+            self.y_pred[:n],
+        ]
+        return res
 
     def predict_proba(self, audio_path):
         """
         Predicts the probability of each emotion.
         """
         if self.classification_task:
-            feature = extract_feature(audio_path, **self._f_config_dict).reshape(1, -1)
+            feature = extract_feature(audio_path, self.f_config).reshape(1, -1)
             proba = self.model.predict_proba(feature)[0]
             result = {}
             for emotion, prob in zip(self.model.classes_, proba):
@@ -208,6 +274,13 @@ class EmotionRecognizer:
             raise NotImplementedError(
                 "Probability prediction doesn't make sense for regression"
             )
+
+    def show_second(self):
+        peeker = rec.peek_test_set(2)
+        feature = peeker[1][1]
+        audio_path = peeker[0][1]
+        feature_pred = self.predict(audio_path)
+        print(feature[:5], feature_pred[:5])
 
     def grid_search(self, params, n_jobs=2, verbose=3):
         """
@@ -239,6 +312,8 @@ class EmotionRecognizer:
     def best_model(self):
         """
         从常见的模型中计算出最好的Estimator(model)
+        计算最优model时,也可以考虑创建新的ER实例来做计算最优model的用途,但会增加开销
+
         Loads best estimators and determine which is best for test data,
         and then set it to `self.model`.
         # 使用MSE来评价回归模型,使用accuracy来评价分类模型
@@ -263,34 +338,23 @@ class EmotionRecognizer:
         for estimator, params, cv_score in estimators:
             if self.verbose:
                 estimators.set_description(f"Evaluating {estimator.__class__.__name__}")
-            # self.model = estimator
 
-            detector = EmotionRecognizer(
-                model=estimator,
-                emotions=self.e_config,
-                classification_task=self.classification_task,
-                features=self.f_config,
-                balance=self.balance,
-                override_csv=False,
-            )
-            # data already loaded
-            detector.X_train = self.X_train
-            detector.X_test = self.X_test
-            detector.y_train = self.y_train
-            detector.y_test = self.y_test
-            detector.data_loaded = True
+            self.model = estimator
+
+            er = self  # 以下的计算是用来选出model的,而不是直接作为self对象的属性,这里将self赋值给er,以示区别
+
             # train(fit) the model
             # 如果设置verbose=1,则会逐个打印当前计算的模型(进度不是同一条)
-            detector.train(verbose=0)
+            er.train(choosing=True, verbose=0)
 
             # train(fit) the model
             # self.train(verbose=1)
 
-            accuracy = detector.test_score()
+            accuracy = er.test_score(choosing=True)
             # print(f"[I] {estimator.__class__.__name__} with {accuracy} test accuracy")
             # append to result
 
-            result.append((detector.model, accuracy))
+            result.append((er.model, accuracy))
 
         # sort the result
         # regression: best is the lower, not the higher
@@ -314,7 +378,7 @@ class EmotionRecognizer:
                 )
         return best_estimator
 
-    def test_score(self):
+    def test_score(self, choosing=False, verbose=0):
         """
         Calculates score on testing data
         if `self.classification` is True, the metric used is accuracy,
@@ -322,26 +386,88 @@ class EmotionRecognizer:
         """
         X_test = self.X_test
         y_test = self.y_test
-        y_pred = self.model.predict(X_test)
-        if X_test is None or y_test is None:
-            raise ValueError("X_test and y_test are None")
+        # 调用训练好的模型进行预测
+        model = self.model if self.model else self.best_model()
+        if len(X_test) == 0:
+            raise ValueError("X_test is empty")
+        if len(y_test) == 0:
+            raise ValueError("y_test is empty")
+        # 预测计算
+        y_pred = model.predict(X_test)  # type: ignore
+        if choosing == False:
+            self.y_pred = np.array(y_pred)
 
         if self.classification_task:
             res = accuracy_score(y_true=y_test, y_pred=y_pred)
         else:
             res = mean_squared_error(y_true=y_test, y_pred=y_pred)
-        if self.verbose >= 2:
+        if self.verbose >= 2 or verbose >= 1:
             report = classification_report(y_true=y_test, y_pred=y_pred)
             print(report, self.model.__class__.__name__)
         return res
+    def meta_paths_of_db(self,db,partition="test"):
+        res=meta_paths_of_db(
+                db=db,
+                e_config=self.e_config,
+                change_type="str",
+                partition=partition,
+            )
+        return res
 
-    def train_score(self, X_train, y_train):
+    def update_test_set(self, X_test, y_test):
+        self.X_test = X_test
+        self.y_test = y_test
+
+    def update_test_set_by_meta(self, test_meta):
+        """
+        这个函数设计用来做跨库识别试验
+        仅仅替换测试集为不同库,本身没有针对跨库进行优化
+
+
+        Load test data from given test metadata file paths and update instance's test set attributes.
+
+        Args:
+            test_meta (list of str): List of file paths of test metadata files.
+
+        Returns:
+            None
+
+        examples:
+        >>> rec = EmotionRecognizer(model=my_model,**meta_dict, verbose=1)
+        >>> rec.train()
+        >>> rec.update_test_set_by_meta(test_emodb_csv)
+        >>> rec.test_meta_files
+        >>> 'meta_files\\test_emodb_HNS.csv'
+        >>> rec.X_test.shape
+        >>> (43,180)
+
+        >>> rec.test_score()
+        >>> 0.4651
+
+        """
+        # rec.update_test_set_by_meta(test_emodb_csv)
+        self.test_meta_files = test_meta
+        print(test_meta, "@{test_meta}")
+        test_data = load_data_from_meta(
+            test_meta_files=test_meta, e_config=self.e_config, f_config=self.f_config
+        )
+
+        X_test = test_data["X_test"]
+        y_test = test_data["y_test"]
+        # 设置实例的各个属性
+        self.test_audio_paths = test_data["test_audio_paths"]
+        self.update_test_set(X_test, y_test)
+
+    def train_score(self, X_train=None, y_train=None):
         """
         Calculates accuracy score on training data
         if `self.classification` is True, the metric used is accuracy,
         Mean-Squared-Error is used otherwise (regression)
         """
-        y_pred = self.model.predict(X_train, y_train)
+        if X_train is None or y_train is None:
+            X_train = self.X_train
+            y_train = self.y_train
+        y_pred = self.model.predict(X_train)
         if self.classification_task:
             return accuracy_score(y_true=y_train, y_pred=y_pred)
         else:
@@ -401,22 +527,27 @@ class EmotionRecognizer:
         pl.imshow(matrix, cmap="binary")
         pl.show()
 
-    def get_n_samples(self, emotion, partition):
-        """Returns number data samples of the `emotion` class in a particular `partition`
-        ('test' or 'train')
+    def count_samples_in_partition(self, emotion, partition):
         """
-        res = 0
+        Get the number of data samples of the `emotion` class in a particular `partition` ('test' or 'train').
+
+        :param emotion: The emotion class to count.
+        :param partition: The partition to count samples in ('test' or 'train').
+        :return: The number of data samples of the `emotion` class in the `partition`.
+        :raises ValueError: If `y_test` or `y_train` is `None`.
+        """
+        partition = validate_partition(partition, Noneable=False)
         if partition == "test":
             if self.y_test is None:
                 raise ValueError("y_test is None")
-            res = len([y for y in self.y_test if y == emotion])
-        elif partition == "train":
+            count = sum(1 for y in self.y_test if y == emotion)
+        else:
             if self.y_train is None:
                 raise ValueError("y_train is None")
-            res = len([y for y in self.y_train if y == emotion])
-        return res
+            count = sum(1 for y in self.y_train if y == emotion)
+        return count
 
-    def get_samples_by_class(self):
+    def count_samples_by_class(self):
         """
         Returns a dataframe that contains the number of training
         and testing samples for all emotions.
@@ -428,8 +559,8 @@ class EmotionRecognizer:
         test_samples = []
         total = []
         for emotion in self.e_config:
-            n_train = self.get_n_samples(emotion, "train")
-            n_test = self.get_n_samples(emotion, "test")
+            n_train = self.count_samples_in_partition(emotion, "train")
+            n_test = self.count_samples_in_partition(emotion, "test")
             train_samples.append(n_train)
             test_samples.append(n_test)
             total.append(n_train + n_test)
@@ -443,22 +574,28 @@ class EmotionRecognizer:
             index=self.e_config + ["total"],
         )
 
-    def get_random_emotion(self, emotion, partition="train"):
+    def get_random_emotion_index(self, emotion, partition="train"):
         """
-        Returns random `emotion` data sample index on `partition`.
-        """
-        if partition == "train":
-            index = random.choice(list(range(len(self.y_train))))
-            while self.y_train[index] != emotion:
-                index = random.choice(list(range(len(self.y_train))))
-        elif partition == "test":
-            index = random.choice(list(range(len(self.y_test))))
-            while self.y_train[index] != emotion:
-                index = random.choice(list(range(len(self.y_test))))
-        else:
-            raise TypeError("Unknown partition, only 'train' or 'test' is accepted")
+        Returns a random index of a `partition` sample with the given `emotion`.
 
-        return index
+        Args:
+            emotion (str): The name of the emotion to look for.
+            partition (str): The partition to sample from. Only "train" or "test" are accepted.
+
+        Returns:
+            int: The index of a random sample with the given `emotion` in the specified `partition`.
+
+        Raises:
+            TypeError: If `partition` is not "train" or "test".
+        """
+        partition = validate_partition(partition, Noneable=False)
+        indices = []
+        if partition == "train":
+            indices = [i for i, y in enumerate(self.y_train) if y == emotion]
+        elif partition == "test":
+            indices = [i for i, y in enumerate(self.y_test) if y == emotion]
+
+        return random.choice(indices)
 
 
 def plot_histograms(classifiers=True, beta=0.5, n_classes=3, verbose=1):
@@ -478,9 +615,9 @@ def plot_histograms(classifiers=True, beta=0.5, n_classes=3, verbose=1):
         for i in range(3):
             result = {}
             # initialize the class
-            detector = EmotionRecognizer(estimator, verbose=0)
+            er = EmotionRecognizer(estimator, verbose=0)
             # load the data
-            detector.load_data()
+            er.load_data()
             if i == 0:
                 # first get 1% of sample data
                 sample_size = 0.01
@@ -491,28 +628,28 @@ def plot_histograms(classifiers=True, beta=0.5, n_classes=3, verbose=1):
                 # last get all the data
                 sample_size = 1
             # calculate number of training and testing samples
-            n_train_samples = int(len(detector.X_train) * sample_size)
-            n_test_samples = int(len(detector.X_test) * sample_size)
+            n_train_samples = int(len(er.X_train) * sample_size)
+            n_test_samples = int(len(er.X_test) * sample_size)
             # set the data
-            detector.X_train = detector.X_train[:n_train_samples]
-            detector.X_test = detector.X_test[:n_test_samples]
-            detector.y_train = detector.y_train[:n_train_samples]
-            detector.y_test = detector.y_test[:n_test_samples]
+            er.X_train = er.X_train[:n_train_samples]
+            er.X_test = er.X_test[:n_test_samples]
+            er.y_train = er.y_train[:n_train_samples]
+            er.y_test = er.y_test[:n_test_samples]
             # calculate train time
             t_train = time()
-            detector.train()
+            er.train()
             t_train = time() - t_train
             # calculate test time
             t_test = time()
-            test_accuracy = detector.test_score()
+            test_accuracy = er.test_score()
             t_test = time() - t_test
             # set the result to the dictionary
             result["train_time"] = t_train
             result["pred_time"] = t_test
             result["acc_train"] = cv_score
             result["acc_test"] = test_accuracy
-            result["f_train"] = detector.train_fbeta_score(beta)
-            result["f_test"] = detector.test_fbeta_score(beta)
+            result["f_train"] = er.train_fbeta_score(beta)
+            result["f_test"] = er.test_fbeta_score(beta)
             if verbose:
                 print(
                     f"[+] {estimator.__class__.__name__} with {sample_size*100}% ({n_train_samples}) data samples achieved {cv_score*100:.3f}% Validation Score in {t_train:.3f}s & {test_accuracy*100:.3f}% Test Score in {t_test:.3f}s"
@@ -617,31 +754,44 @@ if __name__ == "__main__":
     from sklearn.svm import SVC
 
     # use SVC as a demo
-    my_model = SVC()
-    # pass model to EmotionRecognizer instance
-    # and balance the dataset
-    # train the model
-    # train_meta_files= meta_paths_dbs(partition="train",dbs=db)
-    # test_meta_files =meta_paths_dbs(partition="test",dbs=db)
+    my_model = SVC(C=0.001, gamma=0.001, kernel="poly")
+    my_model = None
 
-    train_meta_files = train_ravdess_csv
-    test_meta_files = test_ravdess_csv
 
-    # rec = EmotionRecognizer(train_meta_files=train_meta_files,test_meta_files=test_meta_files,model=my_model, verbose=1)
+    # !注意,同时传入meta_dict和f_config,e_config,要和pairs对应,因为这可能引发矛盾,导致意外的效果
+    from MetaPath import meta_pairs
 
-    from MetaPath import pair2, pair3, pair4
+    # meta_pairs=meta_pairs(e_config=AHNPS)
+    # pair1, pair2, pair3, pair4,pair5=meta_pairs
+    # meta_dict = select_meta_dict(pair2)
 
-    meta_files_dict = select_meta_dict(pair3)
-    rec = EmotionRecognizer(**meta_files_dict, verbose=1)
+    # rec = EmotionRecognizer(model=my_model,e_config=AHNPS,f_config=f_config_def,test_dbs=[ravdess],train_dbs=[ravdess], verbose=1)
 
-    # data=rec.load_data()
+    meta_dict = {"train_dbs": emodb, "test_dbs": ravdess}
+    rec = EmotionRecognizer(
+        model=my_model, e_config=["angry","sad"], f_config=['mfcc','mel'], **meta_dict, verbose=1
+    )
 
-    # data = load_data(
-    #     train_meta_files=train_meta_files,
-    #     test_meta_files=test_meta_files,
-    #     balance=False,
-    # )
+    # rec = EmotionRecognizer(model=my_model,e_config=AHNPS,f_config=f_config_def,test_dbs=emodb,train_dbs=emodb, verbose=1)
 
-    # X_train = data["X_train"]
-    # y_train = data["y_train"]
-    # rec.train(X_train=X_train, y_train=y_train)
+    rec.train()
+    test_score = rec.test_score()
+    print(f"{test_score=}")
+##
+
+# rec.update_test_set_by_meta(r'D:\repos\CCSER\SER\meta_files\test_ravdess_AHNPS.csv')
+
+# rec.update_test_set_by_meta(r'D:\repos\CCSER\SER\meta_files\test_emodb_AHNPS.csv')
+
+
+# data=rec.load_data()
+
+# data = load_data(
+#     train_meta_files=train_meta_files,
+#     test_meta_files=test_meta_files,
+#     balance=False,
+# )
+
+# X_train = data["X_train"]
+# y_train = data["y_train"]
+# rec.train(X_train=X_train, y_train=y_train)

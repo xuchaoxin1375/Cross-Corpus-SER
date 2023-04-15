@@ -1,29 +1,34 @@
 import os
-
 # disable keras loggings
 import sys
+from importlib import reload
+
+import MetaPath
+from EF import e_config_def, f_config_def
+from MetaPath import pair1, pair2, pair3, pair4, pair5
 
 stderr = sys.stderr
 sys.stderr = open(os.devnull, "w")
-import tensorflow as tf
-
-from tensorflow.keras.layers import LSTM, GRU, Dense, Activation, LeakyReLU, Dropout
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard
-from tensorflow.keras.utils import to_categorical
-
-from sklearn.metrics import accuracy_score, mean_absolute_error, confusion_matrix
-
-from data_extractor import load_data
-
-from emotion_recognition import EmotionRecognizer
-from utils import extract_feature, get_dropout_str
-from EF import AVAILABLE_EMOTIONS, validate_emotions
-from MetaPath import get_first_letters
+import random
 
 import numpy as np
 import pandas as pd
-import random
+from sklearn.metrics import (accuracy_score, confusion_matrix,
+                             mean_absolute_error)
+# import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard
+from tensorflow.keras.layers import (GRU, LSTM, Activation, Dense, Dropout,
+                                     LeakyReLU)
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.utils import to_categorical
+
+from data_extractor import load_data_from_meta
+from EF import AVAILABLE_EMOTIONS, validate_emotions
+from emotion_recognition import EmotionRecognizer
+# from ER import EmotionRecognizer
+from MetaPath import get_first_letters, select_meta_dict
+from utils import extract_feature, get_dropout_str
 
 
 class DeepEmotionRecognizer(EmotionRecognizer):
@@ -36,11 +41,16 @@ class DeepEmotionRecognizer(EmotionRecognizer):
 
     def __init__(
         self,
+        train_dbs=None,
+        test_dbs=None,
         dropout=None,
         e_config=None,
         f_config=None,
-        train_meta_files=None,
-        test_meta_files=None,
+        optimizer="adam",
+        loss="categorical_crossentropy",
+        batch_size=64,
+        classification_task=True,
+        epochs=200,
         **kwargs,
     ):
         """
@@ -90,12 +100,17 @@ class DeepEmotionRecognizer(EmotionRecognizer):
         """
         # init EmotionRecognizer
         super().__init__(
-            e_config=None,
-            f_config=None,
-            train_meta_files=None,
-            test_meta_files=None,
+            e_config=e_config,
+            f_config=f_config,
+            train_dbs=train_dbs,
+            test_dbs=test_dbs,
+            classification_task=classification_task,
             **kwargs,
         )
+
+        # 放在靠前的位置
+        self.int2emotions = {i: e for i, e in enumerate(self.e_config)}
+        self.emotions2int = {v: k for k, v in self.int2emotions.items()}
 
         self.n_rnn_layers = kwargs.get("n_rnn_layers", 2)
         self.n_dense_layers = kwargs.get("n_dense_layers", 2)
@@ -113,14 +128,15 @@ class DeepEmotionRecognizer(EmotionRecognizer):
         )
         # number of classes ( emotions )
         self.output_dim = len(self.e_config)
+  
 
         # optimization attributes
-        self.optimizer = kwargs.get("optimizer", "adam")
-        self.loss = kwargs.get("loss", "categorical_crossentropy")
+        self.optimizer = optimizer if optimizer else "adam"
+        self.loss = loss if loss else "categorical_crossentropy"
 
         # training attributes
-        self.batch_size = kwargs.get("batch_size", 64)
-        self.epochs = kwargs.get("epochs", 200)
+        self.batch_size = batch_size if batch_size else 64
+        self.epochs = epochs if epochs else 200
 
         # the name of the model
         self.model_name = ""
@@ -260,6 +276,8 @@ class DeepEmotionRecognizer(EmotionRecognizer):
             )
 
         # reshape labels
+        if(self.y_train is  None or self.y_test is  None): 
+            raise ValueError("y_train and y_test must be array_like ")
         y_train_shape = self.y_train.shape
         y_test_shape = self.y_test.shape
         if self.classification_task:
@@ -393,12 +411,14 @@ class DeepEmotionRecognizer(EmotionRecognizer):
             )
         return matrix
 
-    def get_n_samples(self, emotion, partition):
+    def count_samples_in_partition(self, emotion, partition):
         """Returns number data samples of the `emotion` class in a particular `partition`
         ('test' or 'train')
         """
         if partition == "test":
             if self.classification_task:
+                # np.squeeze去除数组中所有维度大小为 1 的维度，从而将数组的维度降低。如果数组没有大小为 1 的维度，则不会有任何变化。
+                #这里的y_test可能采用oneHotEncoder,因此可以如下计算
                 y_test = np.array(
                     [
                         np.argmax(y, axis=None, out=None) + 1
@@ -420,7 +440,7 @@ class DeepEmotionRecognizer(EmotionRecognizer):
                 y_train = np.squeeze(self.y_train)
             return len([y for y in y_train if y == emotion])
 
-    def get_samples_by_class(self):
+    def count_samples_by_class(self):
         """
         Returns a dataframe that contains the number of training
         and testing samples for all emotions
@@ -429,8 +449,8 @@ class DeepEmotionRecognizer(EmotionRecognizer):
         test_samples = []
         total = []
         for emotion in self.e_config:
-            n_train = self.get_n_samples(self.emotions2int[emotion] + 1, "train")
-            n_test = self.get_n_samples(self.emotions2int[emotion] + 1, "test")
+            n_train = self.count_samples_in_partition(self.emotions2int[emotion] + 1, "train")
+            n_test = self.count_samples_in_partition(self.emotions2int[emotion] + 1, "test")
             train_samples.append(n_train)
             test_samples.append(n_test)
             total.append(n_train + n_test)
@@ -443,8 +463,37 @@ class DeepEmotionRecognizer(EmotionRecognizer):
             data={"train": train_samples, "test": test_samples, "total": total},
             index=self.e_config + ["total"],
         )
+    
+    def get_training_and_testing_samples_per_emotion(self):
+        """
+        Returns a dataframe with the number of training and testing samples
+        per emotion, as well as the total number of samples.
+        """
+        train_samples_per_emotion = []
+        test_samples_per_emotion = []
+        total_samples_per_emotion = []
+        for emotion in self.e_config:
+            n_train = self.count_samples_in_partition(self.emotions2int[emotion] + 1, "train")
+            n_test = self.count_samples_in_partition(self.emotions2int[emotion] + 1, "test")
+            train_samples_per_emotion.append(n_train)
+            test_samples_per_emotion.append(n_test)
+            total_samples_per_emotion.append(n_train + n_test)
 
-    def get_random_emotion(self, emotion, partition="train"):
+        total_train_samples = sum(train_samples_per_emotion)
+        total_test_samples = sum(test_samples_per_emotion)
+        total_samples = total_train_samples + total_test_samples
+
+        return pd.DataFrame(
+            data={
+                "Train Samples": train_samples_per_emotion,
+                "Test Samples": test_samples_per_emotion,
+                "Total Samples": total_samples_per_emotion,
+            },
+            index=self.e_config + ["Total"],
+        )
+
+
+    def get_random_emotion_index(self, emotion, partition="train"):
         """
         Returns random `emotion` data sample index on `partition`
         """
@@ -467,15 +516,22 @@ class DeepEmotionRecognizer(EmotionRecognizer):
 
         return index
 
-    def best_model(self):
-        # TODO
-        # raise TypeError("This method isn't supported yet for deep nn")
-        pass
 
 
+##
 if __name__ == "__main__":
-    from EF import e_config_def, f_config_def
-
-    der = DeepEmotionRecognizer(emotions=e_config_def, epochs=250, verbose=0)
-    der.train(override=False)
-    print("Test accuracy score:", der.test_score() * 100, "%")
+    from MetaPath import emodb,ravdess
+    meta_dict = {
+        "train_dbs":ravdess,
+        "test_dbs":ravdess
+    }
+    print(meta_dict)
+    
+    der = DeepEmotionRecognizer(**meta_dict, emotions=e_config_def, verbose=0)
+    # #train
+    der.train()
+    print("train_score",der.train_score())
+    print("test_score",der.test_score())
+    # print(der.train_meta_files,der.test_meta_files)
+    # der.train(override=False)
+    # print("Test accuracy score:", der.test_score() * 100, "%")

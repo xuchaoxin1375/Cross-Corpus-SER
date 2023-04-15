@@ -111,7 +111,7 @@ f_config_def = MCM
 e_config_def = HNS
 
 #
-def extend_names(emotion_first_letters):
+def extend_emotion_names(emotion_first_letters):
     emotion_first_letters=emotion_first_letters.upper()
     res=[emotions_extend_dict.get(e) for e in emotion_first_letters]
     return res

@@ -10,7 +10,7 @@ from pandas import DataFrame
 from sklearn.model_selection import train_test_split as tts
 
 import MetaPath
-from EF import AHNPS, categories_emodb, extend_names
+from EF import AHNPS, categories_emodb, extend_emotion_names
 from MetaPath import (
     create_tag_name,
     emodb,
@@ -36,8 +36,8 @@ from MetaPath import (
 from EF import e_config_def
 
 
-def write_emodb_csv(
-    e_config=e_config_def,
+def create_emodb_csv(
+    e_config=None,
     train_name=None,
     test_name=None,
     train_size=0.8,
@@ -64,6 +64,8 @@ def write_emodb_csv(
     # 颠倒不是必须的,这里顺便为之,categories_reversed作为临时的字典辅助筛掉不需要的情感
     categories_reversed = {emotion: code for code, emotion in categories.items()}
     for emotion, code in categories_reversed.items():
+        if e_config is None:
+            raise ValueError(f"e_config is None")
         if emotion not in e_config:
             del categories[code]
     # shuffle可以在这个环节进行:
@@ -124,13 +126,13 @@ def write_emodb_csv(
 target_debug = []
 
 
-def write_ravdess_csv(
-    emotions=e_config_def, train_name=None, test_name=None, train_size=0.75, verbose=1
+def create_ravdess_csv(
+    e_config=None, train_name=None, test_name=None, train_size=0.75, verbose=1
 ):
     """
     Reads speech training(RAVDESS) datasets from directory and write it to a metadata CSV file.
     params:
-        emotions (list): list of emotions to read from the folder, default is ['sad', 'neutral', 'happy']
+        emotions (list): list of emotions to read from the folder, default is e_config
         train_name (str): the output csv filename for training data, default is 'train_RAVDESS.csv'
         test_name (str): the output csv filename for testing data, default is 'test_RAVDESS.csv'
         verbose (int/bool): verbositiy level, 0 for silence, 1 for info, default is 1
@@ -144,7 +146,9 @@ def write_ravdess_csv(
     # 这个数据库文件比较多,为了敏捷性,控制只处理特定情感的文件而不是全部情感文件
     # 我们将TESS,RAVDESS语料库放在了训练集目录training
     print("[RAVDESS] files meta extacting...")
-    for e in emotions:
+    if e_config is None:
+        raise ValueError("[RAVDESS] e_config is None")
+    for e in e_config:
         # for training speech directory
         total_files = glob.glob(f"data/ravdess/Actor_*/*_{e}.wav")
         for i, path in enumerate(total_files):
@@ -156,62 +160,15 @@ def write_ravdess_csv(
     target = DataFrame(target)
     # print(target)
     # train_name,test_name =file_names(train_name,test_name)
-    train_name, test_name = meta_paths_of_db(db, e_config=e_config_def)
+    train_name, test_name = meta_paths_of_db(db, e_config=e_config)
     X_train, X_test = tts(target, train_size=train_size, random_state=0)
-    # print(X_train,X_test)
+    print(X_train[:5], "@{X_train}")
+    print(train_name, "@{train_name}")
     DataFrame(X_train).to_csv(train_name)
     DataFrame(X_test).to_csv(test_name)
     if verbose:
         print("ravdess db was splited to 2 csv files!")
         print(f"the train/test size rate is:{train_size}:{(1-train_size)}")
-
-
-def write_ravdess_csv_bak(
-    emotions=e_config_def,
-    train_name=train_ravdess_csv,
-    test_name=test_ravdess_csv,
-    train_size=0.75,
-    verbose=1,
-):
-    """
-    Reads speech training(RAVDESS) datasets from directory and write it to a metadata CSV file.
-    params:
-        emotions (list): list of emotions to read from the folder, default is ['sad', 'neutral', 'happy']
-        train_name (str): the output csv filename for training data, default is 'train_RAVDESS.csv'
-        test_name (str): the output csv filename for testing data, default is 'test_RAVDESS.csv'
-        verbose (int/bool): verbositiy level, 0 for silence, 1 for info, default is 1
-    """
-    train_target = {"path": [], "emotion": []}
-    test_target = {"path": [], "emotion": []}
-
-    # 这个数据库文件比较多,为了敏捷性,控制只处理特定情感的文件而不是全部情感文件
-    # 我们将TESS,RAVDESS语料库放在了训练集目录training
-    for e in emotions:
-        # for training speech directory
-        total_files = glob.glob(f"data/training/Actor_*/*_{e}.wav")
-        for i, path in enumerate(total_files):
-            train_target["path"].append(path)
-            train_target["emotion"].append(e)
-        # 提示所有训练集文件meta处理完毕
-        if verbose and total_files:
-            print(
-                f"[RAVDESS] There are {len(total_files)} training audio files for category:{e}"
-            )
-
-        # 将验证集(测试集)文件放到data/validation目录
-        # for validation speech directory
-        total_files = glob.glob(f"data/validation/Actor_*/*_{e}.wav")
-        for i, path in enumerate(total_files):
-            test_target["path"].append(path)
-            test_target["emotion"].append(e)
-        # 提示所有验证集文件meta处理完毕
-        if verbose and total_files:
-            print(
-                f"[RAVDESS] There are {len(total_files)} testing audio files for category:{e}"
-            )
-
-    pd.DataFrame(test_target).to_csv(test_name)
-    pd.DataFrame(train_target).to_csv(train_name)
 
 
 def create_csv_by_metaname(meta_file):
@@ -225,76 +182,85 @@ def create_csv_by_metaname(meta_file):
     from pathlib import Path
 
     name = Path(meta_file).name
+    # print(name,"@{name}")
     name, _ = os.path.splitext(name)  # 文件名去掉后缀ext
     # 直接解析成三个字符串
+    # print(name,"@{name}")
     _partitoin, db, emotion_first_letters = name.split("_")
 
-    selecter = {emodb: write_emodb_csv, ravdess: write_ravdess_csv}
-    e_config = extend_names(emotion_first_letters)
+    selecter = {emodb: create_emodb_csv, ravdess: create_ravdess_csv}
+    e_config = extend_emotion_names(emotion_first_letters)
 
-    field_p2 = db + emotion_first_letters
-    train_name = "_".join(["train", field_p2])
-    test_name = "_".join(["test", field_p2])
-
+    field_p2 = [db, emotion_first_letters]
+    train_name = "_".join(["train"] + field_p2)
+    test_name = "_".join(["test"] + field_p2)
+    print(f"@create_csv..🎈{train_name}\n{test_name}")
     selecter[db](e_config=e_config, train_name=train_name, test_name=test_name)
 
-def create_meta_csv(train_meta_files,test_meta_files,dbs=None,e_config=e_config_def,verbose=1,override_csv=False):
-        """
-        Write available CSV files in `self.train_desc_files` and `self.test_desc_files`
-        determined by `self._set_metadata_filenames()` method.
 
-        ## Note:
-        硬编码实现:
-        if emodb in train_csv_file:
-                write_emodb_csv(
-                    self.e_config,
+def create_meta_csv(
+    train_meta_files,
+    test_meta_files,
+    dbs=None,
+    e_config=None,
+    verbose=1,
+    override_csv=False,
+):
+    """
+    @deprecated
+    Write available CSV files in `self.train_desc_files` and `self.test_desc_files`
+    determined by `self._set_metadata_filenames()` method.
+
+    ## Note:
+    硬编码实现:
+    if emodb in train_csv_file:
+            write_emodb_csv(
+                self.e_config,
+                train_name=train_csv_file,
+                test_name=test_csv_file,
+                verbose=self.verbose,
+            )
+            if self.verbose:
+                print("[I] Generated EMO-DB  CSV meta File")
+        elif ravdess in train_csv_file:
+            write_ravdess_csv(
+                self.e_config,
+                train_name=train_csv_file,
+                test_name=test_csv_file,
+                verbose=self.verbose,
+            )
+            if self.verbose:
+                print("[I] Generated RAVDESS CSV meta File")
+    """
+    meta_handler_dict = {emodb: create_emodb_csv, ravdess: create_ravdess_csv}
+    for train_csv_file, test_csv_file in zip(train_meta_files, test_meta_files):
+        # 使用Path对象的`/`操作符连接路径
+        # train_csv_file = (meta_dir / train_csv_file).name
+        # test_csv_file = (meta_dir / test_csv_file).name
+        # 兼容性的写法
+        if os.path.isfile(train_csv_file) and os.path.isfile(test_csv_file):
+            # file already exists, just skip writing csv files
+            if not override_csv:
+                continue
+        if dbs:
+            for db in dbs:
+                if meta_handler_dict.get(db) is None:
+                    raise ValueError(f"{db} not recognized")
+                meta_handler_dict[db](
+                    e_config,
                     train_name=train_csv_file,
                     test_name=test_csv_file,
-                    verbose=self.verbose,
+                    verbose=verbose,
                 )
-                if self.verbose:
-                    print("[I] Generated EMO-DB  CSV meta File")
-            elif ravdess in train_csv_file:
-                write_ravdess_csv(
-                    self.e_config,
-                    train_name=train_csv_file,
-                    test_name=test_csv_file,
-                    verbose=self.verbose,
-                )
-                if self.verbose:
-                    print("[I] Generated RAVDESS CSV meta File")
-        """
-        meta_handler_dict={
-            emodb:write_emodb_csv,
-            ravdess: write_ravdess_csv
-        }
-        for train_csv_file, test_csv_file in zip(
-            train_meta_files, test_meta_files
-        ):
-            # 使用Path对象的`/`操作符连接路径
-            # train_csv_file = (meta_dir / train_csv_file).name
-            # test_csv_file = (meta_dir / test_csv_file).name
-            # 兼容性的写法
-            if os.path.isfile(train_csv_file) and os.path.isfile(test_csv_file):
-                # file already exists, just skip writing csv files
-                if not override_csv:
-                    continue
-            if dbs:
-                for db in dbs:
-                    if(meta_handler_dict.get(db) is None):
-                        raise ValueError(f"{db} not recognized")
-                    meta_handler_dict[db](
-                        e_config,
-                        train_name=train_csv_file,
-                        test_name=test_csv_file,
-                        verbose=verbose,
-                    )
-                    if verbose:
-                        print(f"[I] Generated {db} CSV meta File")
-            
+                if verbose:
+                    print(f"[I] Generated {db} CSV meta File")
+
+
 ##
 if __name__ == "__main__":
     # write_emodb_csv(e_config=AHNPS)
     # write_ravdess_csv()
-    name = "test_emodb_AHS.csv"
-    create_csv_by_metaname(name)
+    # name1 = "test_emodb_AS.csv"
+    # create_csv_by_metaname(name1)
+    name2 = "train_emodb_AS.csv"
+    create_csv_by_metaname(name2)

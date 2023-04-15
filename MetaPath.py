@@ -8,6 +8,8 @@ from sklearn.utils import deprecated
 from EF import (
     MCM,
     MCM_dict,
+    HNS,
+    AHNPS,
     ava_features,
     e_config_def,
     f_config_def,
@@ -28,7 +30,7 @@ ravdess, emodb = [
     "ravdess",
     "emodb",
 ]
-dbs: list[str] = [emodb, ravdess]
+ava_dbs: list[str] = [emodb, ravdess]
 # !模型超参数路径
 bclf = "bclf.joblib"
 brgr = "brgr.joblib"
@@ -115,11 +117,13 @@ def get_first_letters(emotions) -> str:
 
 def create_tag_name(
     db="",
-    partition=None,
+    partition="",
     e_config=None,
     f_config=None,
-    n_samples=None,
+    n_samples=0,
     ext="csv",
+    balance=False,
+    shuffle=False,
     **kwargs,
 ):
     """根据传入的参数,构造:
@@ -160,11 +164,17 @@ def create_tag_name(
     # res = f"{partition}{emotions}{features}{db}{n_samples}.{ext}"
     # str(None)#'None'
     n_samples = str(n_samples) if n_samples else ""
+    #如果是用来生成特征提取的文件名,可能需要加上额外的信息:
+    balance="balanced" if balance else ""
+    shuffle="shuffled" if shuffle else ""
+    
+    
     fields = [partition, db, features, emotions, n_samples]
     # print("{fields:}")
     # print(fields)
     # return
     true_fields = [f for f in fields if f]  # 标识非空的值
+    # print(true_fields,"@{true_fields}")
     res = "_".join(true_fields) + f".{ext}"
     return res
 
@@ -187,16 +197,16 @@ def validate_partition(partition, Noneable=True):
     TypeError
         取值非法错误
     """
-    if Noneable == False and partition is None:
-        partition_invalid_ValueError(partition=partition)
-    if partition is not None:
+    if Noneable == False and partition =="":
+        partition_invalid_raise_ValueError(partition=partition)
+    if partition :
         res = partition in ["test", "train"]
         if not res:
-            partition_invalid_ValueError(partition=partition)
+            partition_invalid_raise_ValueError(partition=partition)
     return partition
 
 
-def partition_invalid_ValueError(partition=None):
+def partition_invalid_raise_ValueError(partition=""):
     partition = partition if partition else ""
     raise TypeError(
         f"Unknown partition @{partition} only 'train' or 'test' is accepted"
@@ -261,7 +271,7 @@ def prepend_dir(tag_names, dir=meta_dir, change_type="Path"):
 # def meta_names(db,e_config=e_config):
 
 
-def meta_names_of_db(db, e_config=e_config_def):
+def meta_names_of_db(db, e_config=None):
     """根据指定的预料数据库分别构造训练姐和测试集meta文件名
 
     Parameters
@@ -286,8 +296,8 @@ def meta_names_of_db(db, e_config=e_config_def):
     #     "test": test
     # }
 
-
-def meta_paths_of_db(db, e_config=e_config_def, partition=None, change_type="Path"):
+##
+def meta_paths_of_db(db, e_config=None, partition="", change_type="Path"):
     """根据指定的语料库和情感特征组合,生成具体的train/test set meta file (csv)路径
 
     Parameters
@@ -301,14 +311,24 @@ def meta_paths_of_db(db, e_config=e_config_def, partition=None, change_type="Pat
     -------
     tuple
         train/test set meta file (csv)
+
+    examples
+    -
+
+    >>> meta_paths_of_db(emodb,e_config=AHNPS)
+    >>> 
+        [WindowsPath('meta_files/train_emodb_AHNPS.csv'),
+        WindowsPath('meta_files/test_emodb_AHNPS.csv')]
     """
     names = meta_names_of_db(db, e_config=e_config)
+    # print(names,"@{names}")
     res = prepend_dir(names, change_type=change_type)
-
+    # print(res,"@{res}")
     # 是否根据paritition参数仅返回train/test中的一个meta文件
     partition = validate_partition(partition)
+
     if partition:
-        train, test = names
+        train, test = res
         if partition == "train":
             res = train
         else:
@@ -316,10 +336,9 @@ def meta_paths_of_db(db, e_config=e_config_def, partition=None, change_type="Pat
     return res
 
 
-# def train_meta_paths(db, e_config=e_config_def):
 
 
-def _meta_names_all(dbs=dbs, partition=None, e_config=e_config_def):
+def _meta_names_all(dbs=ava_dbs, partition="", e_config=None):
     """根据数据库列表dbs中,构造训练集和测试集meta文件名
 
     Parameters
@@ -340,7 +359,7 @@ def _meta_names_all(dbs=dbs, partition=None, e_config=e_config_def):
     return meta_partition
 
 
-def meta_paths_dbs(dbs=dbs, partition=None, e_config=e_config_def):
+def create_meta_paths_dbs(dbs=ava_dbs, partition="", e_config=None):
     """计算dbs中配置的所有语料库的train/test meta文件路径
 
        Parameters
@@ -403,14 +422,15 @@ def test1():
 
 
 def test2():
-    res = meta_paths_dbs(e_config=None)
+    res = create_meta_paths_dbs(e_config=None)
     for path in res:
         print(path)
 
 
 ##
 
-partition_meta_files = meta_paths_dbs(e_config=e_config_def)
+partition_meta_files = create_meta_paths_dbs(e_config=e_config_def)
+
 train_emodb_csv, test_emodb_csv, train_ravdess_csv, test_ravdess_csv = [
     str(meta) for meta in partition_meta_files
 ]
@@ -419,11 +439,43 @@ pair1=(train_ravdess_csv,test_ravdess_csv)
 pair2=(train_emodb_csv,test_emodb_csv)
 pair3=(train_ravdess_csv,test_emodb_csv)
 pair4=(train_emodb_csv,test_ravdess_csv)
+pair5=(train_emodb_csv,train_ravdess_csv)
 
-def select_meta_dict(pair):
-    
-    meta_files_dict={"train_meta_files":pair[0],"test_meta_files":pair[1]}
-    return meta_files_dict
+paris=[pair1,pair2,pair3,pair4,pair5]
+
+def meta_pairs(e_config=None):
+    """获取语料库分组组合
+    注意,meta文件没有包含特征信息,因此只需要指定e_config即可
+
+    Parameters
+    ----------
+    e_config : list[str], optional
+        需要试验的情感范围, by default e_config_def
+
+    Returns
+    -------
+    list[tuple]
+        返回若干组合
+    """
+    partition_meta_files = create_meta_paths_dbs(e_config=e_config)
+
+    train_emodb_csv, test_emodb_csv, train_ravdess_csv, test_ravdess_csv = [
+        str(meta) for meta in partition_meta_files
+    ]
+
+    pair1=(train_ravdess_csv,test_ravdess_csv)
+    pair2=(train_emodb_csv,test_emodb_csv)
+    pair3=(train_ravdess_csv,test_emodb_csv)
+    pair4=(train_emodb_csv,test_ravdess_csv)
+    pair5=(train_emodb_csv,train_ravdess_csv)
+
+    pairs=[pair1,pair2,pair3,pair4,pair5]
+    return pairs
+
+def select_meta_dict(pair=pair1):
+    print(f"当前使用语料库数据集组合:\n{pair}")
+    meta_dict={"train_meta_files":pair[0],"test_meta_files":pair[1]}
+    return meta_dict
 ##
 
 
@@ -434,5 +486,8 @@ if __name__ == "__main__":
     # test2()
     # res = meta_paths(ravdess)
     # print(partition_meta_files)
-    meta_paths_dbs()
+    # create_meta_paths_dbs()
+    meta_paths_of_db(db=emodb,e_config=AHNPS)
     
+
+##

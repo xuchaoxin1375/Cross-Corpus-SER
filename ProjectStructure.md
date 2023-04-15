@@ -120,27 +120,30 @@
 - 维护语料库文件等相关信息,目的是减少其他模块中的路径硬编码
 - 项目的`meta_files`目录用来存放语料库主要的meta信息的相关文件(csv格式)
 
-#### 语料库文件处理模块
+#### 语料库文件处理模块🎈
 
 ##### 辅助模块
 
-- convert_wavs.py
+###### convert_wavs.py
 
-  - 负责语音格式/采样率/通道等属性的转换,确保语音格式可以被其他模块处理
+- 负责语音格式/采样率/通道等属性的转换,确保语音格式可以被其他模块处理
 
-- create_csv.py
+###### create_csv.py
 
-  - 扫描语料库中的文件,并统一抽取不同语料库的路径和情感标签
+- 扫描语料库中的文件,并统一抽取不同语料库的路径和情感标签
 
-  - 支持仅扫描指定情感组合的文件(而不总处理所有文件,例如我们只对其中的`happy,sad,neutral`三种情感感兴趣)
+- 支持扫描指定情感组合的文件(而不总处理所有文件,例如我们只对其中的`happy,sad,neutral`三种情感感兴趣)
 
-- utils.py
+- 扫描成csv格式的好处还包括易于查看,语料库中的音频文件名需要对照解读规则才能知道某个语音文件对应于什么情感,只保留文件路径和文件的标签,而扫描成csv,更容易理解
+- 对同一个语料库创建的csv文件分为train_db_emotions.csv和test_db_emotions.csv,包含的文件数可以通过比例调节
 
-  - dropout参数字符串化
+###### utils.py
 
-  - 特征提取的具体实现
+- dropout参数字符串化
 
-  - 载入最优超参数
+- 特征提取的具体实现
+
+- 载入最优超参数
 
 
 ##### audio_extractor.py
@@ -151,6 +154,8 @@
     - `_load_data`
       - `load_metadata`
         - 从meta_files(csv文件)中读取语料库各条语音的信息;根据meta_file读取或者抽取语音文件的情感特征
+
+
 
 
 ### 语音情感识别模块
@@ -165,7 +170,21 @@
   - 对预测性能进行评估分析
   - 可视化分析
 - 初始化(构造器)
-  - 设定传入语料库的meta文件列表(包含需要)
+  - `load_data`(ER)
+  
+    - `load_data_from_meta`(AE)
+      - `load_data_preprocessing`
+        - `extract_update`
+          - `_extract_feature_in_meta`
+            - `load_meta`检查/创建meta文件
+              - `create_csv_by_metaname`
+            - `features_save`
+              - `extract_features`(utils.py)
+          - `_update_partition_attributes`
+  
+    - 根据meta文件提取特征
+      - meta文件名格式:`{partition}_{db}_{feature_config}.csv`
+      - 
 
 #### 待优化的代码片段
 
