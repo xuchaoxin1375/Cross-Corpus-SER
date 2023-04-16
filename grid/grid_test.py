@@ -13,14 +13,23 @@ from scipy.stats import randint
 from sklearn.ensemble import RandomForestClassifier, BaggingClassifier,BaggingRegressor
 from sklearn.model_selection import RandomizedSearchCV
 from joblib import load, dump
-best_clf = "bclf.joblib"
-best_rgr = "brgr.joblib"
+import pickle
+
+##
+# with open(r'../grid_best_classifiers.pickle','rb') as f:
+    # s=pickle.load(f)
+
+##
+from MetaPath import bclf,brgr
+best_clf = bclf
+best_rgr = brgr
 
 bclf = load(best_clf)
 brgr = load(best_rgr)
 ##
 bclf
 ##
+svc_best=
 bag=BaggingClassifier(max_features=0.5, n_estimators=50)
 bag_best = (bag,
             {'max_features': 0.5, 'max_samples': 1.0, 'n_estimators': 50},
@@ -32,7 +41,7 @@ gb=GradientBoostingClassifier(learning_rate=0.3, loss='log_loss', max_depth=7,
                            subsample=0.7)
 gb_best=(gb, {'learning_rate': 0.3, 'max_depth': 7, 'max_features': None, 'min_samples_leaf': 1, 'min_samples_split': 2, 'n_estimators': 100, 'subsample': 0.7}, 0.9476937708036139)
 
-
+bclf[0]=
 bclf[1]=rf_best
 bclf[2]=gb_best
 ##

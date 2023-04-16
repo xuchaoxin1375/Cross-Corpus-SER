@@ -169,6 +169,7 @@
   - 进行预测
   - 对预测性能进行评估分析
   - 可视化分析
+  
 - 初始化(构造器)
   - `load_data`(ER)
   
@@ -184,7 +185,8 @@
   
     - 根据meta文件提取特征
       - meta文件名格式:`{partition}_{db}_{feature_config}.csv`
-      - 
+      
+        
 
 #### 待优化的代码片段
 
@@ -213,7 +215,10 @@
 
 - 而ER对象的超参/模型决策相关方法(best_model)的调用可以顺利进行会调用`utils.best_estimator`方法,因此整个的依赖关系是:
 
-  - ER.best_model->utils.best_estimator->grid_search.py->ER.grid_search->grid_params.py
+  - ```mermaid
+    flowchart LR
+    	ER.best_model-->utils.best_estimator-->grid_search.py-->ER.grid_search-->grid_params.py
+    ```
   - 其中grid_search.py运行之后,可以生成2个包含多个Estimator的最优超参数
     - 可以用joblib进行dump(导出)和load(载入),对于分类预测和回归预测分别保存为`bclf.joblib`,`brgr.joblib`
   - 这些最优组合中也可以进行比较,从而选出效果最好的`estimator(model)-hyperParameters`组合

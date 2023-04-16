@@ -152,12 +152,12 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     f_config = ["mfcc", "chroma", "mel"]
-    detector = EmotionRecognizer(estimator_dict[args.model], emotions=args.emotions.split(","), features=f_config, verbose=0)
-    detector.train()
-    print("Test accuracy score: {:.3f}%".format(detector.test_score()*100))
+    er = EmotionRecognizer(estimator_dict[args.model], emotions=args.emotions.split(","), features=f_config, verbose=0)
+    er.train()
+    print("Test accuracy score: {:.3f}%".format(er.test_score()*100))
     print("Please talk")
     
     filename = "test.wav"
     record_to_file(filename)
-    result = detector.predict(filename)
+    result = er.predict(filename)
     print(result)

@@ -105,7 +105,18 @@ categories_emodb = {
     "T": "sad",
     "N": "neutral"
 }
+# The letters 'a', 'd', 'f', 'h', 'n', 'sa' and 'su' represent 'anger', 'disgust', 'fear', 'happiness', 'neutral', 'sadness' and 'surprise' emotion classes respectively. 
+#为了和和其他库标签接轨,这里需要将名词转换为形容词(也可以将其他库的形若词转为名词)
+categories_savee={
+    'a':'angry',
+    'h':'happy',
+    'n':'neutral',
+    'sa':'sad',
 
+    'su':'surprise',#和ps(PleasantSurprise)相关但是有一定区别
+    'd':'disgust',
+    'f':'fear',
+}
 # 配置当前(默认变量)
 f_config_def = MCM
 e_config_def = HNS

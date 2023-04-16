@@ -150,17 +150,18 @@ class AudioExtractor:
             meta_files = [meta_files]
         if self.verbose:
             print("[I] Loading audio file paths and its corresponding labels...")
-        print("meta_files:", meta_files)
+        # print("meta_files:", meta_files)
+
         # print("type(meta_files)", type(meta_files))
         if isinstance(meta_files, str):
             meta_files = [meta_files]
         for meta_file in meta_files:
             if not os.path.exists(meta_file):
                 # create_csv_by_meta_name
-                print(f"{meta_file} does not exist,creating...")
+                print(f"{meta_file} does not exist,creating...😂")
                 create_csv_by_metaname(meta_file)
             else:
-                print(f"存在{meta_file}文件!")
+                print(f"meta_file存在{meta_file}文件!")
             df_meta = pd.read_csv(meta_file)
             df = pd.concat((df, df_meta), sort=False)
         # get columns
@@ -326,8 +327,8 @@ class AudioExtractor:
         meta_name,ext=os.path.splitext(meta_name)
         meta_fields = meta_name.split("_")
         db = meta_fields[1]
-        print(f"{meta_path=}@")
-        print(f"{db=}@")
+        # print(f"{meta_path=}@")
+        # print(f"{db=}@")
 
         db = db if db in ava_dbs else ""
         #计算情感字段
@@ -438,8 +439,9 @@ class AudioExtractor:
             raise ValueError("meta_files cannot be empty")
             # return meta_files
         if isinstance(meta_paths, str):
-            print(f"cast the '{meta_paths}' to [str]")
+            # print(f"cast the '{meta_paths}' to [str]")
             meta_paths = [meta_paths]
+
         # 执行特征提取
         for meta_file in meta_paths:
             print(meta_file, "@🎈{meta_file}")
@@ -476,7 +478,7 @@ class AudioExtractor:
             是否执行打乱数据顺序操作, by default False
         """
         print(f"{partition=}")
-        print(meta_files,"@{meta_files}in load_data_preprosscing")
+        # print(meta_files,"@{meta_files}in load_data_preprossing")
         if not meta_files:
             return
         self.extract_update(partition=partition, meta_paths=meta_files)
@@ -752,7 +754,7 @@ def load_data_from_meta(
         verbose=True,
     )
 
-    print(test_meta_files, "@{test_meta_files} in load_data_from_meta")
+    # print(test_meta_files, "@{test_meta_files} in load_data_from_meta")
 
     # Loads training data
     ae.load_data_preprocessing(

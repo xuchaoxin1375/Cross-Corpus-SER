@@ -6,49 +6,25 @@ from time import time
 import matplotlib.pyplot as pl
 import numpy as np
 import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+# from deprecated import deprecated
+from sklearn.metrics import (accuracy_score, classification_report,
+                             confusion_matrix, fbeta_score, make_scorer,
+                             mean_absolute_error, mean_squared_error)
+from sklearn.model_selection import GridSearchCV
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import LinearSVR
-import tqdm
-
-# from deprecated import deprecated
-from sklearn.metrics import (
-    accuracy_score,
-    classification_report,
-    confusion_matrix,
-    fbeta_score,
-    make_scorer,
-    mean_absolute_error,
-    mean_squared_error,
-)
-from sklearn.model_selection import GridSearchCV
+from tqdm import tqdm
 
 from create_csv import create_emodb_csv, create_ravdess_csv
 from data_extractor import load_data_from_meta
-from EF import (
-    AHNPS,
-    AVAILABLE_EMOTIONS,
-    HNS,
-    MCM,
-    ava_emotions,
-    ava_features,
-    e_config_def,
-    f_config_def,
-    get_f_config_dict,
-    validate_emotions,
-)
-from MetaPath import (
-    ava_dbs,
-    emodb,
-    meta_dir,
-    create_meta_paths_dbs,
-    meta_paths_of_db,
-    ravdess,
-    test_emodb_csv,
-    test_ravdess_csv,
-    train_emodb_csv,
-    train_ravdess_csv,
-    validate_partition,
-)
+from EF import (AHNPS, AVAILABLE_EMOTIONS, HNS, MCM, ava_emotions,
+                ava_features, e_config_def, f_config_def, get_f_config_dict,
+                validate_emotions)
+from MetaPath import (ava_dbs, create_meta_paths_dbs, emodb, meta_dir,
+                      meta_paths_of_db, ravdess, test_emodb_csv,
+                      test_ravdess_csv, train_emodb_csv, train_ravdess_csv,
+                      validate_partition)
 from utils import best_estimators, extract_feature
 
 
@@ -125,7 +101,7 @@ class EmotionRecognizer:
             partition="test",
         )
 
-        print(self.train_meta_files, self.test_meta_files)
+        # print(self.train_meta_files, self.test_meta_files)
 
         # if self.train_dbs and self.test_dbs:
         #     if isinstance( self.train_dbs,str):
@@ -149,7 +125,6 @@ class EmotionRecognizer:
         self.balance = False
         self.data_loaded = False
         self.model_trained = False
-        self.model_selected = False
 
         self.dbs = dbs if dbs else [ravdess]
         # 鉴于数据集(特征和标签)在评估方法时将反复用到,因此这里将设置相应的属性来保存它们
@@ -169,7 +144,10 @@ class EmotionRecognizer:
         # 开始填充数据(最先开始的步骤,放在init中随着初始化实例的时候执行)
         # self.load_data()
         # 属性的先后位置会影响程序的运行
-        self.model = model if model else None
+        print("@{model}")
+        # print(model,"\ncomparing and choosing the best model...")
+        #!RandomForestClassifier实例不能直接用bool()来判断,会提示estimators_不存在
+        self.model = model
         # if self.model is None:
         # 依赖于boolean attributes
 
@@ -200,7 +178,7 @@ class EmotionRecognizer:
             self.test_audio_paths = data["test_audio_paths"]
             self.balance = data["balance"]
             if self.verbose:
-                print("[+] Data loaded")
+                print("[I] Data loaded\n")
             self.data_loaded = True
             # print(id(self))
             if self.verbose > 1:
@@ -216,7 +194,9 @@ class EmotionRecognizer:
         if not self.data_loaded:
             # if data isn't loaded yet, load it then
             self.load_data()
-        print(self.model,"@{self.model}")
+
+        print("@{self.model}:")
+        print(self.model)
         model = self.model if self.model is not None else self.best_model()
         if not self.model_trained or choosing:
             X_train = self.X_train
@@ -333,15 +313,45 @@ class EmotionRecognizer:
         if self.verbose:
             # 控制是否显示进度条
             # 通过tqdm封装estimator这个可迭代对象,就可以在遍历estimator时,控制进度条的显示
-            estimators = tqdm.tqdm(estimators)
+            estimators = tqdm(estimators)
 
-        for estimator, params, cv_score in estimators:
+        for epc in estimators:
+            estimator, params_, cv_score_ = epc
+            ecn = estimator.__class__.__name__
+
             if self.verbose:
-                estimators.set_description(f"Evaluating {estimator.__class__.__name__}")
+                # 如果启用verbose选项,那么estimators会被tqdm包装
+                # 此时可以通过set_description方法来修改进度条的描述信息
+                # 比如,estimators.set_description(f"Evaluating {estimator.__class__.__name__}")
+                estimators.set_description(f"Evaluating <{ecn}>")
 
-            self.model = estimator
 
-            er = self  # 以下的计算是用来选出model的,而不是直接作为self对象的属性,这里将self赋值给er,以示区别
+            er = EmotionRecognizer(
+                model=estimator,
+                emotions=self.e_config,
+                classification_task=self.classification_task,
+                f_config=self.f_config,
+                balance=self.balance,
+                override_csv=False,
+                verbose=0
+            )
+            # data already loaded
+            er.X_train = self.X_train
+            er.X_test = self.X_test
+            er.y_train = self.y_train
+            er.y_test = self.y_test
+            er.data_loaded = True
+            # train the model
+            er.train(verbose=0)
+            # get test accuracy
+            accuracy = er.test_score()
+            # append to result
+            result.append((er.model, accuracy))
+
+            #使用本对象self而不是在创建一个ER对象
+            # self.model = estimator
+            # er = self  
+            # 以下的计算是用来选出model的,而不是直接作为self对象的属性,这里将self赋值给er,以示区别
 
             # train(fit) the model
             # 如果设置verbose=1,则会逐个打印当前计算的模型(进度不是同一条)
@@ -351,10 +361,10 @@ class EmotionRecognizer:
             # self.train(verbose=1)
 
             accuracy = er.test_score(choosing=True)
-            # print(f"[I] {estimator.__class__.__name__} with {accuracy} test accuracy")
-            # append to result
+            print(f"\n[I] {ecn} with {accuracy} test accuracy")
 
-            result.append((er.model, accuracy))
+            # append to result
+            result.append((estimator, accuracy))
 
         # sort the result
         # regression: best is the lower, not the higher
@@ -370,7 +380,7 @@ class EmotionRecognizer:
         if self.verbose:
             if self.classification_task:
                 print(
-                    f"[+] Best model determined: {self.model.__class__.__name__} with {accuracy*100:.3f}% test accuracy"
+                    f"[🎈] Best model : {self.model.__class__.__name__} with {accuracy*100:.3f}% test accuracy"
                 )
             else:
                 print(
@@ -387,7 +397,7 @@ class EmotionRecognizer:
         X_test = self.X_test
         y_test = self.y_test
         # 调用训练好的模型进行预测
-        model = self.model if self.model else self.best_model()
+        model = self.model if self.model is not None else self.best_model()
         if len(X_test) == 0:
             raise ValueError("X_test is empty")
         if len(y_test) == 0:
@@ -405,13 +415,14 @@ class EmotionRecognizer:
             report = classification_report(y_true=y_test, y_pred=y_pred)
             print(report, self.model.__class__.__name__)
         return res
-    def meta_paths_of_db(self,db,partition="test"):
-        res=meta_paths_of_db(
-                db=db,
-                e_config=self.e_config,
-                change_type="str",
-                partition=partition,
-            )
+
+    def meta_paths_of_db(self, db, partition="test"):
+        res = meta_paths_of_db(
+            db=db,
+            e_config=self.e_config,
+            change_type="str",
+            partition=partition,
+        )
         return res
 
     def update_test_set(self, X_test, y_test):
@@ -747,29 +758,32 @@ def visualize(results, n_classes):
     pl.show()
 
 
-from MetaPath import pair1, select_meta_dict, test_emodb_csv, train_emodb_csv
+from MetaPath import (pair1, savee, select_meta_dict, test_emodb_csv,
+                      train_emodb_csv)
 
+passive_emo=["angry", "sad"]
+typical_emo=['happy','neutral','sad']
+e_config=typical_emo
 if __name__ == "__main__":
     # from emotion_recognition import EmotionRecognizer
     from sklearn.svm import SVC
 
     # use SVC as a demo
-    my_model = SVC(C=0.001, gamma=0.001, kernel="poly")
+    # my_model = SVC(C=0.001, gamma=0.001, kernel="poly")
+    my_model=RandomForestClassifier(max_depth=3, max_features=0.2)
     my_model = None
-
-
-    # !注意,同时传入meta_dict和f_config,e_config,要和pairs对应,因为这可能引发矛盾,导致意外的效果
-    from MetaPath import meta_pairs
-
-    # meta_pairs=meta_pairs(e_config=AHNPS)
-    # pair1, pair2, pair3, pair4,pair5=meta_pairs
-    # meta_dict = select_meta_dict(pair2)
 
     # rec = EmotionRecognizer(model=my_model,e_config=AHNPS,f_config=f_config_def,test_dbs=[ravdess],train_dbs=[ravdess], verbose=1)
 
-    meta_dict = {"train_dbs": emodb, "test_dbs": ravdess}
+
+
+    meta_dict = {"train_dbs": ravdess, "test_dbs": savee}
     rec = EmotionRecognizer(
-        model=my_model, e_config=["angry","sad"], f_config=['mfcc','mel'], **meta_dict, verbose=1
+        model=my_model,
+        e_config=e_config,
+        f_config=f_config_def,
+        **meta_dict,
+        verbose=1,
     )
 
     # rec = EmotionRecognizer(model=my_model,e_config=AHNPS,f_config=f_config_def,test_dbs=emodb,train_dbs=emodb, verbose=1)

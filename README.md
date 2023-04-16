@@ -21,7 +21,7 @@
 
 ## Requirements
 
-- **Python 3.6+**
+- **Python 3.9**
 
 ### Python Packages
 
@@ -32,21 +32,87 @@
 - **soundfile==0.9.0**
 - **wave**
 - **scikit-learn==1.2**
-- **tqdm==4.28.1**
+- tqdm
+- notebook
 - **matplotlib==2.2.3**
 - **pyaudio==0.2.11**
 - **[ffmpeg](https://ffmpeg.org/) (optional)**: used if you want to add more sample audio by converting to 16000Hz sample rate and mono channel which is provided in ``convert_wavs.py``
+
+#### tqdm
+
+- `tqdm` 是一个Python的进度条库，用于在控制台中展示循环的进度，并可以根据已经完成的工作量估计剩余时间。它的使用非常简单，以下是一些常见的用法：
+- `tqdm` derives from the Arabic word *`taqaddum`* (تقدّم) which can mean "progress," and is an abbreviation for "I love you so much" in Spanish (*te quiero demasiado*).
+
+- 在循环中使用tqdm来展示进度条：
+
+```python
+from tqdm import tqdm
+import time
+
+for i in tqdm(range(10)):
+    time.sleep(0.1)
+```
+
+这将展示一个进度条，表示在循环中的迭代次数。在每个迭代中，进度条将更新并显示已经完成的进度百分比。
+
+- 可以通过设置`desc`参数来为进度条添加描述信息：
+
+```python
+from tqdm import tqdm
+import time
+
+for i in tqdm(range(10), desc="Processing data"):
+    time.sleep(0.1)
+```
+
+这将在进度条上方添加一个描述信息，描述当前正在执行的任务。
+
+- 可以通过设置`leave`参数来控制进度条是否应该在循环结束后保留：
+
+```python
+from tqdm import tqdm
+import time
+
+for i in tqdm(range(10), leave=False):
+    time.sleep(0.1)
+```
+
+这将在循环结束后清除进度条。
+
+这些是`tqdm`的一些常见用法，它还具有许多其他有用的功能，如支持多线程和多进程，可以自定义进度条的样式等。
+
+- 本项目中遍历`estimators`
+
+- ```python
+  from tqdm import tqdm
+  from time import sleep
+  from utils import best_estimators
+  ests=best_estimators()
+  ests=tqdm(ests)
+  for x in ests:
+      sleep(0.5)
+      print(x)
+  ```
+
+  
 
 ### 安装环境和依赖
 
 - ```bash
   pip3 install -r requirements.txt
   ```
-
+### PYTHONPATH环境变量
+``` powershell
+(d:\condaPythonEnvs\tf2.10) PS D:\repos\CCSER\SER> envQuery -key pythonpath -level User
+D:\repos\CCSER\SER(替换为本项目的所在目录根目录)
+...
+```
 
 ## Speech Dataset
 
 This repository used 4 datasets (including this repo's custom dataset) which are downloaded and formatted already in `data` folder:
+
+
 
 ### RAVDE
 
@@ -84,6 +150,27 @@ This repository used 4 datasets (including this repo's custom dataset) which are
   RAVDESS语料库的歌曲记录包含了12首歌曲，每首歌曲都表达了四种不同的情感状态，包括快乐、悲伤、惊讶和中性。每首歌曲的长度为30秒至1分钟不等，音频文件格式为MP3。
 
   RAVDESS语料库是一个广泛应用于语音情感识别和分类领域的标准数据集，它已经被广泛应用于语音情感识别和分类算法的开发和评估。该数据库的开放访问使得研究人员可以更方便地进行情感识别和分类算法的开发和评估，同时也为智能语音应用的开发提供了有用的资源。
+
+###  SAVEE
+
+#### Speakers
+
+'DC', 'JE', 'JK' and 'KL' are four male speakers recorded for the SAVEE database
+
+
+--------------------------------------
+
+#### Audio data 
+
+Audio files consist of audio WAV files sampled at 44.1 kHz
+
+There are 15 sentences for each of the 7 emotion categories.
+
+The initial letter(s) of the file name represents the emotion class, and the following digits represent the sentence number.
+
+- The letters 'a', 'd', 'f', 'h', 'n', 'sa' and 'su' represent 'anger', 'disgust', 'fear', 'happiness', 'neutral', 'sadness' and 'surprise' emotion classes respectively. 
+
+- E.g., 'd03.wav' is the 3rd disgust sentence. 
 
 ### TESS
 
@@ -882,6 +969,8 @@ plot_histograms(classifiers=True)
 
 
 ## 客户端
+
+- [ccser_client](ccser_client)
 
 - "Tkinter" 的全称是 "Tk Interface"，它是 Python 标准库之一，提供了创建 GUI 应用程序的工具。
 - 它的缩写是 "Tk" 或 "Tkinter"，在 Python 中可以使用 `import tkinter` 或 `import Tkinter` 来导入 Tkinter 模块。

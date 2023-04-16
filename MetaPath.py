@@ -2,6 +2,7 @@
 import collections
 from pathlib import Path
 from typing import Iterable, List
+from glob import glob
 
 from sklearn.utils import deprecated
 
@@ -20,20 +21,36 @@ Sequence = collections.abc.Sequence  # type:ignore
 
 # FileName = NewType('FileName', str)
 ##
+# 控制保存文件的目录(例如相对于那个目录的相对路径或者直接采用绝对路径)
+base_dir = Path(r"D:/repos/CCSER/SER")
+# 尽管可以利用base_dir这个变量来指定保存文件的绝对路径,但是可以采用先cd到项目根目录,
+# 然后执行`py .\tkinter_client\er_tk.py `的方式运行
+# (而不是直接在./tkinter_client下执行`py er_tk.py`),这样相对路路径就会从项目根目录开始
 meta_dir = Path("./meta_files")
 grid_dir = Path("./grid")
 emodb_files_glob: str = "data/emodb/wav/*.wav"
+ravdess_files_glob = "data/ravdess/Actor_*"
+savee_files_glob = "data/savee/AudioData/*/*.wav"
+##
 features_dir = Path("./features")
-
-# 语料库配置
-ravdess, emodb = [
-    "ravdess",
-    "emodb",
+meta_dir, grid_dir, emotion_files_glob, ravdess_files_glob, features_dir = [
+    base_dir / p
+    for p in (meta_dir, grid_dir, emodb_files_glob, ravdess_files_glob, features_dir)
 ]
-ava_dbs: list[str] = [emodb, ravdess]
+# 语料库配置
+ravdess, emodb, savee = ["ravdess", "emodb", "savee"]
+ava_dbs: list[str] = [emodb, ravdess, savee]
 # !模型超参数路径
-bclf = "bclf.joblib"
-brgr = "brgr.joblib"
+bclf1 = "bclf.joblib"
+brgr1 = "brgr.joblib"
+bclf2 = "bclf_u1.joblib"
+brgr2 = "bclf_u1.joblib"
+# bclf = bclf1
+# brgr = brgr1
+# 通过字典选取超参数版本(组合)
+cuple_dict = dict(c1=(bclf1, brgr1), c2=(bclf2, brgr2))
+bclf, brgr = cuple_dict["c1"]
+# 补齐具体路径
 bclf, brgr = [grid_dir / item for item in (bclf, brgr)]
 
 ##
@@ -164,11 +181,10 @@ def create_tag_name(
     # res = f"{partition}{emotions}{features}{db}{n_samples}.{ext}"
     # str(None)#'None'
     n_samples = str(n_samples) if n_samples else ""
-    #如果是用来生成特征提取的文件名,可能需要加上额外的信息:
-    balance="balanced" if balance else ""
-    shuffle="shuffled" if shuffle else ""
-    
-    
+    # 如果是用来生成特征提取的文件名,可能需要加上额外的信息:
+    balance = "balanced" if balance else ""
+    shuffle = "shuffled" if shuffle else ""
+
     fields = [partition, db, features, emotions, n_samples]
     # print("{fields:}")
     # print(fields)
@@ -197,9 +213,9 @@ def validate_partition(partition, Noneable=True):
     TypeError
         取值非法错误
     """
-    if Noneable == False and partition =="":
+    if Noneable == False and partition == "":
         partition_invalid_raise_ValueError(partition=partition)
-    if partition :
+    if partition:
         res = partition in ["test", "train"]
         if not res:
             partition_invalid_raise_ValueError(partition=partition)
@@ -237,7 +253,7 @@ def tag_field(field):
 
 def prepend_dir(tag_names, dir=meta_dir, change_type="Path"):
     """由于存放meta文件的目录不在项目根目录(而是子目录meta_files,因此这里统一做一个转换)
-
+    如果需要使用绝对路径,可以在此处修改(本函数管理一切目录前缀)
     Parameters
     ----------
     tag_names : list[str]|str
@@ -257,8 +273,8 @@ def prepend_dir(tag_names, dir=meta_dir, change_type="Path"):
         tag_names = [tag_names]
     elif not isinstance(tag_names, Sequence):
         raise TypeError(f"tag_names@{tag_names} must be a Sequence!")
-    # 返回类型转换
-    res = [dir / file for file in tag_names]
+    # 返回类型转换(使用绝对路径不容易出问题,但是相对路径性能更好)
+    res = [(dir / file).absolute() for file in tag_names]
     if change_type == "str":
         res = [str(meta_path) for meta_path in res]
     elif change_type != "Path":
@@ -296,6 +312,7 @@ def meta_names_of_db(db, e_config=None):
     #     "test": test
     # }
 
+
 ##
 def meta_paths_of_db(db, e_config=None, partition="", change_type="Path"):
     """根据指定的语料库和情感特征组合,生成具体的train/test set meta file (csv)路径
@@ -316,7 +333,7 @@ def meta_paths_of_db(db, e_config=None, partition="", change_type="Path"):
     -
 
     >>> meta_paths_of_db(emodb,e_config=AHNPS)
-    >>> 
+    >>>
         [WindowsPath('meta_files/train_emodb_AHNPS.csv'),
         WindowsPath('meta_files/test_emodb_AHNPS.csv')]
     """
@@ -336,8 +353,6 @@ def meta_paths_of_db(db, e_config=None, partition="", change_type="Path"):
     return res
 
 
-
-
 def _meta_names_all(dbs=ava_dbs, partition="", e_config=None):
     """根据数据库列表dbs中,构造训练集和测试集meta文件名
 
@@ -353,8 +368,8 @@ def _meta_names_all(dbs=ava_dbs, partition="", e_config=None):
     list
         meta文件名list
     """
-    if isinstance(dbs,str):
-        dbs=[dbs]
+    if isinstance(dbs, str):
+        dbs = [dbs]
     meta_partition = [create_tag_name(db, partition, e_config=e_config) for db in dbs]
     return meta_partition
 
@@ -362,39 +377,38 @@ def _meta_names_all(dbs=ava_dbs, partition="", e_config=None):
 def create_meta_paths_dbs(dbs=ava_dbs, partition="", e_config=None):
     """计算dbs中配置的所有语料库的train/test meta文件路径
 
-       Parameters
-       ----------
-       dbs=dbs: list|str
-           语料库列表, by default dbs
-           通常只需要选择一个语料库即可
-       e_config : list, optional
-           情感组合, by default e_config_def
+    Parameters
+    ----------
+    dbs=dbs: list|str
+        语料库列表, by default dbs
+        通常只需要选择一个语料库即可
+    e_config : list, optional
+        情感组合, by default e_config_def
 
-       Returns
-       -------
-       list
-           路径列表
+    Returns
+    -------
+    list
+        路径列表
 
-       e.g.
-       -
-       >>> meta_paths_dbs(dbs=[emodb],partition="test")
-       >>> [WindowsPath('meta_files/test_emodb_HNS.csv')]
+    e.g.
+    -
+    >>> meta_paths_dbs(dbs=[emodb],partition="test")
+    >>> [WindowsPath('meta_files/test_emodb_HNS.csv')]
 
-       >>> meta_paths_dbs(dbs=[ravdess,emodb],partition="test")
-       >>> 
-            [WindowsPath('meta_files/test_ravdess_HNS.csv'),
-            WindowsPath('meta_files/test_emodb_HNS.csv')]
-    
-       >>> meta_paths_bs(dbs=[emodb,ravdess])
-       >>> 
-       [WindowsPath('meta_files/train_emodb_HNS.csv'),
-        WindowsPath('meta_files/test_emodb_HNS.csv'),
-        WindowsPath('meta_files/train_ravdess_HNS.csv'),
-        WindowsPath('meta_files/test_ravdess_HNS.csv')]
+    >>> meta_paths_dbs(dbs=[ravdess,emodb],partition="test")
+    >>>
+         [WindowsPath('meta_files/test_ravdess_HNS.csv'),
+         WindowsPath('meta_files/test_emodb_HNS.csv')]
+
+    >>> meta_paths_bs(dbs=[emodb,ravdess])
+    >>>
+    [WindowsPath('meta_files/train_emodb_HNS.csv'),
+     WindowsPath('meta_files/test_emodb_HNS.csv'),
+     WindowsPath('meta_files/train_ravdess_HNS.csv'),
+     WindowsPath('meta_files/test_ravdess_HNS.csv')]
     """
     meta_trains = _meta_names_all(dbs=dbs, partition="train", e_config=e_config)
     meta_tests = _meta_names_all(dbs=dbs, partition="test", e_config=e_config)
-
 
     res = []
     train_paths = prepend_dir(meta_trains)
@@ -431,17 +445,23 @@ def test2():
 
 partition_meta_files = create_meta_paths_dbs(e_config=e_config_def)
 
-train_emodb_csv, test_emodb_csv, train_ravdess_csv, test_ravdess_csv = [
-    str(meta) for meta in partition_meta_files
-]
+(
+    train_emodb_csv,
+    test_emodb_csv,
+    train_ravdess_csv,
+    test_ravdess_csv,
+    train_savee_csv,
+    test_savee_csv,
+) = [str(meta) for meta in partition_meta_files]
 
-pair1=(train_ravdess_csv,test_ravdess_csv)
-pair2=(train_emodb_csv,test_emodb_csv)
-pair3=(train_ravdess_csv,test_emodb_csv)
-pair4=(train_emodb_csv,test_ravdess_csv)
-pair5=(train_emodb_csv,train_ravdess_csv)
+pair1 = (train_ravdess_csv, test_ravdess_csv)
+pair2 = (train_emodb_csv, test_emodb_csv)
+pair3 = (train_ravdess_csv, test_emodb_csv)
+pair4 = (train_emodb_csv, test_ravdess_csv)
+pair5 = (train_emodb_csv, train_ravdess_csv)
 
-paris=[pair1,pair2,pair3,pair4,pair5]
+paris = [pair1, pair2, pair3, pair4, pair5]
+
 
 def meta_pairs(e_config=None):
     """获取语料库分组组合
@@ -463,19 +483,22 @@ def meta_pairs(e_config=None):
         str(meta) for meta in partition_meta_files
     ]
 
-    pair1=(train_ravdess_csv,test_ravdess_csv)
-    pair2=(train_emodb_csv,test_emodb_csv)
-    pair3=(train_ravdess_csv,test_emodb_csv)
-    pair4=(train_emodb_csv,test_ravdess_csv)
-    pair5=(train_emodb_csv,train_ravdess_csv)
+    pair1 = (train_ravdess_csv, test_ravdess_csv)
+    pair2 = (train_emodb_csv, test_emodb_csv)
+    pair3 = (train_ravdess_csv, test_emodb_csv)
+    pair4 = (train_emodb_csv, test_ravdess_csv)
+    pair5 = (train_emodb_csv, train_ravdess_csv)
 
-    pairs=[pair1,pair2,pair3,pair4,pair5]
+    pairs = [pair1, pair2, pair3, pair4, pair5]
     return pairs
+
 
 def select_meta_dict(pair=pair1):
     print(f"当前使用语料库数据集组合:\n{pair}")
-    meta_dict={"train_meta_files":pair[0],"test_meta_files":pair[1]}
+    meta_dict = {"train_meta_files": pair[0], "test_meta_files": pair[1]}
     return meta_dict
+
+
 ##
 
 
@@ -487,7 +510,7 @@ if __name__ == "__main__":
     # res = meta_paths(ravdess)
     # print(partition_meta_files)
     # create_meta_paths_dbs()
-    meta_paths_of_db(db=emodb,e_config=AHNPS)
-    
+    meta_paths_of_db(db=emodb, e_config=AHNPS)
+
 
 ##
