@@ -338,8 +338,7 @@ EmoVO（Emotion in Voice Over）数据集是一个用于情感识别和情感分
 
 - There are 9 emotions available: "neutral", "calm", "happy" "sad", "angry", "fear", "disgust", "ps" (pleasant surprise) and "boredom".
 
-
-## Feature Extraction@特征提取
+## Feature Extraction@特征提取🎈
 
 - Feature extraction is the main part of the speech emotion recognition system. It is basically accomplished by changing the speech waveform to a form of parametric representation at a relatively lesser data rate.
 

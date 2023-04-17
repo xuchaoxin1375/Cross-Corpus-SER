@@ -121,6 +121,8 @@ categories_savee={
 f_config_def = MCM
 e_config_def = HNS
 
+ava_algorithms = ['best_model', 'svc', 'rf', 'mlp', 'knn','Bagging','gb','RNN']
+
 #
 def extend_emotion_names(emotion_first_letters):
     emotion_first_letters=emotion_first_letters.upper()
@@ -135,3 +137,9 @@ if __name__=="__main__":
     # print(res)
     res=get_f_config_dict(f_config_def)
     print(res)
+
+
+# layout=[
+#     [sg.T(f"chose the db for {train}:")],[sg.LB(values=ava_dbs,size=(15,5))]
+# ]
+

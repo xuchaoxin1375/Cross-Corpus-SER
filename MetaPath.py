@@ -20,7 +20,7 @@ from EF import (
 Sequence = collections.abc.Sequence  # type:ignore
 
 # FileName = NewType('FileName', str)
-##
+
 # 控制保存文件的目录(例如相对于那个目录的相对路径或者直接采用绝对路径)
 base_dir = Path(r"D:/repos/CCSER/SER")
 # 尽管可以利用base_dir这个变量来指定保存文件的绝对路径,但是可以采用先cd到项目根目录,
@@ -28,18 +28,22 @@ base_dir = Path(r"D:/repos/CCSER/SER")
 # (而不是直接在./tkinter_client下执行`py er_tk.py`),这样相对路路径就会从项目根目录开始
 meta_dir = Path("./meta_files")
 grid_dir = Path("./grid")
+features_dir = Path("./features")
+
 emodb_files_glob: str = "data/emodb/wav/*.wav"
 ravdess_files_glob = "data/ravdess/Actor_*"
 savee_files_glob = "data/savee/AudioData/*/*.wav"
-##
-features_dir = Path("./features")
-meta_dir, grid_dir, emotion_files_glob, ravdess_files_glob, features_dir = [
-    base_dir / p
-    for p in (meta_dir, grid_dir, emodb_files_glob, ravdess_files_glob, features_dir)
+
+
+meta_dir, grid_dir, emodb_files_glob, ravdess_files_glob,savee_files_glob, features_dir = [
+    (base_dir / p)
+    for p in (meta_dir, grid_dir, emodb_files_glob, ravdess_files_glob,savee_files_glob, features_dir)
 ]
 # 语料库配置
 ravdess, emodb, savee = ["ravdess", "emodb", "savee"]
 ava_dbs: list[str] = [emodb, ravdess, savee]
+
+    
 # !模型超参数路径
 bclf1 = "bclf.joblib"
 brgr1 = "brgr.joblib"
@@ -53,6 +57,15 @@ bclf, brgr = cuple_dict["c1"]
 # 补齐具体路径
 bclf, brgr = [grid_dir / item for item in (bclf, brgr)]
 
+def example_audio_file(db=savee):
+    select_sample_dict=dict(
+        emodb=emodb_files_glob,
+        ravdess=ravdess_files_glob,
+        savee=savee_files_glob
+    )
+    db_glob=str(select_sample_dict[db])
+    g=glob(db_glob)
+    return g[0]
 ##
 
 

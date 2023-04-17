@@ -175,7 +175,7 @@ root = tk.Tk()
 button = tk.Button(root, text="Click me")
 button.grid()
 
-button.bind("<Button-1>", func2)
 button.bind("<Button-1>", func1)
+button.bind("<Button-1>", func2,add=True)
 
 root.mainloop()
