@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
     Example of (almost) all Elements, that you can use in PySimpleGUI.
     Shows you the basics including:

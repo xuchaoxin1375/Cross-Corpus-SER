@@ -26,7 +26,7 @@ meta_dir = Path("./meta_files")
 grid_dir = Path("./grid")
 features_dir = Path("./features")
 
-emodb_files_glob: str = "data/emodb/wav/*.wav"
+emodb_files_glob = "data/emodb/wav/*.wav"
 ravdess_files_glob = "data/ravdess/Actor_*"
 savee_files_glob = "data/savee/AudioData/*/*.wav"
 
@@ -53,7 +53,7 @@ bclf, brgr = cuple_dict["c1"]
 # 补齐具体路径
 bclf, brgr = [grid_dir / item for item in (bclf, brgr)]
 
-def example_audio_file(db=savee):
+def get_example_audio_file(db=savee):
     select_sample_dict=dict(
         emodb=emodb_files_glob,
         ravdess=ravdess_files_glob,

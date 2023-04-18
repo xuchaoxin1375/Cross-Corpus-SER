@@ -219,7 +219,7 @@ class EmotionRecognizer:
         model = self.model if self.model else self.best_model()
         res = model.predict(feature)
         print(res, "@{res}")
-        return feature
+        return res
         # return self.model.predict(feature2)[0]
 
     def peek_test_set(self, n=5):
@@ -600,154 +600,6 @@ class EmotionRecognizer:
         return random.choice(indices)
 
 
-def plot_histograms(classifiers=True, beta=0.5, n_classes=3, verbose=1):
-    """
-    Loads different estimators from `grid` folder and calculate some statistics to plot histograms.
-    Params:
-        classifiers (bool): if `True`, this will plot classifiers, regressors otherwise.
-        beta (float): beta value for calculating fbeta score for various estimators.
-        n_classes (int): number of classes
-    """
-    # get the estimators from the performed grid search result
-    estimators = best_estimators(classifiers)
-
-    final_result = {}
-    for estimator, params, cv_score in estimators:
-        final_result[estimator.__class__.__name__] = []
-        for i in range(3):
-            result = {}
-            # initialize the class
-            er = EmotionRecognizer(estimator, verbose=0)
-            # load the data
-            er.load_data()
-            if i == 0:
-                # first get 1% of sample data
-                sample_size = 0.01
-            elif i == 1:
-                # second get 10% of sample data
-                sample_size = 0.1
-            elif i == 2:
-                # last get all the data
-                sample_size = 1
-            # calculate number of training and testing samples
-            n_train_samples = int(len(er.X_train) * sample_size)
-            n_test_samples = int(len(er.X_test) * sample_size)
-            # set the data
-            er.X_train = er.X_train[:n_train_samples]
-            er.X_test = er.X_test[:n_test_samples]
-            er.y_train = er.y_train[:n_train_samples]
-            er.y_test = er.y_test[:n_test_samples]
-            # calculate train time
-            t_train = time()
-            er.train()
-            t_train = time() - t_train
-            # calculate test time
-            t_test = time()
-            test_accuracy = er.test_score()
-            t_test = time() - t_test
-            # set the result to the dictionary
-            result["train_time"] = t_train
-            result["pred_time"] = t_test
-            result["acc_train"] = cv_score
-            result["acc_test"] = test_accuracy
-            result["f_train"] = er.train_fbeta_score(beta)
-            result["f_test"] = er.test_fbeta_score(beta)
-            if verbose:
-                print(
-                    f"[+] {estimator.__class__.__name__} with {sample_size * 100}% ({n_train_samples}) data samples achieved {cv_score * 100:.3f}% Validation Score in {t_train:.3f}s & {test_accuracy * 100:.3f}% Test Score in {t_test:.3f}s"
-                )
-            # append the dictionary to the list of results
-            final_result[estimator.__class__.__name__].append(result)
-        if verbose:
-            print()
-    visualize(final_result, n_classes=n_classes)
-
-
-def visualize(results, n_classes):
-    """
-    Visualization code to display results of various learners.
-
-    inputs:
-      - results: a dictionary of lists of dictionaries that contain various results on the corresponding estimator
-      - n_classes: number of classes
-    """
-
-    n_estimators = len(results)
-
-    # naive predictor
-    accuracy = 1 / n_classes
-    f1 = 1 / n_classes
-    # Create figure
-    fig, ax = pl.subplots(2, 4, figsize=(11, 7))
-    # Constants
-    bar_width = 0.4
-    colors = [
-        (random.random(), random.random(), random.random()) for _ in range(n_estimators)
-    ]
-    # Super loop to plot four panels of data
-    for k, learner in enumerate(results.keys()):
-        for j, metric in enumerate(
-                ["train_time", "acc_train", "f_train", "pred_time", "acc_test", "f_test"]
-        ):
-            for i in np.arange(3):
-                x = bar_width * n_estimators
-                # Creative plot code
-                ax[j // 3, j % 3].bar(
-                    i * x + k * (bar_width),
-                    results[learner][i][metric],
-                    width=bar_width,
-                    color=colors[k],
-                )
-                ax[j // 3, j % 3].set_xticks([x - 0.2, x * 2 - 0.2, x * 3 - 0.2])
-                ax[j // 3, j % 3].set_xticklabels(["1%", "10%", "100%"])
-                ax[j // 3, j % 3].set_xlabel("Training Set Size")
-                ax[j // 3, j % 3].set_xlim((-0.2, x * 3))
-    # Add unique y-labels
-    ax[0, 0].set_ylabel("Time (in seconds)")
-    ax[0, 1].set_ylabel("Accuracy Score")
-    ax[0, 2].set_ylabel("F-score")
-    ax[1, 0].set_ylabel("Time (in seconds)")
-    ax[1, 1].set_ylabel("Accuracy Score")
-    ax[1, 2].set_ylabel("F-score")
-    # Add titles
-    ax[0, 0].set_title("Model Training")
-    ax[0, 1].set_title("Accuracy Score on Training Subset")
-    ax[0, 2].set_title("F-score on Training Subset")
-    ax[1, 0].set_title("Model Predicting")
-    ax[1, 1].set_title("Accuracy Score on Testing Set")
-    ax[1, 2].set_title("F-score on Testing Set")
-    # Add horizontal lines for naive predictors
-    ax[0, 1].axhline(
-        y=accuracy, xmin=-0.1, xmax=3.0, linewidth=1, color="k", linestyle="dashed"
-    )
-    ax[1, 1].axhline(
-        y=accuracy, xmin=-0.1, xmax=3.0, linewidth=1, color="k", linestyle="dashed"
-    )
-    ax[0, 2].axhline(
-        y=f1, xmin=-0.1, xmax=3.0, linewidth=1, color="k", linestyle="dashed"
-    )
-    ax[1, 2].axhline(
-        y=f1, xmin=-0.1, xmax=3.0, linewidth=1, color="k", linestyle="dashed"
-    )
-    # Set y-limits for score panels
-    ax[0, 1].set_ylim((0, 1))
-    ax[0, 2].set_ylim((0, 1))
-    ax[1, 1].set_ylim((0, 1))
-    ax[1, 2].set_ylim((0, 1))
-    # Set additional plots invisibles
-    ax[0, 3].set_visible(False)
-    ax[1, 3].axis("off")
-    # Create legend
-    for i, learner in enumerate(results.keys()):
-        pl.bar(0, 0, color=colors[i], label=learner)
-    pl.legend()
-    # Aesthetics
-    pl.suptitle(
-        "Performance Metrics for Three Supervised Learning Models", fontsize=16, y=1.10
-    )
-    pl.tight_layout()
-    pl.show()
-
 
 from config.MetaPath import (test_emodb_csv)
 
@@ -755,16 +607,14 @@ passive_emo = ["angry", "sad"]
 typical_emo = ['happy', 'neutral', 'sad']
 e_config = typical_emo
 if __name__ == "__main__":
-    # from emotion_recognition import EmotionRecognizer
 
-    # use SVC as a demo
     # my_model = SVC(C=0.001, gamma=0.001, kernel="poly")
     my_model = RandomForestClassifier(max_depth=3, max_features=0.2)
     my_model = None
 
     # rec = EmotionRecognizer(model=my_model,e_config=AHNPS,f_config=f_config_def,test_dbs=[ravdess],train_dbs=[ravdess], verbose=1)
 
-    meta_dict = {"train_dbs": ravdess, "test_dbs": emodb}
+    meta_dict = {"train_dbs": emodb, "test_dbs": ravdess}
     rec = EmotionRecognizer(
         model=my_model,
         e_config=e_config,
@@ -776,8 +626,13 @@ if __name__ == "__main__":
     # rec = EmotionRecognizer(model=my_model,e_config=AHNPS,f_config=f_config_def,test_dbs=emodb,train_dbs=emodb, verbose=1)
 
     rec.train()
+    
+    train_score=rec.train_score()
+    print(f"{train_score=}")
+    
     test_score = rec.test_score()
     print(f"{test_score=}")
+
 ##
 
 # rec.update_test_set_by_meta(r'D:\repos\CCSER\SER\meta_files\test_ravdess_AHNPS.csv')

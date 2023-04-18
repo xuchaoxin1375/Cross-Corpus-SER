@@ -121,7 +121,7 @@ categories_savee={
 f_config_def = MCM
 e_config_def = HNS
 
-ava_algorithms = ['best_model', 'svc', 'rf', 'mlp', 'knn','Bagging','gb','RNN']
+ava_algorithms = ['BEST_ML_MODEL', 'SVC', 'RandomForestClassifier', 'MLPClassifier', 'KNeighborsClassifier','BaggingClassifier','GradientBoostingClassifier','RNN']
 
 #
 def extend_emotion_names(emotion_first_letters):

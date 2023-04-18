@@ -18,6 +18,9 @@ from config.MetaPath import (
     savee,
     savee_files_glob,
 )
+emodb_files_glob,ravdess_files_glob,savee_files_glob = [
+    str(p) for p in [emodb_files_glob,ravdess_files_glob,savee_files_glob]
+]
 
 
 def check_meta_names(e_config, train_name=None, test_name=None, db=""):

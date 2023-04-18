@@ -1,3 +1,4 @@
+import PySimpleGUI as sg
 def demo1():
     layout = [
         [sg.Text("My one-shot window.")],
@@ -33,7 +34,6 @@ def demo2():
     sg.popup("You entered", text_input)
 
 
-import PySimpleGUI as sg
 
 
 def demo3():
@@ -79,7 +79,7 @@ def demo4():
         elif event == "Show":
             # Update the "output" text element to be the value of "input" element
             window["-OUTPUT-"].update(values["-IN-"])
-
+    # return window
     window.close()
 
 
@@ -356,10 +356,39 @@ def demo_event_value():
     window.close()
 
 
+def radio_choose_demo():
+    layout = [
+            [sg.Text("Select an option:")],
+              
+            [sg.Radio("Option 1", "RADIO1", default=True), 
+             sg.Radio("Option 2", "RADIO1"), 
+             sg.Radio("Option 3", "RADIO1")],
+             
+            [sg.Button("OK"), sg.Button("Cancel")]
+    ]
+    layout = [[sg.Text("Select an option:")],
+          [sg.Radio(f"Option {i}", "RADIO1", default=(i==1)) for i in range(1, 4)],
+          [sg.Button("OK"), sg.Button("Cancel")]]
 
+
+    window = sg.Window("Radio Example", layout)
+
+    while True:
+        event, values = window.read()
+        if event == sg.WIN_CLOSED or event == "Cancel":
+            break
+        if values[0]:
+            selected_option = "Option 1"
+        elif values[1]:
+            selected_option = "Option 2"
+        elif values[2]:
+            selected_option = "Option 3"
+        sg.popup("You selected: " + selected_option)
+
+    window.close()
 
 if __name__ == "__main__":
-    # demo6()
+    demo4()
     # demo_checkbox()
     # demo_choose_file()
     # demo_multi_choose()
@@ -367,4 +396,5 @@ if __name__ == "__main__":
     # twice_choose()
     # demo_event_value()
     # demoCombo()
-    multiple_inputs()
+    # radio_choose_demo()
+

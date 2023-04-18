@@ -1,40 +1,44 @@
 ##
 import PySimpleGUI as sg
+
 from audio.core import get_used_keys
-from config.EF import ava_algorithms
+from audio.graph import showFreqGraph, showMelFreqGraph, showWaveForm
+from config.EF import ava_algorithms, ava_emotions, ava_features
 from config.MetaPath import ava_dbs
-from audio.graph import showWaveForm, showMelFreqGraph, showFreqGraph
+from recognizer.basic import EmotionRecognizer
+from recognizer.deep import DeepEmotionRecognizer
+from config.MetaPath import emodb,savee,ravdess
 
 ##
 
 train_db = ""
 test_db = ""
-size = (1000, 1000)
+size = (1500, 1000)
 # size=None
 
 
-def db_layout(set=""):
-    db_list_layout = [
-        [sg.Button(db, tooltip=f"set the training data base as {db}")] for db in ava_dbs
-    ]
-    # format(db,"^10")
-    db_label = [sg.T(f"chose the db for {set}:")]
-    db_layout = [db_label, db_list_layout]
-    return db_layout
+# def db_layout(set=""):
+#     db_list_layout = [
+#         [sg.Button(db, tooltip=f"set the training data base as {db}",)] for db in ava_dbs
+#     ]
+#     # format(db,"^10")
+#     db_label = [sg.T(f"chose the db for {set}:")]
+#     db_layout = [db_label, db_list_layout]
+#     return db_layout
 
 
-def choose_db(window, db_config):
-    while True:
-        event, value = window.read()
-        # print(event,type(event),len(event))
-        db_config = []
-        if event:
-            db_config.append(event)
-        print(event, value)
-        # permenent
-        if event in (sg.WIN_CLOSED, "Quit"):
-            break
-    print(db_config, "@{db_config}")
+# def choose_db(window, db_config):
+#     while True:
+#         event, value = window.read()
+#         # print(event,type(event),len(event))
+#         db_config = []
+#         if event:
+#             db_config.append(event)
+#         print(event, value)
+#         # permenent
+#         if event in (sg.WIN_CLOSED, "Quit"):
+#             break
+#     print(db_config, "@{db_config}")
 
 
 # dbs_layout = [db_layout("train"), db_layout("test")]
@@ -46,36 +50,60 @@ test = "test"
 
 db_choose_layout = [
     [sg.Text("Select the training database")],
-    [sg.Combo(ava_dbs, key="train_db")],
+    [sg.Combo(ava_dbs, key="train_db",default_value=emodb)],
     [sg.Text("Select the testing database")],
-    [sg.Combo(ava_dbs, key="test_db")],
-    [sg.Button("OK"), sg.Button("Cancel")],
+    [sg.Combo(ava_dbs, key="test_db",default_value=savee)],
+    [sg.Button("OK0"), sg.Button("Cancel")],
+]
+
+
+# [sg.Checkbox(emo) for emo in ava_emotions]
+e_config_layout =[
+    [sg.Text("choose the emotion config："),
+     sg.Text(
+            "请选择一个情感组合进行试验：推荐组合AS,HNS,AHNS,AHNPS\n\
+             注意,savee库种的`surprise`和`pleasantSurprise`)有一定区别,所以AHNPS组合不推荐用于savee上"
+        )],
+    [
+        sg.Checkbox("angry",key='angry',default=True),
+        sg.Checkbox("happy",key='happy'),
+        sg.Checkbox("neutral",key='neutral',default=True),
+        sg.Checkbox("pleasantSuprise",key='pleasantSuprise'),
+        sg.Checkbox("sad",key='sad',default=True)
+    ],
+    [sg.Button("OK1"), sg.Button("Cancel")],
+]
+f_config_layout = [
+    [sg.Text("请选择一个或多个特征：")],
+    [
+        sg.Checkbox("MFCC", key="mfcc",default=True),
+        sg.Checkbox("Mel", key="mel"),
+        sg.Checkbox("Contrast", key="contrast"),
+    ],
+    [sg.Checkbox("Chromagram", key="chroma"), sg.Checkbox("Tonnetz", key="tonnetz")],
+    [sg.Button("OK2"), sg.Button("Cancel")],
 ]
 
 algos = []
-for algo in ava_algorithms:
-    algos.append(sg.Radio(algo.upper(), "algorithm", key=f'{algo}'))
-
+for i,algo in enumerate(ava_algorithms):
+    # Radio组件需要设置分组,这里分组就设置额为:algorithm
+    #利用default参数设置选中默认值(默认选中第一个)
+    #为例在循环中实现设置第i个选项的默认值,可以使用index或者key-value,判断当用一个bool表达式作为default值
+    algos.append(
+        sg.Radio(algo.upper(), "algorithm", key=f'{algo}',default=(i==1))
+    )
+len_of_algos=len(algos)
 algos_layout = [
     [
         sg.Text(
             "选择一个算法进行试验:"
         )
     ],
-    algos,
-    [sg.Button('OK'), sg.Button('Cancel')]
+    algos[:len_of_algos//2],
+    algos[len_of_algos//2:],
+    [sg.Button('OK3'), sg.Button('Cancel')]
 ]
 
-features_choose_layout = [
-    [sg.Text("请选择一个或多个特征：")],
-    [
-        sg.Checkbox("MFCC", key="mfcc"),
-        sg.Checkbox("Mel", key="mel"),
-        sg.Checkbox("Contrast", key="contrast"),
-    ],
-    [sg.Checkbox("Chromagram", key="chroma"), sg.Checkbox("Tonnez", key="tonnez")],
-    [sg.Button("确定"), sg.Button("取消")],
-]
 # file_choose_layout = [
 #     [sg.Text("请选择一个音频文件样本,识别其情感")],
 #     [sg.Input(), sg.FileBrowse()],
@@ -95,36 +123,27 @@ file_choose_layout = [
         sg.FileBrowse(),
         sg.B("Clear History"),
     ],
-    [sg.Button("Ok", bind_return_key=True), sg.Button("Cancel")],
+    [sg.Button("OK4", bind_return_key=True), sg.Button("Cancel")],
+]
+re_result="暂无结果"
+emotion_recognition_layout=[
+    [sg.Text("识别该语音文件的情感")],
+    [sg.B('OK5')],
+    [sg.Text(f'识别结果:{re_result}',key='emotion_recognition_res')]
 ]
 
 draw_layout = [
     [sg.Text("请选择一个文件,绘制其[波形图|频谱图|Mel频谱图]：")],
-    [sg.Input(), sg.FileBrowse()],
+    # [sg.Input(), sg.FileBrowse()],
     [
         sg.Checkbox("waveForm", key="wave_form"),
         sg.Checkbox("FreqGraph", key="freq_graph"),
         sg.Checkbox("MelFreqGraph", key="mel_freq_graph"),
-        [sg.Button("确定"), sg.Button("取消")],
     ],
+    [sg.Button("OK6"), sg.Button("Cancel")],
 ]
 
-# [sg.Checkbox(emo) for emo in ava_emotions]
-emotions_layout =[
-    [sg.Text("choose the emotion config："),
-     sg.Text(
-            "请选择一个情感组合进行试验：推荐组合AS,HNS,AHNS,AHNPS\n\
-             注意,savee库种的`surprise`和`pleasantSurprise`)有一定区别,所以AHNPS组合不推荐用于savee上"
-        )],
-    [
-        sg.Checkbox("angry",key='angry'),
-        sg.Checkbox("happy",key='happy'),
-        sg.Checkbox("neutral",key='neutral'),
-        sg.Checkbox("pleasantSuprise",key='pleasantSuprise'),
-        sg.Checkbox("sad",key='sad')
-    ],
-    [sg.Button("OK"), sg.Button("Cancel")],
-]
+
 
 old_db_choose_layout = [
     [sg.T(f"chose the db for {set}:") for set in (train, test)],
@@ -134,15 +153,17 @@ old_db_choose_layout = [
     ],
 ]
 
+# ----full layout----
 layout = [
+    
     db_choose_layout,
-
-    emotions_layout,
+    e_config_layout,
+    f_config_layout,
     algos_layout,
-    features_choose_layout,
     file_choose_layout,
+    emotion_recognition_layout,
     draw_layout,
-    [sg.B("OK"), sg.B("Quit")],
+    [ sg.B("Quit")],
 ]
 window = sg.Window(title="ccser_client", layout=layout, alpha_channel=0.9, size=size)
 
@@ -165,11 +186,11 @@ while True:
     test_db=values['test_db']
     print(train_db, "@{trian_db}")
     print(test_db, "@{test_db}")
-    # print(values)
+    print(event,"处于选择db的循环中")
     if train_db and test_db:
         break
 
-    if event in (None,"OK", "Cancel"):
+    if event in (None,"OK0", "Cancel"):
         break
     # Add the selected databases to the list
     # selected_databases.append(values["train_db"])
@@ -195,18 +216,41 @@ while True:
         if emo:
             e_config.append(emo)
     print(e_config,"@{e_config}")
-    if event in (None, "OK", "Cancel"):
+    print(event,"处于选择e_config的循环中.")
+    if event in (None, "OK1", "Cancel"):
         break
 print("完成情感组合的选择.")
 
-algo
+
+
+f_config=[]
+
 while True:
     event, values = window.read()
-    algo=values['algo']
-    if event in (None, "OK", "Cancel"):
+    for f in ava_features:
+        if values and values[f]:
+            f_config.append(f)
+    print(f_config,"@{f_config}")
+    print(event,"处于选择f_config的循环中.")
+    if event in (None, "OK2", "Cancel"):
+        break
+print('完成情感特征的选取')
+
+algorithm=""
+while True:
+    event, values = window.read()
+    # algo=values['best_model']
+    
+    for algo in ava_algorithms :
+        if values and values[algo]:
+            algorithm=algo
+            break
+
+    print(algo,"@{algo}")
+    print(event,"处于选择algorithm的循环中.")
+    if event in (None, "OK3", "Cancel"):
         break
 print("完成算法的选择.")
-
 
 # window = sg.Window("Filename Chooser With History", layout)
 #这部分只负责选取文件,选取通过点击确认,来完成这部分逻辑,跳到循环,执行下一步分代码
@@ -215,7 +259,7 @@ while True:
 
     if event in (sg.WIN_CLOSED, "Cancel"):
         break
-    if event == "Ok":
+    if event == "OK4":
         # If OK, then need to add the filename to the list of files and also set as the last used filename
         sg.user_settings_set_entry(
             "-filenames-",
@@ -240,6 +284,39 @@ while True:
         window["-FILENAME-"].update(values=[], value="")
 audio_selected=audio_selected
 print("完成文件选取")
+################
+##
+print("开始识别..")
+from joblib import load
+
+from config.MetaPath import bclf, brgr,get_example_audio_file
+bclf=load(bclf)
+
+
+# audio_selected=get_example_audio_file()
+#None表示自动计算best_ML_model
+ML_estimators={estimator.__class__.__name__:estimator for estimator,_,_ in bclf}
+ML_estimators['BEST_ML_MODEL']=None
+##
+# if algorithm=='BEST_ML_MODEL':
+model=ML_estimators[algorithm]
+print(train_db,test_db,e_config,f_config,algorithm,model,audio_selected)
+
+if(algorithm=='RNN'):
+    der=DeepEmotionRecognizer(train_dbs=train_db,test_dbs=test_db,e_config=e_config,f_config=f_config)
+    er=der
+else:
+    er=EmotionRecognizer(model=model,train_dbs=train_db,test_dbs=test_db,e_config=e_config,f_config=f_config,)
+# 对数据进行训练(train方法自动导入数据)
+er.train()
+test_score=er.test_score()
+train_score=er.train_score()
+
+print(f"{test_score=}")
+print(f"{train_score=}")
+re_result=er.predict(audio_selected)
+print(f"{re_result=}")
+window['emotion_recognition_res'].update(f"{re_result}")
 # 读取checkbox的输入(目前的写法需要先点击前面的表单,后面的表单才可以正确响应)
 while True:
     event, values = window.read()
@@ -255,17 +332,12 @@ while True:
         showFreqGraph(audio_selected)
     if mel_freq_graph:
         showMelFreqGraph(audio_selected)
-    if event in (sg.WIN_CLOSED, "OK","Cancel"):
+    if event in (sg.WIN_CLOSED, "OK6","Cancel"):
         break
 print("完成图形绘制.")
+
 while True:
     event, value = window.read()
-    # print(event, value)
-    # if event:
-    #     # train_db=value['-train_list-']
-    #     # print(value['-train_list-'],"@value['-train_list-']")
-    #     # test_db=value['-test_list-']
-    #     # print(event, value)
     if event in (sg.WIN_CLOSED, "OK", "Quit"):
         break
 print("关闭窗口.")

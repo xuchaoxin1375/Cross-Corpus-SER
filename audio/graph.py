@@ -5,8 +5,8 @@ import librosa.display
 import matplotlib.pyplot as plt
 import numpy as np
 
-from config.MetaPath import example_audio_file
-audio_file = example_audio_file()
+from config.MetaPath import get_example_audio_file
+audio_file = get_example_audio_file()
 
 def showWaveForm(audio_file=audio_file):
     # 加载音频文件
