@@ -2,14 +2,13 @@
 
 
 
-# Speech Emotion Recognition
+# Cross-corpus speech emotion recognition
 
 ## Introduction
 
-- This repository handles building and training Speech Emotion Recognition System.
-- The basic idea behind this tool is to build and train/test a suited machine learning ( as well as deep learning ) algorithm that could recognize and detects human emotions from speech.
-- This is useful for many industry fields such as making product recommendations, affective computing, etc.
-- Check this [tutorial](https://www.thepythoncode.com/article/building-a-speech-emotion-recognizer-using-sklearn) for more information.
+- 本项目采用的算法大多是传统的机器学习算法,实验表明,这些算法在单库识别上具有不错的性能和效果
+- 采用深度学习的方法可以进一步提高识别性能
+- 然而对于跨库识别而言,传统的机器学习算法表现的有些力不从心,近几年利用深度学习的方法对跨库识别的研究成为了情感计算的新热点
 
 ### Kaggle社区
 
@@ -20,6 +19,8 @@
   Kaggle已经成为了数据科学和机器学习领域的一个重要社区，它不仅为数据科学家和机器学习专家提供了丰富的资源和工具，也为企业和组织提供了一种新的方式来解决各种数据科学和机器学习领域的问题。
 
 ## Requirements
+
+### python version
 
 - **Python 3.9**
 
@@ -38,7 +39,15 @@
 - **pyaudio==0.2.11**
 - **[ffmpeg](https://ffmpeg.org/) (optional)**: used if you want to add more sample audio by converting to 16000Hz sample rate and mono channel which is provided in ``convert_wavs.py``
 
-#### tqdm
+### 安装环境和依赖
+
+- ```bash
+  pip3 install -r requirements.txt
+  ```
+
+  
+
+#### 关于进度条显示:tqdm
 
 - `tqdm` 是一个Python的进度条库，用于在控制台中展示循环的进度，并可以根据已经完成的工作量估计剩余时间。它的使用非常简单，以下是一些常见的用法：
 - `tqdm` derives from the Arabic word *`taqaddum`* (تقدّم) which can mean "progress," and is an abbreviation for "I love you so much" in Spanish (*te quiero demasiado*).
@@ -86,7 +95,7 @@ for i in tqdm(range(10), leave=False):
 - ```python
   from tqdm import tqdm
   from time import sleep
-  from utils import best_estimators
+  from audio.core import best_estimators
   ests=best_estimators()
   ests=tqdm(ests)
   for x in ests:
@@ -96,21 +105,33 @@ for i in tqdm(range(10), leave=False):
 
   
 
-### 安装环境和依赖
-
-- ```bash
-  pip3 install -r requirements.txt
-  ```
 ### PYTHONPATH环境变量
-``` powershell
-(d:\condaPythonEnvs\tf2.10) PS D:\repos\CCSER\SER> envQuery -key pythonpath -level User
-D:\repos\CCSER\SER(替换为本项目的所在目录根目录)
-...
-```
 
-## Speech Dataset
+- 为了放便地运行本项目,请配置环境变量`PYTHONPATH`,并至少向其中添加本项目的根目录
 
-This repository used 4 datasets (including this repo's custom dataset) which are downloaded and formatted already in `data` folder:
+- 例如,我的项目放在`$ccser=D:\repos\CCSER\SER`,根据自己的clone/download位置情况修改这个值
+
+- 例如,在使用powershell配置(windows系统下)
+
+  - ```powershell
+    $ccser="D:\repos\CCSER\SER"
+    setx PYTHONPATH "$ccser;$env:PYTHONPATH"
+    ```
+
+  - 执行:
+
+    - ``` powershell
+      PS C:\Users\cxxu> $ccser="D:\repos\CCSER\SER"
+      PS C:\Users\cxxu> $ccser
+      D:\repos\CCSER\SER
+      
+      PS D:\repos\configs\env> setx PYTHONPATH "$ccser;$env:PYTHONPATH"
+      
+      SUCCESS: Specified value was saved.
+      ```
+
+
+## SpeechDatabases
 
 
 
@@ -172,28 +193,6 @@ The initial letter(s) of the file name represents the emotion class, and the fol
 
 - E.g., 'd03.wav' is the 3rd disgust sentence. 
 
-### TESS
-
-- [**TESS**](https://tspace.library.utoronto.ca/handle/1807/24487) : **T**oronto **E**motional **S**peech **S**et that was modeled on the Northwestern University Auditory Test No. 6 (NU-6; Tillman & Carhart, 1966). A set of 200 target words were spoken in the carrier phrase "Say the word _____' by two actresses (aged 26 and 64 years).
-- [Toronto emotional speech set (TESS) | Kaggle](https://www.kaggle.com/datasets/ejlok1/toronto-emotional-speech-set-tess)
-- TESS语料库（The Toronto Emotional Speech Set）是由加拿大多伦多大学的研究人员开发的一个包含了人类语音记录的数据库。该数据库包含了两名女性演员在读出短语时表现出七种情感状态的语音记录。
-
-  TESS语料库包含了两名女性演员的280个短语，每个短语都表达了七种不同的情感状态，包括愤怒、厌恶、恐惧、快乐、悲伤、惊讶和中性。每个短语的长度为一到三个单词。
-
-  这些语音记录已经被标记和注释，包括说话者、情感状态、短语和音频文件格式等信息。该数据库的音频文件格式为WAV，采样率为16kHz，16位量化。
-
-  TESS语料库是一个广泛应用于语音情感识别和分类领域的标准数据集，它已经被广泛应用于语音情感识别和分类算法的开发和评估。该数据库的开放访问使得研究人员可以更方便地进行情感识别和分类算法的开发和评估，同时也为智能语音应用的开发提供了有用的资源。
-- TESS语料库的文件名包含了大量有用的信息，以下是一个示例文件名的分析：
-
-  YAF_back_angry.wav
-
-  - YAF 表示这个音频记录来自TESS语料库中的第一个演员（Young Adult Female）
-  - back 表示这个短语的内容为“back”
-  - angry 表示这个音频记录表现出了“愤怒”情感状态
-  - .wav 表示这个文件的格式为.wav格式
-
-  因此，这个文件名告诉我们，这个音频记录来自TESS语料库中的第一个演员，表演的是说出“back”这个短语时表现出的愤怒情感状态。该文件的格式为.wav格式。TESS语料库的文件命名方式非常规范，这些信息对于进行情感识别和分类等研究非常有用。
-
 ### EMODB
 
 - [**EMO-DB**](http://emodb.bilderbar.info/docu/) : As a part of the DFG funded research project SE462/3-1 in 1997 and 1999 we recorded a database of emotional utterances spoken by actors. The recordings took place in the anechoic chamber of the Technical University Berlin, department of Technical Acoustics. Director of the project was Prof. Dr. W. Sendlmeier, Technical University of Berlin, Institute of Speech and Communication, department of communication science. Members of the project were mainly Felix Burkhardt, Miriam Kienast, Astrid Paeschke and Benjamin Weiss.
@@ -237,23 +236,10 @@ The initial letter(s) of the file name represents the emotion class, and the fol
 
   Example: 03a01Fa.wav is the audio file from Speaker 03 speaking text a01 with the emotion "Freude" (Happiness).
 
-### Urdu
+### 其他
 
-- [Urdu Language Speech Dataset | Kaggle](https://www.kaggle.com/datasets/bitlord/urdu-language-speech-dataset)
-
-- Urdu-language speech dataset是一个包含120个乌尔都语音频文件和其对应文本转录的数据集。该数据集可以用于语音识别、说话人识别和语言模型等多种任务。
-
-  这个数据集由Bitlord在Kaggle上发布，其中包含乌尔都语的口语，涵盖了不同的方言和口音。每个音频文件的时长约为5-10秒，文本转录是以Unicode编码的纯文本格式。
-
-  这个数据集可以用于机器学习模型的训练和评估，以提高乌尔都语言任务的性能。如果需要更大的数据集，您可以考虑使用其他来源的数据，或者通过数据增强来扩充这个数据集。
-
-  总的来说，Urdu-language speech dataset是一个适用于乌尔都语言任务的有用资源，对于对乌尔都语言感兴趣的人来说是一个很好的起点。
-
-### EmoVO
-
-EmoVO（Emotion in Voice Over）数据集是一个用于情感识别和情感分析任务的音频和视频录制的数据集。该数据集包含10,000个音频视频录制，每个录制都包含音频和视频数据。音频数据以16 kHz PCM单声道WAV文件的形式保存，视频数据以每秒25帧（FPS）的MPEG-4文件形式保存。
-
-每个录制都标有八种情感之一 - 愤怒、厌恶、恐惧、快乐、中性、愉快的惊喜、悲伤和不愉快的惊喜。数据集还包括声优的人口统计信息，例如性别、年龄和母语。
+- 添加语料库(记为db)到本项目中比较简单,只需要在config模块中执行一定的配置即可
+- 不过由于语料库的命名规范的不同,您或许要亲自编写针对于db的`create_{db}_meta()`函数,
 
 ### 语料库文件在项目中的组织
 
@@ -279,53 +265,12 @@ EmoVO（Emotion in Voice Over）数据集是一个用于情感识别和情感分
 
 #### 文件统计结果
 
-- EMODB:535
 
-- RAVDESS:1440
 
-- training目录(ravdess):5202文件
-  其中各个子目录
+- 各个子目录的文件统计
 
-  - `ls  |%{$_;(ls $_| measure)|select count}`可以统计子目录的文件数
+- `ls  |%{$_;(ls $_| measure)|select count}`可以统计子目录的文件数
 
-  - ```
-    Mode                LastWriteTime         Length Name
-    ----                -------------         ------ ----
-    d----         3/15/2023  10:02 PM                  Actor_01
-    
-    Count : 138
-    
-    d----         3/15/2023  10:02 PM                  Actor_02
-    
-    Count : 138
-    ...
-    d----         3/15/2023  10:02 PM                  Actor_25
-    
-    Count : 1101
-    
-    d----         3/15/2023  10:02 PM                  Actor_26
-    
-    Count : 1358
-    ```
-  
-- validation:947文件
-
-  - ```
-    
-        
-    Mode                LastWriteTime         Length Name
-    ----                -------------         ------ ----
-    d----         3/15/2023  10:02 PM                  Actor_07
-    
-    Count : 44
-    
-    ...
-    
-    d----         3/15/2023  10:02 PM                  Actor_26
-    
-    Count : 42
-    
-    ```
 ### desc_files(csv 元数据文件)🎈
 
 - 由于不同语料库的文件名规范不同,所以在使用前应该进行基本的统一处理(主要抽取语音文件路径和文件的情感标签)
@@ -336,37 +281,26 @@ EmoVO（Emotion in Voice Over）数据集是一个用于情感识别和情感分
 
 ### Emotions available@情感类别
 
-- There are 9 emotions available: "neutral", "calm", "happy" "sad", "angry", "fear", "disgust", "ps" (pleasant surprise) and "boredom".
+- 本项目采用的语料库中包含 "neutral", "calm", "happy" "sad", "angry", "fear", "disgust", "surprise","ps" (pleasant surprise) and "boredom".
+- 尽管如此,您不总是可以任意搭配情感组合,因为有些语料库缺失其中的若干种情感
+- 比较常见的组合包括:
+  - angry,happy,sad
+  - angry,happy,sad,neutral,pleasant
+
 
 ## Feature Extraction@特征提取🎈
 
-- Feature extraction is the main part of the speech emotion recognition system. It is basically accomplished by changing the speech waveform to a form of parametric representation at a relatively lesser data rate.
+- 
+  特征提取是语音情感识别系统的主要部分。它基本上是通过将语音波形转换为参数形式的表示形式，以相对较低的数据速率完成的。
+
+- “数据速率("Data rate")”，它是指在特定时间内传输的数据量。在语音情感识别系统中，数据速率是指每秒钟传输的语音数据量，通常以比特率（bits per second）或千位每秒（kilobits per second）为单位进行度量。需要注意的是，数据速率还可以用于描述其他类型的数据传输，例如网络传输或存储介质的读取速度。在这些情况下，它通常指在特定时间内传输或处理的数据量，通常以比特率或字节率（bytes per second）为单位进行度量。
+
+- 特征提取的过程通过将语音波形转换为参数形式的表示形式，可以减少语音信号的数据速率。这是因为，原始语音信号通常包含大量冗余信息，而通过提取与情感状态相关的声学特征，可以压缩数据并减少传输所需的带宽和存储空间。
+
+- 因此，特征提取对于高效处理和分析大量语音数据是至关重要的。
 
 
-特征提取是语音情感识别系统的主要部分。它基本上是通过将语音波形转换为参数形式的表示形式，以相对较低的数据速率完成的。
-
-“数据速率("Data rate")”，它是指在特定时间内传输的数据量。在语音情感识别系统中，数据速率是指每秒钟传输的语音数据量，通常以比特率（bits per second）或千位每秒（kilobits per second）为单位进行度量。需要注意的是，数据速率还可以用于描述其他类型的数据传输，例如网络传输或存储介质的读取速度。在这些情况下，它通常指在特定时间内传输或处理的数据量，通常以比特率或字节率（bytes per second）为单位进行度量。
-
-特征提取的过程通过将语音波形转换为参数形式的表示形式，可以减少语音信号的数据速率。这是因为，原始语音信号通常包含大量冗余信息，而通过提取与情感状态相关的声学特征，可以压缩数据并减少传输所需的带宽和存储空间。
-
-因此，特征提取对于高效处理和分析大量语音数据是至关重要的。
-
-
-In this repository, we have used the most used features that are available in [librosa](https://github.com/librosa/librosa) library including:
-
-- [MFCC](https://en.wikipedia.org/wiki/Mel-frequency_cepstrum)
-- Chromagram
-- MEL Spectrogram Frequency (mel)
-- Contrast
-- Tonnetz (tonal centroid features)
-- 本项目采用以下特征
-
-* MFCC：MFCC是一种常用的声学特征，它是通过将语音信号转换为梅尔频率倒谱系数来提取的。MFCC具有对于语音信号中的频率变化较为敏感的特点，对于识别不同情感状态具有很好的区分能力。
-* Chromagram：Chromagram是一种基于音高的特征，它通过计算语音信号中不同的音高分布来提取。
-* MEL频谱：MEL频谱是一种基于人耳听觉模型的特征，它将语音信号转换为梅尔频率分布，并对每个频率分布进行离散余弦变换以提取特征。MEL频谱对于语音信号中的频率变化较为敏感，但与MFCC相比，它在某些情况下可能具有更好的区分能力。
-* 对比度：对比度是一种基于语音信号的强度变化的特征，它可以通过计算不同频率分量之间的能量差异来提取。对比度对于识别语音信号中的强度变化具有很好的区分能力，但在某些情况下可能对于情感状态的识别不够敏感。
-* Tonnetz：Tonnetz是一种基于音高的特征，它通过计算不同音高之间的距离和组合关系来提取。在律学与和声学中，调性网络，或托内斯（来自于德语“Tonnetz”，“tone-network”的意思）是一种用于表示调性空间的、概念性的音乐格子图，由莱昂哈德·欧拉于1739年提出。调性网络的各种可视化形式可被用于表示欧洲古典音乐的传统和声关系。Tonnetz在音乐信息检索和音乐情感识别中广泛应用.
-* 总的来说，这些特征在语音情感识别中都具有一定的应用价值，但具体选用哪些特征需要根据实际应用情况和数据分析结果进行选择。在特征提取的过程中，需要综合考虑不同特征之间的互补性和差异性，并对特征进行合理的组合和调整，以提高语音情感识别的准确率和鲁棒性。
+### 常见的语音情感特征
 
 在语音情感识别中，常用的特征包括以下几种：
 
@@ -376,7 +310,26 @@ In this repository, we have used the most used features that are available in [l
 4. 语音质量特征：语音质量特征包括噪声、失真、清晰度等。这些特征反映了语音信号的质量，可能对情感状态的识别产生影响。
 5. 情感词汇特征：情感词汇特征是从语音信号中提取出与情感状态相关的词汇，可以通过情感词典等工具来实现。
 
-这些特征在不同情感状态之间具有不同的区分能力，因此在设计语音情感识别系统时需要综合考虑它们的优缺点，并根据具体情况选择合适的特征组合。例如，一些研究表明，基于频谱特征和韵律特征的特征组合可以取得较好的情感识别效果；而其他研究则发现，非线性特征对于识别某些情感状态具有更好的区分能力。因此，在实际应用中，需要根据具体情况选择适合的特征组合，并通过机器学习算法等手段对语音信号进行分类和识别。
+- 这些特征在不同情感状态之间具有不同的区分能力，因此在设计语音情感识别系统时需要综合考虑它们的优缺点，并根据具体情况选择合适的特征组合。例如，一些研究表明，基于频谱特征和韵律特征的特征组合可以取得较好的情感识别效果；而其他研究则发现，非线性特征对于识别某些情感状态具有更好的区分能力。因此，在实际应用中，需要根据具体情况选择适合的特征组合，并通过机器学习算法等手段对语音信号进行分类和识别。
+
+### 本项目可选的情感特征
+
+- [MFCC](https://en.wikipedia.org/wiki/Mel-frequency_cepstrum)
+- Chromagram
+- Contrast
+- MEL Spectrogram Frequency (mel)
+- Tonnetz (tonal centroid features)
+
+
+
+### 补充
+
+* MFCC：MFCC是一种常用的声学特征，它是通过将语音信号转换为梅尔频率倒谱系数来提取的。MFCC具有对于语音信号中的频率变化较为敏感的特点，对于识别不同情感状态具有很好的区分能力。
+* Chromagram：Chromagram是一种基于音高的特征，它通过计算语音信号中不同的音高分布来提取。
+* Contrast对比度：对比度是一种基于语音信号的强度变化的特征，它可以通过计算不同频率分量之间的能量差异来提取。对比度对于识别语音信号中的强度变化具有很好的区分能力，但在某些情况下可能对于情感状态的识别不够敏感。
+* MEL频谱：MEL频谱是一种基于人耳听觉模型的特征，它将语音信号转换为梅尔频率分布，并对每个频率分布进行离散余弦变换以提取特征。MEL频谱对于语音信号中的频率变化较为敏感，但与MFCC相比，它在某些情况下可能具有更好的区分能力。
+* Tonnetz：Tonnetz是一种基于音高的特征，它通过计算不同音高之间的距离和组合关系来提取。在律学与和声学中，调性网络，或托内斯（来自于德语“Tonnetz”，“tone-network”的意思）是一种用于表示调性空间的、概念性的音乐格子图，由莱昂哈德·欧拉于1739年提出。调性网络的各种可视化形式可被用于表示欧洲古典音乐的传统和声关系。Tonnetz在音乐信息检索和音乐情感识别中广泛应用.
+* 总的来说，这些特征在语音情感识别中都具有一定的应用价值，但具体选用哪些特征需要根据实际应用情况和数据分析结果进行选择。在特征提取的过程中，需要综合考虑不同特征之间的互补性和差异性，并对特征进行合理的组合和调整，以提高语音情感识别的准确率和鲁棒性。
 
 ### features目录下npy文件
 
@@ -400,188 +353,17 @@ In this repository, we have used the most used features that are available in [l
 - 最后，选择具有最佳性能的超参数组合作为最终模型的超参数。
 - Grid Search 是一种简单而有效的调参方法，但它需要遍历所有可能的超参数组合，因此计算成本较高。为了减少计算成本，可以使用 <u>随机搜索（Random Search）</u>等其他调参方法。
 
-Grid search results are already provided in `grid` folder, but if you want to tune various grid search parameters in `parameters.py`, you can run the script `grid_search.py` by:
 
-```
-python grid_search.py
-```
 
-This may take several hours to complete execution, once it is finished, best estimators are stored and pickled in `grid` folder.
+### 计算best_model
 
-## Example 1: Using 3 Emotions
+- `grid.search`模块提供了计算各个算法最优超参数的实现
 
-The way to build and train a model for classifying 3 emotions is as shown below:
+## 本项目使用的算法(分类模型)
 
-```python
-from emotion_recognition import EmotionRecognizer
-from sklearn.svm import SVC
-# init a model, let's use SVC
-my_model = SVC()
-# pass my model to EmotionRecognizer instance
-# and balance the dataset
-rec = EmotionRecognizer(model=my_model, emotions=['sad', 'neutral', 'happy'], balance=True, verbose=0)
-# train the model
-rec.train()
-# check the test accuracy for that model
-print("Test score:", rec.test_score())
-# check the train accuracy for that model
-print("Train score:", rec.train_score())
-```
+### 一个基础的分类教程
 
-**Output:**
-
-```
-Test score: 0.8148148148148148
-Train score: 1.0
-```
-
-### Determining the best model
-
-In order to determine the best model, you can by:
-
-```python
-# loads the best estimators from `grid` folder that was searched by GridSearchCV in `grid_search.py`,
-# and set the model to the best in terms of test score, and then train it
-rec.determine_best_model()
-# get the determined sklearn model name
-print(rec.model.__class__.__name__, "is the best")
-# get the test accuracy score for the best estimator
-print("Test score:", rec.test_score())
-```
-
-**Output:**
-
-```
-MLPClassifier is the best
-Test Score: 0.8958333333333334
-```
-
-### Predicting
-
-Just pass an audio path to the `rec.predict()` method as shown below:
-
-```python
-# this is a neutral speech from emo-db from the testing set
-print("Prediction:", rec.predict("data/emodb/wav/15a04Nc.wav"))
-# this is a sad speech from TESS from the testing set
-print("Prediction:", rec.predict("data/validation/Actor_25/25_01_01_01_back_sad.wav"))
-```
-
-**Output:**
-
-```
-Prediction: neutral
-Prediction: sad
-```
-
-You can pass any audio file, if it's not in the appropriate format (16000Hz and mono channel), then it'll be automatically converted, make sure you have `ffmpeg` installed in your system and added to *PATH*.
-
-## Example 2: Using RNNs for 5 Emotions
-
-```python
-from deep_emotion_recognition import DeepEmotionRecognizer
-# initialize instance
-# inherited from emotion_recognition.EmotionRecognizer
-# default parameters (LSTM: 128x2, Dense:128x2)
-deeprec = DeepEmotionRecognizer(emotions=['angry', 'sad', 'neutral', 'ps', 'happy'], n_rnn_layers=2, n_dense_layers=2, rnn_units=128, dense_units=128)
-# train the model
-deeprec.train()
-# get the accuracy
-print(deeprec.test_score())
-# predict angry audio sample
-prediction = deeprec.predict('data/validation/Actor_10/03-02-05-02-02-02-10_angry.wav')
-print(f"Prediction: {prediction}")
-```
-
-**Output:**
-
-```
-0.7717948717948718
-Prediction: angry
-```
-
-Predicting probabilities is also possible (for classification ofc):
-
-```python
-print(deeprec.predict_proba("data/emodb/wav/16a01Wb.wav"))
-```
-
-**Output:**
-
-```
-{'angry': 0.99878675, 'sad': 0.0009922335, 'neutral': 7.959707e-06, 'ps': 0.00021298956, 'happy': 8.3598025e-08}
-```
-
-### Confusion Matrix
-
-```python
-print(deeprec.confusion_matrix(percentage=True, labeled=True))
-```
-
-**Output:**
-
-```
-              predicted_angry  predicted_sad  predicted_neutral  predicted_ps  predicted_happy
-true_angry          80.769226       7.692308           3.846154      5.128205         2.564103
-true_sad            12.820514      73.076920           3.846154      6.410257         3.846154
-true_neutral         1.282051       1.282051          79.487183      1.282051        16.666668
-true_ps             10.256411       3.846154           1.282051     79.487183         5.128205
-true_happy           5.128205       8.974360           7.692308      8.974360        69.230774
-```
-
-## Example 3: Not Passing any Model and Removing the Custom Dataset
-
-Below code initializes `EmotionRecognizer` with 3 chosen emotions while removing Custom dataset, and setting `balance` to `False`:
-
-```python
-from emotion_recognition import EmotionRecognizer
-# initialize instance, this will take a bit the first time executed
-# as it'll extract the features and calls determine_best_model() automatically
-# to load the best performing model on the picked dataset
-rec = EmotionRecognizer(emotions=["angry", "neutral", "sad"], balance=False, verbose=1, custom_db=False)
-# it will be trained, so no need to train this time
-# get the accuracy on the test set
-print(rec.confusion_matrix())
-# predict angry audio sample
-prediction = rec.predict('data/validation/Actor_10/03-02-05-02-02-02-10_angry.wav')
-print(f"Prediction: {prediction}")
-```
-
-**Output:**
-
-```
-[+] Best model determined: RandomForestClassifier with 93.454% test accuracy
-
-              predicted_angry  predicted_neutral  predicted_sad
-true_angry          98.275864           1.149425       0.574713
-true_neutral         0.917431          88.073395      11.009174
-true_sad             6.250000           1.875000      91.875000
-
-Prediction: angry
-```
-
-You can print the number of samples on each class:
-
-```python
-rec.get_samples_by_class()
-```
-
-**Output:**
-
-```
-         train  test  total
-angry      910   174   1084
-neutral    650   109    759
-sad        862   160   1022
-total     2422   443   2865
-```
-
-In this case, the dataset is only from TESS and RAVDESS, and not balanced, you can pass `True` to `balance` on the `EmotionRecognizer` instance to balance the data.
-
-## Algorithms Used
-
-- This repository can be used to build machine learning classifiers as well as regressors for the case of 3 emotions {'sad': 0, 'neutral': 1, 'happy': 2} and the case of 5 emotions {'angry': 1, 'sad': 2, 'neutral': 3, 'ps': 4, 'happy': 5}
-
+- [How to Make a Speech Emotion Recognizer Using Python And Scikit-learn - Python Code (thepythoncode.com)](https://www.thepythoncode.com/article/building-a-speech-emotion-recognizer-using-sklearn)
 
 ### Classifiers
 
@@ -901,7 +683,7 @@ SVR（Support Vector Regression）是一种基于支持向量机（SVM）的回�
 - 具体来说，Dropout的操作是在**每个训练批次**中，随机选择一些**神经元**，并将它们的输出设置为0。这些被选择的神经元在<u>该批次中将不会收到反向传播的梯度更新</u>。这样一来，每个神经元都必须学会与其他神经元合作来完成任务，从而使得神经网络具有更好的泛化能力。
 - Dropout通常在深度神经网络的全连接层或卷积层中使用。
 - 在实践中，Dropout的使用可以通过在模型中添加**Dropout层**来实现，例如在Keras中，可以使用`keras.layers.Dropout()`函数来添加Dropout层。
-- 需要注意的是，Dropout只应该在训练过程中使用，而不应该在测试过程中使用。在测试过程中，应该使用所有的神经元来进行预测，以获得更准确的结果。
+- 需Dropout只应该在训练过程中使用，而不应该在测试过程中使用。在测试过程中，应该使用所有的神经元来进行预测，以获得更准确的结果。
 - 因此，在测试过程中，可以通过在训练过程中使用Dropout时，对每个神经元的输出进行缩放来实现。这种缩放可以通过在Keras中使用`model.predict()`函数的`predict()`方法来实现。
 
 ### 数据平衡balance
@@ -914,82 +696,30 @@ SVR（Support Vector Regression）是一种基于支持向量机（SVM）的回�
 
 - [ProjectStructure](ProjectStructure)
 
-### Testing
-
-You can test your own voice by executing the following command:
-
-```bash
-python test.py
-```
-
-Wait until "Please talk" prompt is appeared, then you can start talking, and the model will automatically detects your emotion when you stop (talking).
-
-You can change emotions to predict, as well as models, type ``--help`` for more information.
-
-```bash
-python test.py --help
-```
-
-**Output:**
-
-```
-usage: test.py [-h] [-e EMOTIONS] [-m MODEL]
-
-Testing emotion recognition system using your voice, please consider changing
-the model and/or parameters as you wish.
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -e EMOTIONS, --emotions EMOTIONS
-                        Emotions to recognize separated by a comma ',',
-                        available emotions are "neutral", "calm", "happy"
-                        "sad", "angry", "fear", "disgust", "ps" (pleasant
-                        surprise) and "boredom", default is
-                        "sad,neutral,happy"
-  -m MODEL, --model MODEL
-                        The model to use, 8 models available are: "SVC","AdaBo
-                        ostClassifier","RandomForestClassifier","GradientBoost
-                        ingClassifier","DecisionTreeClassifier","KNeighborsCla
-                        ssifier","MLPClassifier","BaggingClassifier", default
-                        is "BaggingClassifier"
-
-```
-
-## Plotting Histograms
-
-This will only work if grid search is performed.
-
-```python
-from emotion_recognition import plot_histograms
-# plot histograms on different classifiers
-plot_histograms(classifiers=True)
-```
-
-
-
 ## 客户端
 
-- [ccser_client](ccser_client)
+- [ccser_client](ccser_client.md)
 
-- "Tkinter" 的全称是 "Tk Interface"，它是 Python 标准库之一，提供了创建 GUI 应用程序的工具。
-- 它的缩写是 "Tk" 或 "Tkinter"，在 Python 中可以使用 `import tkinter` 或 `import Tkinter` 来导入 Tkinter 模块。
+## 开发工具
 
-### Tkinter vs PyQt@pyside
-
-- Tkinter 和 PyQt 都是用于创建 GUI 应用程序的 Python 库，它们都提供了创建窗口、按钮、文本框等 GUI 元素的工具，但它们在使用和功能上有一些不同。在 Python 的 GUI 编程库 Tkinter 中，TK 代表 "Toolkit"（工具包），因为 Tkinter 是基于 Tk 工具包开发的。Tk 是一个跨平台的图形用户界面工具包，它提供了一组用于构建 GUI 应用程序的库和工具。"inter" 是 "Interface" 的缩写，表示 Tkinter 是一个用于创建用户界面的库。
-
-  1. 语法不同：Tkinter 是 Python 的标准库，语法较为简单，易于上手，而 PyQt 则需要安装额外的 PyQT 库，并且语法较为复杂，需要一定的学习成本。
-  2. 平台支持不同：Tkinter 是跨平台的，可以在 Windows、Linux、Mac OS 等系统上使用，而 PyQt 在某些平台上可能存在兼容性问题。
-  3. GUI 设计工具不同：PyQt 提供了 Qt Designer 工具，可以可视化地设计 GUI 界面，而 Tkinter 没有提供类似的工具，需要手动编写代码设计界面。
-  4. 功能差异：PyQt 提供了更多的功能和小部件，例如支持多线程、数据库连接、图形绘制等，而 Tkinter 的功能相对较为简单，适合开发简单的 GUI 应用程序。
-
-  综上所述，选择使用 Tkinter 还是 PyQt 取决于具体的需求和开发经验。对于初学者或开发简单应用，Tkinter 是一个不错的选择，而对于需要更复杂功能和更好的界面设计的应用，PyQt 可能更适合。
+- IDEA
+  - python plugin
+  - pylint 
+- vscode
+  - python extension
+  - codeium AI extension
+  - AWS CodeWhisper extension
+  - CodeGeex extension
+  - ...
+- 代码阅读
+  - 使用大纲阅读一个大文件是好办法
+  - 对于没有封装在函数或者类中的代码,可以设置`fold level`折叠至level 2来快速把握代码结构
 
 ## 部分实验结果
 
 ### 跨库识别
 
-- train_emodb_AS.csv+test_ravdess_AS.csv
+- `train_emodb_AS.csv+test_ravdess_AS.csv`
 
   - ```bash
     meta_files\train_emodb_AS.csv meta_files\test_ravdess_AS.csv
@@ -1037,8 +767,81 @@ plot_histograms(classifiers=True)
                   learning_rate='adaptive', max_iter=400) @{self.model}
     BaggingClassifier(max_features=0.5, n_estimators=50) @{self.model}
     Evaluating BaggingClassifier: 100%|██████████| 5/5 [00:00<00:00,  7.09it/s]
-    [+] Best model determined: RandomForestClassifier with 77.094% test accuracy
+    [+] Best model : RandomForestClassifier with 77.094% test accuracy
     test_score=0.770935960591133
+    ```
+
+- AHS情感识别
+
+  - ```bash
+    @{model}
+    partition='train'
+    D:\repos\CCSER\SER\meta_files\train_ravdess_HNS.csv @🎈{meta_file}
+    [I] Loading audio file paths and its corresponding labels...
+    meta_file存在D:\repos\CCSER\SER\meta_files\train_ravdess_HNS.csv文件!
+    检查特征文件D:\repos\CCSER\SER\features\ravdess_chroma-mel-mfcc_HNS_1653.npy是否存在...
+    self.e_config=['happy', 'neutral', 'sad']
+    特征矩阵文件(.npy)已经存在,直接导入:loading...
+    (1653, 180) @{feature.shape}
+    [Info] Adding  train samples
+    partition='test'
+    D:\repos\CCSER\SER\meta_files\test_emodb_HNS.csv @🎈{meta_file}
+    [I] Loading audio file paths and its corresponding labels...
+    meta_file存在D:\repos\CCSER\SER\meta_files\test_emodb_HNS.csv文件!
+    检查特征文件D:\repos\CCSER\SER\features\emodb_chroma-mel-mfcc_HNS_43.npy是否存在...
+    self.e_config=['happy', 'neutral', 'sad']
+    特征矩阵文件(.npy)已经存在,直接导入:loading...
+    (43, 180) @{feature.shape}
+    [Info] Adding  test samples
+    [I] Data loaded
+    
+    @{self.model}:
+    None
+    Evaluating <SVC>:   0%|          | 0/5 [00:00<?, ?it/s]
+    @{model}
+    @{self.model}:
+    SVC(C=10, gamma=0.001)
+    Evaluating <RandomForestClassifier>:  20%|██        | 1/5 [00:00<00:01,  2.57it/s]
+    @{self.model}:
+    SVC(C=10, gamma=0.001)
+    
+    [I] SVC with 0.37209302325581395 test accuracy
+    @{model}
+    @{self.model}:
+    RandomForestClassifier(max_depth=7, max_features=0.5, n_estimators=40)
+    @{self.model}:
+    RandomForestClassifier(max_depth=7, max_features=0.5, n_estimators=40)
+    Evaluating <KNeighborsClassifier>:  40%|████      | 2/5 [00:06<00:11,  3.70s/it]  
+    
+    [I] RandomForestClassifier with 0.4186046511627907 test accuracy
+    @{model}
+    @{self.model}:
+    KNeighborsClassifier(n_neighbors=3, p=1, weights='distance')
+    Evaluating <MLPClassifier>:  60%|██████    | 3/5 [00:06<00:04,  2.14s/it]       
+    @{self.model}:
+    KNeighborsClassifier(n_neighbors=3, p=1, weights='distance')
+    
+    [I] KNeighborsClassifier with 0.6744186046511628 test accuracy
+    @{model}
+    @{self.model}:
+    MLPClassifier(alpha=0.01, batch_size=512, hidden_layer_sizes=(300,),
+                  learning_rate='adaptive', max_iter=400)
+    @{self.model}:
+    MLPClassifier(alpha=0.01, batch_size=512, hidden_layer_sizes=(300,),
+                  learning_rate='adaptive', max_iter=400)
+    Evaluating <BaggingClassifier>:  80%|████████  | 4/5 [00:12<00:03,  3.40s/it]
+    
+    [I] MLPClassifier with 0.46511627906976744 test accuracy
+    @{model}
+    @{self.model}:
+    BaggingClassifier(max_features=0.5, n_estimators=50)
+    @{self.model}:
+    BaggingClassifier(max_features=0.5, n_estimators=50)
+    Evaluating <BaggingClassifier>: 100%|██████████| 5/5 [00:23<00:00,  4.60s/it]
+    
+    [I] BaggingClassifier with 0.5348837209302325 test accuracy
+    [🎈] Best model : KNeighborsClassifier with 67.442% test accuracy
+    test_score=0.6744186046511628
     ```
 
     

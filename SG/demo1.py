@@ -1,6 +1,3 @@
-import PySimpleGUI as sg
-
-
 def demo1():
     layout = [
         [sg.Text("My one-shot window.")],
@@ -16,9 +13,6 @@ def demo1():
     print(event, values)  # Submit {0: ''}
     # 使用popup直接弹出一个提示窗口
     sg.popup("You entered", text_input)
-
-
-import PySimpleGUI as sg
 
 
 def demo2():
@@ -273,9 +267,6 @@ def demoCombo():
     # Print the selected databases
     print("Training database:", selected_databases[0])
     print("Testing database:", selected_databases[1])
-
-
-from audio_graph import showWaveForm, showMelFreqGraph, showFreqGraph
 
 
 def preprocess_1(file_path):

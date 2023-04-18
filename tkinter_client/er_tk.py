@@ -1,8 +1,8 @@
 ##
 # from ..emotion_recognition import EmotionRecognition
-from emotion_recognition import EmotionRecognizer
+from recognizer.basic import EmotionRecognizer
 
-from MetaPath import meta_pairs,emodb,ravdess
+from config.MetaPath import emodb,ravdess
 from sklearn.svm import SVC
 
 from tkinter import *

@@ -1,14 +1,13 @@
-from emotion_recognition import EmotionRecognizer
+from config.EF import f_config_def
+from recognizer.basic import EmotionRecognizer
 
 import pyaudio
-import os
 import wave
 from sys import byteorder
 from array import array
 from struct import pack
-from sklearn.ensemble import GradientBoostingClassifier, BaggingClassifier
 
-from utils import best_estimators
+from audio.core import best_estimators
 
 THRESHOLD = 500
 CHUNK_SIZE = 1024
@@ -151,7 +150,7 @@ if __name__ == "__main__":
     # Parse the arguments passed
     args = parser.parse_args()
 
-    f_config = ["mfcc", "chroma", "mel"]
+    f_config = f_config_def
     er = EmotionRecognizer(estimator_dict[args.model], emotions=args.emotions.split(","), features=f_config, verbose=0)
     er.train()
     print("Test accuracy score: {:.3f}%".format(er.test_score()*100))

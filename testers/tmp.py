@@ -1,7 +1,7 @@
 ##
 from tqdm import tqdm
 from time import sleep
-from utils import best_estimators
+from audio.core import best_estimators
 ests=best_estimators()
 ests=tqdm(ests)
 for x in ests:

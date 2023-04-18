@@ -2,10 +2,9 @@
 from sklearn.metrics import accuracy_score
 from sklearn.datasets import make_classification
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import classification_report
 from sklearn.model_selection import cross_validate, train_test_split
 
-from utils import best_estimators
+from audio.core import best_estimators
 
 ##
 # 生成示例数据集
@@ -38,7 +37,7 @@ for item in data.items():
 ##
 
 from data_extractor import *
-from MetaPath import *
+from config.MetaPath import *
 
 pair_dict=select_meta_dict(pair2)
 data=load_data_from_meta(**pair_dict)

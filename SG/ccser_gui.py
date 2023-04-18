@@ -1,8 +1,9 @@
 ##
 import PySimpleGUI as sg
-from EF import ava_algorithms
-from MetaPath import ava_dbs
-from audio_graph import showWaveForm, showMelFreqGraph, showFreqGraph
+from audio.core import get_used_keys
+from config.EF import ava_algorithms
+from config.MetaPath import ava_dbs
+from audio.graph import showWaveForm, showMelFreqGraph, showFreqGraph
 
 ##
 
@@ -53,7 +54,7 @@ db_choose_layout = [
 
 algos = []
 for algo in ava_algorithms:
-    algos.append(sg.Radio(algo.upper(), "algorithm", key=algo))
+    algos.append(sg.Radio(algo.upper(), "algorithm", key=f'{algo}'))
 
 algos_layout = [
     [
@@ -62,7 +63,7 @@ algos_layout = [
         )
     ],
     algos,
-    # [sg.Button('确定'), sg.Button('取消')]
+    [sg.Button('OK'), sg.Button('Cancel')]
 ]
 
 features_choose_layout = [
@@ -107,7 +108,6 @@ draw_layout = [
         [sg.Button("确定"), sg.Button("取消")],
     ],
 ]
-from EF import ava_emotions
 
 # [sg.Checkbox(emo) for emo in ava_emotions]
 emotions_layout =[
@@ -184,17 +184,30 @@ print("已完成语料库的选择.")
 e_config=[]
 while True:
     event, values = window.read()
-
-    angry=values['angry']
-    happy=values['happy']
-    neutral=values['neutral']
-    pleasantSuprise=values['pleasantSuprise']
-    sad=values['sad']
-    e_config.append(emo for emo in  [angry,happy,neutral,pleasantSuprise,sad])
-    print(e_config)
+    e_config_dict=dict(
+        angry=values['angry'],
+        happy=values['happy'],
+        neutral=values['neutral'],
+        pleasantSuprise=values['pleasantSuprise'],
+        sad=values['sad']
+    )
+    for emo in  get_used_keys(e_config_dict):
+        if emo:
+            e_config.append(emo)
+    print(e_config,"@{e_config}")
     if event in (None, "OK", "Cancel"):
         break
-print("完成情感组合的选择")
+print("完成情感组合的选择.")
+
+algo
+while True:
+    event, values = window.read()
+    algo=values['algo']
+    if event in (None, "OK", "Cancel"):
+        break
+print("完成算法的选择.")
+
+
 # window = sg.Window("Filename Chooser With History", layout)
 #这部分只负责选取文件,选取通过点击确认,来完成这部分逻辑,跳到循环,执行下一步分代码
 while True:
@@ -226,6 +239,7 @@ while True:
         sg.user_settings_set_entry("-last filename-", "")
         window["-FILENAME-"].update(values=[], value="")
 audio_selected=audio_selected
+print("完成文件选取")
 # 读取checkbox的输入(目前的写法需要先点击前面的表单,后面的表单才可以正确响应)
 while True:
     event, values = window.read()
@@ -243,7 +257,7 @@ while True:
         showMelFreqGraph(audio_selected)
     if event in (sg.WIN_CLOSED, "OK","Cancel"):
         break
-
+print("完成图形绘制.")
 while True:
     event, value = window.read()
     # print(event, value)
@@ -254,7 +268,7 @@ while True:
     #     # print(event, value)
     if event in (sg.WIN_CLOSED, "OK", "Quit"):
         break
-
+print("关闭窗口.")
 
 
 window.close()
