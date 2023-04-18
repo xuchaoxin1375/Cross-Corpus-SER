@@ -34,8 +34,6 @@ def demo2():
     sg.popup("You entered", text_input)
 
 
-
-
 def demo3():
     sg.theme("DarkAmber")  # Keep things interesting for your users
 
@@ -387,8 +385,29 @@ def radio_choose_demo():
 
     window.close()
 
+def demo_finalize():
+
+    # 创建一个GUI窗口
+    layout = [[sg.Text("Enter your name:",key='input_content'), sg.Input(key="name")],
+            [sg.Button("OK"), sg.Button("Cancel")]]
+
+    window = sg.Window("My GUI", layout, finalize=True)
+
+    # 进入事件循环
+    while True:
+        event, values = window.read()
+        if event == sg.WINDOW_CLOSED or event == "Cancel":
+            break
+        elif event == "OK":
+            name = values["name"]
+            # sg.popup(f"Hello, {name}!")
+            window['input_content'].update(name)
+
+    # 关闭窗口并退出程序
+    window.close()
+
 if __name__ == "__main__":
-    demo4()
+    # demo4()
     # demo_checkbox()
     # demo_choose_file()
     # demo_multi_choose()
@@ -397,4 +416,5 @@ if __name__ == "__main__":
     # demo_event_value()
     # demoCombo()
     # radio_choose_demo()
+    demo_finalize()
 
