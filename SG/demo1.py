@@ -416,5 +416,34 @@ if __name__ == "__main__":
     # demo_event_value()
     # demoCombo()
     # radio_choose_demo()
-    demo_finalize()
+    # demo_finalize()
+    pass
+import PySimpleGUI as sg
+
+# 创建一个带边框区域
+frame_layout = [[sg.Text("Important Result", font=("Helvetica", 14))],
+                [sg.HorizontalSeparator()],
+                [sg.Text("Result: "), sg.Text("", size=(20, 1), key="-RESULT-")]]
+
+frame = sg.Frame("Result Area", frame_layout, relief=sg.RELIEF_SUNKEN, border_width=2)
+
+# 创建一个GUI窗口
+layout = [[sg.Text("Enter a number:"), sg.Input(key="-NUMBER-")],
+          [sg.Button("Calculate"), sg.Button("Exit")],
+          [frame]]
+
+window = sg.Window("My GUI", layout)
+
+# 进入事件循环
+while True:
+    event, values = window.read()
+    if event == sg.WINDOW_CLOSED or event == "Exit":
+        break
+    elif event == "Calculate":
+        number = int(values["-NUMBER-"])
+        result = number ** 2
+        window["-RESULT-"].update(str(result))
+
+# 关闭窗口并退出程序
+window.close()
 
