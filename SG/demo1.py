@@ -1,4 +1,6 @@
 import PySimpleGUI as sg
+
+
 def demo1():
     layout = [
         [sg.Text("My one-shot window.")],
@@ -356,18 +358,19 @@ def demo_event_value():
 
 def radio_choose_demo():
     layout = [
-            [sg.Text("Select an option:")],
-              
-            [sg.Radio("Option 1", "RADIO1", default=True), 
-             sg.Radio("Option 2", "RADIO1"), 
-             sg.Radio("Option 3", "RADIO1")],
-             
-            [sg.Button("OK"), sg.Button("Cancel")]
+        [sg.Text("Select an option:")],
+        [
+            sg.Radio("Option 1", "RADIO1", default=True),
+            sg.Radio("Option 2", "RADIO1"),
+            sg.Radio("Option 3", "RADIO1"),
+        ],
+        [sg.Button("OK"), sg.Button("Cancel")],
     ]
-    layout = [[sg.Text("Select an option:")],
-          [sg.Radio(f"Option {i}", "RADIO1", default=(i==1)) for i in range(1, 4)],
-          [sg.Button("OK"), sg.Button("Cancel")]]
-
+    layout = [
+        [sg.Text("Select an option:")],
+        [sg.Radio(f"Option {i}", "RADIO1", default=(i == 1)) for i in range(1, 4)],
+        [sg.Button("OK"), sg.Button("Cancel")],
+    ]
 
     window = sg.Window("Radio Example", layout)
 
@@ -385,11 +388,13 @@ def radio_choose_demo():
 
     window.close()
 
-def demo_finalize():
 
+def demo_finalize():
     # 创建一个GUI窗口
-    layout = [[sg.Text("Enter your name:",key='input_content'), sg.Input(key="name")],
-            [sg.Button("OK"), sg.Button("Cancel")]]
+    layout = [
+        [sg.Text("Enter your name:", key="input_content"), sg.Input(key="name")],
+        [sg.Button("OK"), sg.Button("Cancel")],
+    ]
 
     window = sg.Window("My GUI", layout, finalize=True)
 
@@ -401,10 +406,11 @@ def demo_finalize():
         elif event == "OK":
             name = values["name"]
             # sg.popup(f"Hello, {name}!")
-            window['input_content'].update(name)
+            window["input_content"].update(name)
 
     # 关闭窗口并退出程序
     window.close()
+
 
 if __name__ == "__main__":
     # demo4()
@@ -418,32 +424,33 @@ if __name__ == "__main__":
     # radio_choose_demo()
     # demo_finalize()
     pass
-import PySimpleGUI as sg
+    # layout=[
+    #             [
+    #         sg.Radio("Radio1", "RadioDemo", default=True, size=(10, 1), k="-R1-"),
+    #         sg.Radio("Radio2", "RadioDemo", default=True, size=(10, 1), k="-R2-"),
+    #     ],
+    # ]
+    # window=sg.Window("test default",layout=layout)
+    menu_def = [
+        ["File", ["Open", "Save", "Exit"]],
+        [
+            "Edit",
+            [
+                "Paste",
+                [
+                    "Special",
+                    "Normal",
+                ],
+                "Undo",
+            ],
+        ],
+    ]
 
-# 创建一个带边框区域
-frame_layout = [[sg.Text("Important Result", font=("Helvetica", 14))],
-                [sg.HorizontalSeparator()],
-                [sg.Text("Result: "), sg.Text("", size=(20, 1), key="-RESULT-")]]
+    # 定义布局
+    layout = [
+        [sg.Menu(menu_def, tearoff=False, pad=(20, 1))],
+        [sg.ButtonMenu("ButtonMenu", key="-BMENU-", menu_def=menu_def[0])],
+    ]
 
-frame = sg.Frame("Result Area", frame_layout, relief=sg.RELIEF_SUNKEN, border_width=2)
-
-# 创建一个GUI窗口
-layout = [[sg.Text("Enter a number:"), sg.Input(key="-NUMBER-")],
-          [sg.Button("Calculate"), sg.Button("Exit")],
-          [frame]]
-
-window = sg.Window("My GUI", layout)
-
-# 进入事件循环
-while True:
-    event, values = window.read()
-    if event == sg.WINDOW_CLOSED or event == "Exit":
-        break
-    elif event == "Calculate":
-        number = int(values["-NUMBER-"])
-        result = number ** 2
-        window["-RESULT-"].update(str(result))
-
-# 关闭窗口并退出程序
-window.close()
-
+    window = sg.Window("My window with tabs", layout)
+    event, value = window.read()

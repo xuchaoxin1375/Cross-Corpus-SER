@@ -48,7 +48,7 @@ def make_window(theme):
         [sg.Checkbox("Checkbox", default=True, k="-CB-")],
         [
             sg.Radio("Radio1", "RadioDemo", default=True, size=(10, 1), k="-R1-"),
-            sg.Radio("Radio2", "RadioDemo", default=True, size=(10, 1), k="-R2-"),
+            sg.Radio("Radio2", "RadioDemo", size=(10, 1), k="-R2-"),
         ],
         [
             sg.Combo(
