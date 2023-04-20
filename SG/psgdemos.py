@@ -568,6 +568,9 @@ ML_KEY = "-ML-"  # Multline's key
 
 
 # --------------------------------- Create the window ---------------------------------
+find_tooltip = "Find in file\nEnter a string in box to search for string inside of the files.\nFile list will update with list of files string found inside."
+filter_tooltip = "Filter files\nEnter a string in box to narrow down the list of files.\nFile list will update with list of files with string in filename."
+find_re_tooltip = "Find in file using Regular Expression\nEnter a string in box to search for string inside of the files.\nSearch is performed after clicking the FindRE button."
 def make_window():
     """
     Creates the main window
@@ -580,9 +583,6 @@ def make_window():
     sg.theme(theme)
     # First the window layout...2 columns
 
-    find_tooltip = "Find in file\nEnter a string in box to search for string inside of the files.\nFile list will update with list of files string found inside."
-    filter_tooltip = "Filter files\nEnter a string in box to narrow down the list of files.\nFile list will update with list of files with string in filename."
-    find_re_tooltip = "Find in file using Regular Expression\nEnter a string in box to search for string inside of the files.\nSearch is performed after clicking the FindRE button."
 
     left_col = sg.Column(
         [
@@ -804,7 +804,7 @@ def make_window():
 # --------------------------------- Main Program Layout ---------------------------------
 
 
-def main():
+def file_viewer_runner():
     """
     The main program that contains the event loop.
     It will call the make_window function to create the window.
@@ -1108,4 +1108,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    file_viewer_runner()

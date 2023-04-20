@@ -29,7 +29,7 @@ project_dir=(current_dir/"..").resolve()
 meta_dir = Path("./meta_files")
 grid_dir = Path("./grid")
 features_dir = Path("./features")
-
+speech_dbs_dir=project_dir/ "data"
 emodb_files_glob = "data/emodb/wav/*.wav"
 ravdess_files_glob = "data/ravdess/Actor_*"
 savee_files_glob = "data/savee/AudioData/*/*.wav"

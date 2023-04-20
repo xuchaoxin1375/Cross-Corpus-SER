@@ -1,7 +1,14 @@
 ##
 import PySimpleGUI as sg
+import ipdb
+
+from demo_programs.Demo_Nice_Buttons import red_pill64, image_file_to_bytes, wcolor
+
+# from psgdemos import *
+import os
 from joblib import load
 
+# from SG.psgdemos import find_in_file, get_editor, get_explorer, get_file_list, filter_tooltip, find_re_tooltip, find_tooltip, get_file_list_dict, settings_window, using_local_editor, window_choose_line_to_edit
 from audio.core import get_used_keys
 from audio.graph import showFreqGraph, showMelFreqGraph, showWaveForm
 from config.EF import ava_algorithms, ava_emotions, ava_features
@@ -10,12 +17,12 @@ from config.MetaPath import (
     bclf,
     brgr,
     emodb,
+    speech_dbs_dir,
     get_example_audio_file,
     ravdess,
     savee,
 )
-from recognizer.basic import EmotionRecognizer
-from recognizer.deep import DeepEmotionRecognizer
+
 import sys
 
 
@@ -29,9 +36,14 @@ def import_config_bookmark():
 size = (1500, 1000)
 # size=None
 
-# layout=main_layout
 train = "trian"
 test = "test"
+algorithm = ""
+audio_selected = ""
+speech_folder_path = speech_dbs_dir
+# ---辅助信息---
+ML_KEY = "-ML-"  # Multline's key
+__version__ = "1.1"
 
 
 ##
@@ -59,6 +71,18 @@ def get_algos_elements_list():
         )
 
     return algos_radios
+
+
+def option_border_frame(title="Border Title", layout="", key="option_border"):
+    frame = sg.Frame(
+        layout=layout,
+        title=title,
+        title_color="white",
+        relief=sg.RELIEF_SUNKEN,
+        tooltip="Use these to set flags",
+        key=key,
+    )
+    return frame
 
 
 def create_border_frame(result="inputYourContentToHighligt", key="border"):
@@ -112,6 +136,7 @@ def create_border_frame(result="inputYourContentToHighligt", key="border"):
 # ---create the window---
 def make_window(theme=None, size=None):
     if theme:
+        print(theme)
         sg.theme(theme)
     menu_def = [["&Application", ["E&xit"]], ["&Help", ["&About"]]]
     # 据我观察,通常布局的类型为list[list[element]],也就是说,是一个关于sg组件元素的二轴数组布局,不妨称之为基础布局
@@ -138,14 +163,15 @@ def make_window(theme=None, size=None):
         ],
         [sg.Button("Set Theme")],
     ]
+    # ---file viewer--
+    # file_viewer_layout = file_view_layout()
     # ---create 2 column layout---
     # ---column left---
     db_choose_layout = [
         [sg.Text("Select the training database")],
         [sg.Combo(ava_dbs, key="train_db", default_value=emodb, enable_events=True)],
         [sg.Text("Select the testing database")],
-        [sg.Combo(ava_dbs, key="test_db", default_value=savee, enable_events=True)],
-        # [sg.Button("OK0"), sg.Button("Cancel")],
+        [sg.Combo(ava_dbs, key="test_db", default_value=emodb, enable_events=True)],
     ]  # shape=(-1,1)
 
     # [sg.Checkbox(emo) for emo in ava_emotions]
@@ -166,29 +192,41 @@ def make_window(theme=None, size=None):
             sg.Checkbox("ps", key="ps", enable_events=True),
             sg.Checkbox("sad", key="sad", default=True, enable_events=True),
         ],
-        # [sg.Button("OK1"), sg.Button("Cancel")],
     ]
+    f_config_option_border = option_border_frame(
+        title="Feature Config chooser",
+        layout=[
+            [
+                sg.Checkbox("MFCC", key="mfcc", default=True, enable_events=True),
+                sg.Checkbox("Mel", key="mel", enable_events=True),
+                sg.Checkbox("Contrast", key="contrast", enable_events=True),
+            ],
+            [
+                sg.Checkbox("Chromagram", key="chroma", enable_events=True),
+                sg.Checkbox("Tonnetz", key="tonnetz", enable_events=True),
+            ],
+        ],
+        key="f_config_layout",
+    )
     f_config_layout = [
         [sg.Text("请选择一个或多个特征：")],
-        [
-            sg.Checkbox("MFCC", key="mfcc", default=True, enable_events=True),
-            sg.Checkbox("Mel", key="mel", enable_events=True),
-            sg.Checkbox("Contrast", key="contrast", enable_events=True),
-        ],
-        [
-            sg.Checkbox("Chromagram", key="chroma", enable_events=True),
-            sg.Checkbox("Tonnetz", key="tonnetz", enable_events=True),
-        ],
-        # [sg.Button("OK2"), sg.Button("Cancel")],
+        [f_config_option_border],
     ]
     # ---column right---
     algos = get_algos_elements_list()
     len_of_algos = len(algos)
+
+    algo_border_frame = option_border_frame(
+        title="Algorithms chooser",
+        layout=[
+            algos[: len_of_algos // 2],
+            algos[len_of_algos // 2 :],
+        ],
+        key="algo_border_frame",
+    )
     algos_layout = [
         [sg.Text("选择一个算法进行试验:")],
-        algos[: len_of_algos // 2],
-        algos[len_of_algos // 2 :],
-        # [sg.Button("OK3"), sg.Button("Cancel")],
+        [algo_border_frame],
     ]
 
     file_choose_layout = [
@@ -211,11 +249,24 @@ def make_window(theme=None, size=None):
     re_result = "暂无结果"
     emotion_recognition_layout = [
         [sg.Text("识别该语音文件的情感")],
-        [sg.B("OK", key="start_recognize_emotion")],
+        [sg.B("recognize it", key="recognize it")],
         # [sg.Text(f"识别结果:{re_result}", key="emotion_recognition_res")],
         [create_border_frame(result=re_result, key="emotion_recognition_res")],
+        [sg.Text("置信度(predict_proba:)"), sg.Text("待计算", key="predict_proba")],
     ]
-
+    train_fit_layout = [
+        [
+            # sg.Button('start train'),
+            sg.RButton(
+                "start train",
+                image_data=image_file_to_bytes(red_pill64, (100, 50)),
+                button_color=wcolor,
+                font="Any 15",
+                pad=(0, 0),
+                key="start train",
+            ),
+        ]
+    ]
     draw_layout = [
         [sg.Text("请选择一个文件,绘制其[波形图|频谱图|Mel频谱图]：")],
         # [sg.Input(), sg.FileBrowse()],
@@ -226,23 +277,9 @@ def make_window(theme=None, size=None):
         ],
         [sg.Button("OK", key="draw_graph"), sg.Button("Cancel")],
     ]
-    # ---辅助信息---
-    ML_KEY = "-ML-"  # Multline's key
-    __version__ = "1.1"
 
-    right_info_layout = [
-        [
-            sg.Multiline(
-                size=(70, 21),
-                write_only=True,
-                # expand_x=True,
-                expand_y=True,
-                key=ML_KEY,
-                reroute_stdout=True,
-                echo_stdout_stderr=True,
-                reroute_cprint=True,
-            )
-        ],
+    info_layout = [
+
         [sg.T("CCSER Client By Cxxu_zjgsu " + __version__)],
         [
             sg.T(
@@ -284,37 +321,64 @@ def make_window(theme=None, size=None):
     settings_layout = [
         [sg.Text("Settings")],
     ] + theme_layout
-    # ---column divide---
-    column_left = db_choose_layout + e_config_layout + f_config_layout
-    column_right = (
-        algos_layout
+    about_layout=info_layout
+    # ---column left---
+
+    left_col_layout = (
+        db_choose_layout
+        + e_config_layout
+        + f_config_layout
+        + algos_layout
+        + train_fit_layout
         + file_choose_layout
-        + emotion_recognition_layout
-        + draw_layout
-        + right_info_layout
+        + emotion_recognition_layout 
+        + [
+            [
+                sg.Button("open folder"),
+                sg.Text("<folder of speech db>", key="speech_folder_path"),
+            ]
+        ]
+        # + file_viewer_layout
     )
-    left_column_container = sg.Column(
-        column_left, expand_x=True, expand_y=True, element_justification="l"
+    right_column_layout =  draw_layout+[[
+            sg.Multiline(
+                size=(70, 21),
+                write_only=True,
+                # expand_x=True,
+                expand_y=True,
+                key=ML_KEY,
+                reroute_stdout=True,
+                echo_stdout_stderr=True,
+                reroute_cprint=True,
+            )
+        ]]
+
+    left_column = sg.Column(
+        left_col_layout, expand_x=True, expand_y=True, element_justification="l"
     )
     # column_middle_separator = sg.Column([[sg.VerticalSeparator()]], background_color='yellow')
 
-    right_column_container = sg.Column(
-        column_right, expand_x=True, expand_y=True, element_justification="c"
+    right_column = sg.Column(
+        right_column_layout, expand_x=True, expand_y=True, element_justification="c"
     )
 
     main_pane = sg.Pane(
         [
-            left_column_container,
+            left_column,
             #  [sg.VerticalSeparator(pad=None)],
             # column_middle_separator,
-            right_column_container,
+            right_column,
         ],
         orientation="h",
         expand_x=True,
         expand_y=True,
         k="-PANE-",
     )
-
+    user_layout = [
+        [sg.Text("Welcome@User")],
+        [sg.Input(default_text="user name or ID",key="-USER-")],
+        [sg.Input(default_text="password",key="-PASSWORD-")],
+    ]
     main_tab_layout = [
         [
             sg.Text(
@@ -330,7 +394,7 @@ def make_window(theme=None, size=None):
         [main_pane],
         [sg.B("Quit")],
     ]
-    main_page_layout = main_tab_layout
+    # main_page_layout = main_tab_layout
 
     # ----full layout----
     # --top Menu bar---
@@ -344,9 +408,11 @@ def make_window(theme=None, size=None):
             sg.TabGroup(
                 [
                     [
-                        sg.Tab("Input Elements", main_tab_layout),
+                        sg.Tab("Welcome@User",user_layout),
+                        sg.Tab("MainPage", main_tab_layout),
                         sg.Tab("Output", logging_layout),
                         sg.Tab("Settings", settings_layout),
+                        sg.Tab("about", about_layout),
                     ]
                 ],
                 key="-TAB GROUP-",
@@ -357,6 +423,7 @@ def make_window(theme=None, size=None):
     ]
 
     layout = Menubar_layout + tabs_layout
+    # layout=theme_layout
 
     # ---create window---
     window = sg.Window(
@@ -369,9 +436,7 @@ def make_window(theme=None, size=None):
     return window
 
 
-audio_selected = ""
-
-def initial(values):
+def initial(values=None,verbose=1):
     """收集组件的默认值,在用户操作前就应该扫描一遍设置在组件的默认值
 
     Parameters
@@ -380,34 +445,165 @@ def initial(values):
     values : dict
         当前系统的values值
     """
+    # event, values = window.read()
     train_db = values["train_db"]
     test_db = values["test_db"]
     e_config = scan_choosed_options(values)
     algorithm = selected_algo(values)
     f_config = selected_features(values)
+    if verbose>=2:
+        # print(train_db, test_db, e_config, algorithm, f_config)
+        print(f"train_db = {train_db}")
+        print(f"test_db = {test_db}")
+        print(f"e_config = {e_config}")
+        print(f"algorithm = {algorithm}")
+        print(f"f_config = {f_config}")
     return train_db, test_db, e_config, algorithm, f_config
 
 
+def selected_features(values):
+    tmp_f_config = []
+    for f in ava_features:
+        used_feature = values[f]
+        if used_feature:
+            # 使用插入的方式不是那么好,如果不设置一个临时变量来收集容易因为反复选取/撤销导致多余的选项出现
+            tmp_f_config.append(f)
+            # 扫描完毕,将结果更新为f_config的值
+    f_config = tmp_f_config
+    return f_config
 
-def main():
+
+def selected_algo(values):
+    global algorithm
+    for algo in ava_algorithms:
+        if values and values[algo]:
+            # 获取选中的算法名称(key)
+            algorithm = algo
+            break
+    return algorithm
+
+
+def scan_choosed_options(values):
+    e_config_dict = dict(
+        angry=values["angry"],
+        happy=values["happy"],
+        neutral=values["neutral"],
+        ps=values["ps"],
+        sad=values["sad"],
+    )
+    e_config = get_used_keys(e_config_dict)
+    return e_config
+
+
+def recognize_auido(window=None, train_db=None, test_db=None, e_config=None, f_config=None, algorithm=None, audio_selected=None):
+    print("audio_selected:", audio_selected)
+    if not audio_selected:
+        # audio_selected = get_example_audio_file()
+        sys.exit("请选择音频文件!")
+
+    er = start_train_model(train_db=train_db, test_db=test_db, e_config=e_config, f_config=f_config, algorithm=algorithm)
+    re_result = er.predict(audio_selected)
+    print(f"{re_result=}")
+    window["emotion_recognition_res"].update(f"{re_result}")
+
+    def proba_available(er):
+        model = er.model
+        res = hasattr(model, "predict_proba")
+        if res:
+            print("Classifier supports probability estimates")
+        else:
+            print("Classifier does not support probability estimates")
+        return res
+
+    if proba_available(er):
+        predict_proba = er.predict_proba(audio_selected)
+        window["predict_proba"].update(f"{predict_proba}")
+    else:
+        window["predict_proba"].update("该模型的参数设置为禁用置信度计算")
+
+def start_train_model(train_db=None, test_db=None, e_config=None, f_config=None, algorithm=None):
+    print("开始识别..")
+    print(
+        "检查参数..",
+    )
+    from recognizer.basic import EmotionRecognizer
+
+    print("train_db:", train_db)
+    print("test_db:", test_db)
+    print("e_config:", e_config)
+    print("f_config:", f_config)
+    print("algorithm:", algorithm)
+
+    bclf_estimators = load(bclf)
+
+    # audio_selected=get_example_audio_file()
+    # None表示自动计算best_ML_model
+    ML_estimators_dict = {
+        estimator.__class__.__name__: estimator for estimator, _, _ in bclf_estimators
+    }
+    # ipdb.set_trace()
+    if isinstance( algorithm,list):
+        sys.exit()
+    ML_estimators_dict["BEST_ML_MODEL"] = None
+    # if algorithm=='BEST_ML_MODEL':
+    model = ML_estimators_dict[algorithm]
+    print(train_db, test_db, e_config, f_config, algorithm, model, audio_selected)
+
+    if algorithm == "RNN":
+        from recognizer.deep import DeepEmotionRecognizer
+
+        der = DeepEmotionRecognizer(
+            train_dbs=train_db, test_dbs=test_db, e_config=e_config, f_config=f_config
+        )
+        er = der
+    else:
+        er = EmotionRecognizer(
+            model=model,
+            train_dbs=train_db,
+            test_dbs=test_db,
+            e_config=e_config,
+            f_config=f_config,
+            verbose=1,
+        )
+    # 对数据进行训练(train方法自动导入数据)
+    er.train()
+    test_score = er.test_score()
+    train_score = er.train_score()
+
+    print(f"{test_score=}")
+    print(f"{train_score=}")
+    return er
+
+
+def main(verbose=1):
     window = make_window(size=size)
+
     # Initialize the selected databases list
+    # event, values = window.read()
     e_config = []
     f_config = []
     train_db = ""
     test_db = ""
     algorithm = ""
-
+            
     while True:
-        # 语料库的选择
         event, values = window.read()
-        #初始化!
-        train_db,test_db,e_config,algorithm,f_config = initial(values)
+        # 初始化!
+        train_db, test_db, e_config, algorithm, f_config = initial(values=values)
+        if verbose>=2:
+            print(f"train_db = {train_db}")
+            print(f"test_db = {test_db}")
+            print(f"e_config = {e_config}")
+            print(f"algorithm = {algorithm}")
+            print(f"f_config = {f_config}")
 
-        if event in (None, "Exit"):
-            print("Clicked Exit!")
+        # if event:  # 监听任何event
+        #     print(event, "@{event}")
+
+        # 语料库的选择
+        if event in (None, "Exit", sg.WIN_CLOSED):
+            print("Exit!")
             break
-
         elif event == "train_db":
             train_db = values["train_db"]
             print(train_db, "@{trian_db}")
@@ -431,7 +627,6 @@ def main():
             f_config = selected_features(values)
 
             print(f_config, "@{f_config}")
-
 
         elif event in ava_algorithms:
             algorithm = selected_algo(values)
@@ -466,109 +661,54 @@ def main():
             sg.user_settings_set_entry("-filenames-", [])
             sg.user_settings_set_entry("-last filename-", "")
             window["-FILENAME-"].update(values=[], value="")
-        # print("完成文件选取")
-        # --情感识别阶段--
-        elif event == "start_recognize_emotion":
-            recognize(
-                window, train_db, test_db, e_config, f_config, algorithm, audio_selected
+        # ---文件夹选取---
+        elif event == "open folder":
+            print("[LOG] Clicked Open Folder!")
+            folder_or_file = sg.popup_get_folder(
+                "Choose your folder", keep_on_top=True, default_path=speech_dbs_dir
             )
 
-        elif event == "start_recognize_emotion":
+            speech_folder_path = str(folder_or_file)
+            sg.popup("You chose: " + speech_folder_path, keep_on_top=True)
+            print("[LOG] User chose folder: " + speech_folder_path)
+            window["speech_folder_path"].update(speech_folder_path)
+        # print("完成文件选取")
+        # --情感识别阶段--
+        elif event=='start train':
+            start_train_model( train_db=train_db, test_db=test_db, e_config=e_config, f_config=f_config, algorithm=algorithm)
+        elif event == "recognize it":
+            recognize_auido(
+                window=window, train_db=train_db, test_db=test_db, e_config=e_config, f_config=f_config, algorithm=algorithm, audio_selected=audio_selected
+            )
+
+        elif event == "draw_graph":
             wave_form = values["wave_form"]
             freq_graph = values["freq_graph"]
             mel_freq_graph = values["mel_freq_graph"]
             # print(f"{event=}in draw tasks..(开始绘制.)")
-        elif event == "start_recognize_emotion":
             if wave_form:
                 showWaveForm(audio_selected)
             if freq_graph:
                 showFreqGraph(audio_selected)
             if mel_freq_graph:
                 showMelFreqGraph(audio_selected)
-
             # print("完成图形绘制.")
+
+        elif event == "Set Theme":
+            print("[LOG] Clicked Set Theme!")
+            select_items_list = values["-THEME LISTBOX-"]
+            print(select_items_list, "@{select_item}")
+
+            theme_chosen = values["-THEME LISTBOX-"][0]
+            print("[LOG] User Chose Theme: " + str(theme_chosen))
+            window.close()
+            # sg.theme('dark grey 9')
+            # window = make_window(theme=theme_chosen)
+            window = make_window()
 
     print("关闭窗口.")
 
     window.close()
-
-def selected_features(values):
-    tmp_f_config = []
-    for f in ava_features:
-        used_feature = values[f]
-        if used_feature:
-                    # 使用插入的方式不是那么好,如果不设置一个临时变量来收集容易因为反复选取/撤销导致多余的选项出现
-            tmp_f_config.append(f)
-            # 扫描完毕,将结果更新为f_config的值
-    f_config = tmp_f_config
-    return f_config
-
-def selected_algo(values):
-    for algo in ava_algorithms:
-        if values and values[algo]:
-                    # 获取选中的算法名称(key)
-            algorithm = algo
-            break
-    return algorithm
-
-def scan_choosed_options(values):
-    e_config_dict = dict(
-                angry=values["angry"],
-                happy=values["happy"],
-                neutral=values["neutral"],
-                ps=values["ps"],
-                sad=values["sad"],
-            )
-    e_config = get_used_keys(e_config_dict)
-    return e_config
-
-
-def recognize(window, train_db, test_db, e_config, f_config, algorithm, audio_selected):
-    print("开始识别..")
-    print("检查参数..",)
-
-    print('train_db:', train_db)
-    print('test_db:', test_db)
-    print('e_config:', e_config)
-    print('f_config:', f_config)
-    print('algorithm:', algorithm)
-    print('audio_selected:', audio_selected)
-
-    bclf_estimators = load(bclf)
-
-    # audio_selected=get_example_audio_file()
-    # None表示自动计算best_ML_model
-    ML_estimators = {
-        estimator.__class__.__name__: estimator for estimator, _, _ in bclf_estimators
-    }
-    ML_estimators["BEST_ML_MODEL"] = None
-    # if algorithm=='BEST_ML_MODEL':
-    model = ML_estimators[algorithm]
-    print(train_db, test_db, e_config, f_config, algorithm, model, audio_selected)
-
-    if algorithm == "RNN":
-        der = DeepEmotionRecognizer(
-            train_dbs=train_db, test_dbs=test_db, e_config=e_config, f_config=f_config
-        )
-        er = der
-    else:
-        er = EmotionRecognizer(
-            model=model,
-            train_dbs=train_db,
-            test_dbs=test_db,
-            e_config=e_config,
-            f_config=f_config,
-        )
-    # 对数据进行训练(train方法自动导入数据)
-    er.train()
-    test_score = er.test_score()
-    train_score = er.train_score()
-
-    print(f"{test_score=}")
-    print(f"{train_score=}")
-    re_result = er.predict(audio_selected)
-    print(f"{re_result=}")
-    window["emotion_recognition_res"].update(f"{re_result}")
 
 
 if __name__ == "__main__":

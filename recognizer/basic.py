@@ -12,6 +12,7 @@ from sklearn.metrics import (accuracy_score, classification_report,
                              confusion_matrix, fbeta_score, make_scorer,
                              mean_absolute_error, mean_squared_error)
 from sklearn.model_selection import GridSearchCV
+from sklearn.svm import SVC
 from tqdm import tqdm
 
 from audio.extractor import load_data_from_meta
@@ -616,13 +617,13 @@ typical_emo = ['happy', 'neutral', 'sad']
 e_config = typical_emo
 if __name__ == "__main__":
 
-    # my_model = SVC(C=0.001, gamma=0.001, kernel="poly")
-    my_model = RandomForestClassifier(max_depth=3, max_features=0.2)
-    my_model = None
+    # my_model = RandomForestClassifier(max_depth=3, max_features=0.2)
+    my_model = SVC(C=0.001, gamma=0.001, kernel="poly",probability=True)
+    # my_model = None
 
     # rec = EmotionRecognizer(model=my_model,e_config=AHNPS,f_config=f_config_def,test_dbs=[ravdess],train_dbs=[ravdess], verbose=1)
 
-    single_db=savee
+    single_db=emodb
     meta_dict = {"train_dbs": single_db, "test_dbs": single_db}
     er = EmotionRecognizer(
         model=my_model,
@@ -638,9 +639,16 @@ if __name__ == "__main__":
     
     train_score=er.train_score()
     print(f"{train_score=}")
-    
     test_score = er.test_score()
     print(f"{test_score=}")
+
+
+    file=r'D:\repos\CCSER\SER\data\savee\AudioData\DC\h01.wav'
+    file=r'D:/repos/CCSER/SER/data/emodb/wav/03a01Fa.wav'
+    predict_res=er.predict(file)
+    print(f"{predict_res=}")
+    predict_proba=er.predict_proba(file)
+    print(f"{predict_proba=}")
 
 ##
 

@@ -37,7 +37,7 @@
 - notebook
 - **matplotlib==2.2.3**
 - **pyaudio==0.2.11**
-- **[ffmpeg](https://ffmpeg.org/) (optional)**: used if you want to add more sample audio by converting to 16000Hz sample rate and mono channel which is provided in ``convert_wavs.py``
+- 可执行文件ffmpeg
 
 ### 安装环境和依赖
 
@@ -133,9 +133,9 @@ for i in tqdm(range(10), leave=False):
 
 ## SpeechDatabases
 
+- 这里主要使用3个语音数据库
 
-
-### RAVDE
+### RAVDESS
 
 - [**RAVDESS**](https://zenodo.org/record/1188976) : The **R**yson **A**udio-**V**isual **D**atabase of **E**motional **S**peech and **S**ong that contains 24 actors (12 male, 12 female), vocalizing two lexically-matched statements in a neutral North American accent.
 - [RAVDESS Emotional speech audio | Kaggle](https://www.kaggle.com/datasets/uwrfkaggler/ravdess-emotional-speech-audio?resource=download)
