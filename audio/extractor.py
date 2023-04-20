@@ -1,5 +1,6 @@
 import os
 from collections import defaultdict
+import ipdb
 
 import numpy as np
 import pandas as pd
@@ -38,6 +39,7 @@ class AudioExtractor:
         verbose=True,
         classification_task=True,
         balance=True,
+        shuffle=True,
     ):
         """
         初始化AE对象,在init中对构造器中传入None或者不传值得参数设置了默认值,默认参数为None是参考Numpy的风格
@@ -73,6 +75,7 @@ class AudioExtractor:
         self.features_dir = features_dir  # 默认为features目录
         self.classification_task = classification_task
         self.balance = balance
+        self.shuffle=shuffle
         # input dimension
         self.feature_dimension = None
         # 记录最后一次提取语音文件信息
@@ -91,7 +94,7 @@ class AudioExtractor:
 
     def get_partition_features(self, partition) -> np.ndarray:
         """将包含若干个二维ndarray的列表vstack成1个二维ndarray
-
+        self.features是一个包含若干个同列数的二维数组的list,这里将list中的二维数组合并为1个二维数组返回之
         Parameters
         ----------
         partition : str
@@ -100,7 +103,7 @@ class AudioExtractor:
         Returns
         -------
         np.ndarray
-            合并完成的矩阵
+            合并完成的二维数组,而不是list
 
         Raises
         ------
@@ -110,7 +113,7 @@ class AudioExtractor:
         # print("len(self.train_features),len(self.test_features):")
         # print(len(self.train_features),len(self.test_features))
         # return
-        partition = validate_partition(partition)
+        partition = validate_partition(partition,Noneable=False)
         if partition == "test":
             res = np.vstack(self.test_features) if self.test_features else np.array([])
         else:
@@ -151,7 +154,7 @@ class AudioExtractor:
             if not os.path.exists(meta_file):
                 # create_csv_by_meta_name
                 print(f"{meta_file} does not exist,creating...😂")
-                create_csv_by_metaname(meta_file)
+                create_csv_by_metaname(meta_file,shuffle=self.shuffle)
             else:
                 print(f"meta_file存在{meta_file}文件!")
             df_meta = pd.read_csv(meta_file)
@@ -480,9 +483,9 @@ class AudioExtractor:
             self._balance_data(partition=partition)
         # shuffle
         if shuffle:
-            self.shuffle_data_by_partition(partition)
+            self.shuffle_by_partition(partition)
 
-    def shuffle_data_by_partition(self, partition):
+    def shuffle_by_partition(self, partition):
         """打乱数据顺序
 
         Parameters
@@ -501,7 +504,9 @@ class AudioExtractor:
                 self.train_emotions,
                 self.train_features,
             ) = shuffle_data(
-                self.train_audio_paths, self.train_emotions, self.train_features
+                self.train_audio_paths, self.train_emotions, 
+                # self.train_features
+                self.get_partition_features("train")
             )
         elif partition == "test":
             (
@@ -509,7 +514,9 @@ class AudioExtractor:
                 self.test_emotions,
                 self.test_features,
             ) = shuffle_data(
-                self.test_audio_paths, self.test_emotions, self.test_features
+                self.test_audio_paths, self.test_emotions,
+                #   self.test_features
+                self.get_partition_features("test")
             )
         else:
             raise TypeError("Invalid partition, must be either train/test")
@@ -696,6 +703,8 @@ def shuffle_data(audio_paths, emotions, features):
         # 根据统一的乱序序列,便于统一audio_paths,emotions,features
         # 因此这里不可用直接地对三个列表各自地运行shuffle或permutation,会导致对应不上
         p = np.random.permutation(length)
+        #手动在此处抛出调试性异常(此处采用pdb模块来调试)
+        # raise ValueError("short!")
         audio_paths = [audio_paths[i] for i in p]
         emotions = [emotions[i] for i in p]
         features = [features[i] for i in p]
@@ -709,7 +718,7 @@ def load_data_from_meta(
     f_config=None,
     e_config=None,
     classification_task=True,
-    shuffle=False,
+    shuffle=True,
     balance=False,
 ) -> dict:
     """导入语音数据,并返回numpy打包train/test dataset相关属性的ndarray类型
@@ -743,6 +752,7 @@ def load_data_from_meta(
         e_config=e_config,
         classification_task=classification_task,
         balance=balance,
+        shuffle=shuffle,
         verbose=True,
     )
 
@@ -754,7 +764,8 @@ def load_data_from_meta(
     )
     # Loads testing data
     ae.load_data_preprocessing(
-        meta_files=test_meta_files, partition="test", shuffle=shuffle
+        meta_files=test_meta_files, partition="test", 
+        shuffle=shuffle
     )
 
     # 以train集为例检查self属性
@@ -770,13 +781,13 @@ def load_data_from_meta(
         "y_test": np.array(ae.test_emotions),
         "train_audio_paths": np.array(ae.train_audio_paths),
         "test_audio_paths": np.array(ae.test_audio_paths),
-        "balance": ae.balance,
+        "balance": ae.balance,#反馈是否顺利执行了balance
         "ae": ae,
     }
 
 
 if __name__ == "__main__":
-    ae = AudioExtractor(f_config=f_config_def)
+    ae = AudioExtractor(f_config=f_config_def,shuffle=True)
     print(ae)
     ae._extract_feature_in_meta(meta_path=train_emodb_csv)
 

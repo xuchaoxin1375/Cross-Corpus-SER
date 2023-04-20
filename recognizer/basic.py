@@ -16,7 +16,7 @@ from tqdm import tqdm
 
 from audio.extractor import load_data_from_meta
 from config.EF import (e_config_def, f_config_def, validate_emotions)
-from config.MetaPath import (emodb, meta_paths_of_db, ravdess, validate_partition)
+from config.MetaPath import (emodb, meta_paths_of_db, ravdess, savee,validate_partition,project_dir)
 from audio.core import best_estimators, extract_feature
 
 
@@ -34,6 +34,7 @@ class EmotionRecognizer:
             train_dbs=None,
             test_dbs=None,
             balance=False,
+            shuffle=True,
             override_csv=True,
             verbose=1,
             **kwargs,
@@ -111,6 +112,7 @@ class EmotionRecognizer:
         # 默认执行分类任务
         self.classification_task = classification_task
         self.balance = balance
+        self.shuffle=shuffle
         self.override_csv = override_csv
         self.verbose = verbose
         # boolean attributes
@@ -149,6 +151,7 @@ class EmotionRecognizer:
         """
         导入指定的语料库数据,并提取特征
         Loads and extracts features from the audio files for the db's specified
+        - 注意,由于balance操作对于数据集划分有一定要求,不是任何数据集都可以执行balance操作(例如三分类中,test set中只缺失了某一个类别的样本,这中情况下执行balance,将导致测试集样本数量为空)
         """
         # 判断是否已经导入过数据.如果已经导入,则跳过,否则执行导入
         if not self.data_loaded:
@@ -160,6 +163,7 @@ class EmotionRecognizer:
                 e_config=self.e_config,
                 classification_task=self.classification_task,
                 balance=self.balance,
+                shuffle=self.shuffle
             )
             # 设置实例的各个属性
             self.X_train = data["X_train"]
@@ -168,13 +172,17 @@ class EmotionRecognizer:
             self.y_test = data["y_test"]
             self.train_audio_paths = data["train_audio_paths"]
             self.test_audio_paths = data["test_audio_paths"]
-            self.balance = data["balance"]
+           
+            self.balanced_success(data)
             if self.verbose:
                 print("[I] Data loaded\n")
             self.data_loaded = True
             # print(id(self))
             if self.verbose > 1:
                 print(vars(self))
+
+    def balanced_success(self, res):
+        self.balance = res["balance"]
 
     def train(self, choosing=False, verbose=1):
         """
@@ -248,7 +256,7 @@ class EmotionRecognizer:
             )
 
     def show_second(self):
-        peeker = rec.peek_test_set(2)
+        peeker = er.peek_test_set(2)
         feature = peeker[1][1]
         audio_path = peeker[0][1]
         feature_pred = self.predict(audio_path)
@@ -614,8 +622,9 @@ if __name__ == "__main__":
 
     # rec = EmotionRecognizer(model=my_model,e_config=AHNPS,f_config=f_config_def,test_dbs=[ravdess],train_dbs=[ravdess], verbose=1)
 
-    meta_dict = {"train_dbs": emodb, "test_dbs": ravdess}
-    rec = EmotionRecognizer(
+    single_db=savee
+    meta_dict = {"train_dbs": single_db, "test_dbs": single_db}
+    er = EmotionRecognizer(
         model=my_model,
         e_config=e_config,
         f_config=f_config_def,
@@ -625,12 +634,12 @@ if __name__ == "__main__":
 
     # rec = EmotionRecognizer(model=my_model,e_config=AHNPS,f_config=f_config_def,test_dbs=emodb,train_dbs=emodb, verbose=1)
 
-    rec.train()
+    er.train()
     
-    train_score=rec.train_score()
+    train_score=er.train_score()
     print(f"{train_score=}")
     
-    test_score = rec.test_score()
+    test_score = er.test_score()
     print(f"{test_score=}")
 
 ##

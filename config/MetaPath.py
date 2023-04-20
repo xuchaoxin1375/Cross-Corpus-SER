@@ -18,8 +18,12 @@ Sequence = collections.abc.Sequence  # type:ignore
 # FileName = NewType('FileName', str)
 
 # 控制保存文件的目录(例如相对于那个目录的相对路径或者直接采用绝对路径)
-base_dir = Path(r"D:/repos/CCSER/SER")
-# 尽管可以利用base_dir这个变量来指定保存文件的绝对路径,但是可以采用先cd到项目根目录,
+# project_dir = Path(r"D:/repos/CCSER/SER")
+
+current_file=Path(__file__)
+current_dir=current_file.parent
+project_dir=(current_dir/"..").resolve()
+# 尽管可以利用project_dir这个变量来指定保存文件的绝对路径,但是可以采用先cd到项目根目录,
 # 然后执行`py .\tkinter_client\er_tk.py `的方式运行
 # (而不是直接在./tkinter_client下执行`py er_tk.py`),这样相对路路径就会从项目根目录开始
 meta_dir = Path("./meta_files")
@@ -32,7 +36,7 @@ savee_files_glob = "data/savee/AudioData/*/*.wav"
 
 
 meta_dir, grid_dir, emodb_files_glob, ravdess_files_glob,savee_files_glob, features_dir = [
-    (base_dir / p)
+    (project_dir / p)
     for p in (meta_dir, grid_dir, emodb_files_glob, ravdess_files_glob,savee_files_glob, features_dir)
 ]
 # 语料库配置

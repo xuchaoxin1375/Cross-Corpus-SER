@@ -9,7 +9,7 @@ from joblib import load
 
 from audio.converter import convert_audio
 from config.EF import MCM, ava_features
-from config.MetaPath import bclf, brgr
+from config.MetaPath import bclf, brgr,project_dir
 
 
 def get_used_keys(config_dict):
@@ -97,6 +97,10 @@ def extract_feature(audio_file_name, f_config):
         raise ValueError(f"{f_config}包含不受支持的特征名字,请在{ava_features}中选取")
 
     try:
+        print(audio_file_name,"@{audio_file_name}")
+        #考虑将此时的工作路径切换为项目根目录,以便利用相对路径访问文件
+        os.chdir(project_dir)
+        # sys.exist()
         with soundfile.SoundFile(audio_file_name) as sound_file:
             # 成功打开
             pass
