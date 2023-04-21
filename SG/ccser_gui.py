@@ -4,7 +4,8 @@ from uiconfig import ccser_theme, title_color, __version__, ML_KEY
 import uiconfig as ufg
 import ipdb
 from user import UserAuthenticatorGUI
-from fviewer import audio_viewer_layout, fviewr_events
+from fviewer import audio_viewer_layout, fviewr_events,selected_files
+import fviewer
 from demo_programs.Demo_Nice_Buttons import red_pill64, image_file_to_bytes, wcolor
 
 # from psgdemos import *
@@ -515,6 +516,20 @@ def recognize_auido(
     algorithm=None,
     audio_selected=None,
 ):
+    """
+    This function performs audio recognition and updates the GUI window with the result.
+
+    params
+    - 
+    :param window: The GUI window object.
+    :param train_db: The training database.
+    :param test_db: The testing database.
+    :param e_config: The configuration file for the emotion recognition model.
+    :param f_config: The configuration file for the feature extraction model.
+    :param algorithm: The algorithm to be used for emotion recognition.
+    :param audio_selected: The selected audio file for recognition.
+    :return: None
+    """
     print("audio_selected:", audio_selected)
     if not audio_selected:
         # audio_selected = get_example_audio_file()
@@ -532,6 +547,14 @@ def recognize_auido(
     window["emotion_recognition_res"].update(f"{re_result}")
 
     def proba_available(er):
+        """
+        This function checks if the classifier supports probability estimates.
+        
+        params
+        -
+        :param er: The emotion recognition model object.
+        :return: True if the classifier supports probability estimates, False otherwise.
+        """
         model = er.model
         res = hasattr(model, "predict_proba")
         if res:
@@ -548,19 +571,33 @@ def recognize_auido(
 
 
 def start_train_model(
-    train_db=None, test_db=None, e_config=None, f_config=None, algorithm=None
+    train_db=None, test_db=None, e_config=None, f_config=None, algorithm=None,verbose=1
 ):
+    """
+    Trains an emotion recognition model and returns an EmotionRecognizer object.
+
+    Args:
+        train_db (list): List of training audio file paths.
+        test_db (list): List of testing audio file paths.
+        e_config (dict): Configuration dictionary for audio feature extraction.
+        f_config (dict): Configuration dictionary for audio feature selection.
+        algorithm (str): Name of the machine learning algorithm to use for training.
+        verbose (int): Level of verbosity. 0 for no output, 1 for standard output.
+
+    Returns:
+        er (EmotionRecognizer): Trained emotion recognition model.
+    """
     print("开始识别..")
     print(
         "检查参数..",
     )
     from recognizer.basic import EmotionRecognizer
-
-    print("train_db:", train_db)
-    print("test_db:", test_db)
-    print("e_config:", e_config)
-    print("f_config:", f_config)
-    print("algorithm:", algorithm)
+    if verbose:
+        print("train_db:", train_db)
+        print("test_db:", test_db)
+        print("e_config:", e_config)
+        print("f_config:", f_config)
+        print("algorithm:", algorithm)
 
     bclf_estimators = load(bclf)
 
@@ -702,13 +739,16 @@ def main(verbose=1):
         # print("完成文件选取")
         # --情感识别阶段--
         elif event == "start train":
-            start_train_model(
+            er=start_train_model(
                 train_db=train_db,
                 test_db=test_db,
                 e_config=e_config,
                 f_config=f_config,
                 algorithm=algorithm,
             )
+            #训练收尾工作:将计算结果(识别器)传递给fviewer,赋能fviewer可以(直接利用识别器对象)进行识别
+            fviewer.er=er
+            
         elif event == "recognize it":
             recognize_auido(
                 window=window,
@@ -719,6 +759,10 @@ def main(verbose=1):
                 algorithm=algorithm,
                 audio_selected=audio_selected,
             )
+        # elif event =='Emotion Recognize':
+        #     print("此处接收fviewer的委托进行若干文件的情感识别")
+
+
 
         elif event == "draw_graph":
             wave_form = values["wave_form"]

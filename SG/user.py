@@ -139,7 +139,7 @@ class UserAuthenticatorGUI:
     def create_window(self):
         """创建PySimpleGUI窗口"""
         self.window = sg.Window("My App", self.layout)
-    def events(self,event,values):
+    def events(self,event,values,verbose=1):
         if event == "Register":
             username = values["username"]
             password = values["password"]
@@ -157,6 +157,10 @@ class UserAuthenticatorGUI:
                 sg.popup(f"User {username} authenticated successfully!")
             else:
                 sg.popup("Authentication failed.😂🤣 Please try again.")
+            # 报告当前用户的ID和信息
+            if verbose:
+                ua=self.authenticator
+                print(f"[I]{ua.current_user=},{ua.log_state=}")
     def start_event_loop(self):
         """开始PySimpleGUI事件循环"""
         while True:
@@ -178,11 +182,9 @@ class UserAuthenticatorGUI:
         """运行用户验证程序"""
         self.authenticator.connect_to_database()
         self.authenticator.create_users_table()
-        self.events(event,values)
+        self.events(event,values,verbose=verbose)
         self.authenticator.close_database_connection()
-        if verbose:
-            ua=self.authenticator
-            print(f"{ua.current_user=},{ua.log_state=}")
+       
 
 if __name__ == "__main__":
     gui = UserAuthenticatorGUI(verbose=True)

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+##!/usr/bin/env python
 import PySimpleGUI as sg
 from gtts import gTTS
 from pygame import mixer

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+##!/usr/bin/env python
 import PySimpleGUI as sg
 
 layout = [[sg.Text("Hold down a key")],

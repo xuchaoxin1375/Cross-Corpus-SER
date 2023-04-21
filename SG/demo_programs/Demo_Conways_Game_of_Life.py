@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+##!/usr/bin/env python
 
 #  John Conway's "Game of Life" using a GUI.
 #  Copyright (C) 2018 PySimpleGUI.org

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+##!/usr/bin/env python
 import PySimpleGUI as sg
 from chatterbot import ChatBot
 import chatterbot.utils

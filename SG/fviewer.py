@@ -1,3 +1,4 @@
+##
 import os
 from pathlib import Path
 import PySimpleGUI as sg
@@ -5,9 +6,30 @@ import playsound
 import re
 from config.MetaPath import speech_dbs_dir, savee
 import uiconfig as ufg
+import table_show as ts
+from recognizer.basic import EmotionRecognizer
 #将变量设置在事件循环中可能会反复被初始化,这里我们应该放在事件循环的外部
 speech_folder_path=Path("./")
 selected_files=[]
+er:EmotionRecognizer=None
+filter_tooltip="""
+    the listbox of files allow you to choose one or more files \n using left button of your mouse, 
+you can use `Ctrl+Click` to select multiple files(jump to the selected file is allowed too!)
+
+    you can right click after you choose one or more files to do something like these: 
+    1.file size
+    2.file path(absolute path)
+    3.recognize emotion
+    4.play file(audio) you choosed
+    4.all of above could work in multiple files one by one automatically
+"""
+selected_files_tooltip="""
+you can observe the files your choosed in last listBox
+Whether it is a continuous selection or a skip selection, 
+these selected files will be tightly arranged and 
+the number of files will be displayed at the top
+"""
+
 # 创建GUI窗口
 audio_viewer_layout = [
     [
@@ -30,8 +52,9 @@ audio_viewer_layout = [
             key="audio_files_list",
             enable_events=True,
             bind_return_key=True,
+            tooltip=filter_tooltip,
             #定义位于列表中条目的右键菜单内容
-            right_click_menu=["", ["Show File Path", "Show File Size",'Play Audio']],
+            right_click_menu=["", ["Show File Path", "Show File Size",'Play Audio','Emotion Recognize']],
             select_mode=sg.LISTBOX_SELECT_MODE_EXTENDED,
             no_scrollbar=True,
         )
@@ -45,13 +68,11 @@ audio_viewer_layout = [
             values=[],
             size=(50, 10),
             key="selected_files_list",
+           tooltip = selected_files_tooltip,
             # select_mode=sg.LISTBOX_SELECT_MODE_EXTENDED,
         )
     ],
 ]
-
-
-
 
 
 # 定义文件大小计算函数
@@ -159,7 +180,7 @@ def fviewr_events(window, event, values):
     elif event == "audio_files_list#Right":
         try:
             file_path = values["audio_files_list"][0]
-            menu_choice = sg.popup_menu(["Show File Path", "Show File Size",'Play Audio'])
+            menu_choice = sg.popup_menu(["Show File Path", "Show File Size",'Play Audio',"Emotion Recognize"])
             if menu_choice == "Show File Path":
                 sg.popup(file_path)
             elif menu_choice == "Show File Size":
@@ -203,6 +224,35 @@ def fviewr_events(window, event, values):
                 # 播放音频
             audio_file = AudioSegment.from_file(audio_path, format=ext)
             play(audio_file)
+    elif event=='Emotion Recognize':
+        # print()
+        # 为了完成多选文件(成批识别),经过brainstorm,提出以下idea:
+        # 委托给ccser_gui模块来处理,通过共享变量来简单通信/创建一个媒介模块来解决相互导入的问题(对于这种简单的场景够用的)
+        # 如果出现两个模块相互导入,那么往往要考虑包相互导入的部分中哪些东西抽去到单独的模块中,优化模块的结构
+        # 在ccser_gui模块中调用本模块的方法时,采用传参的方式是最直接的通信方式(只不过有些调用参数很多,需要传比较多的参数😂)
+        #幸运的是,在python中支持动态添加类(成员属性),可以通过将需要传递的值保留在类的实例中,这样可以减少调用时需要传递的参数(特别时反复用到相关数据时,这更有用)
+        #这里的识别应该在训练阶段完成之后才调用的,否则程序应该组织这样跨阶段的行为,提高robustness
+        if er ==None:
+            print("请先完成识别器训练,然后再执行识别操作")
+        else:
+            print(f'the emotion recognizer is {er}!')
+            res_content:list[str]=[]
+            abs_pathes=get_abs_selected_pathes(speech_folder_path, selected_files)
+            emo_res=[]
+            # pathes=[]
+            import table_show as ts
+            for audio in abs_pathes:
+                emo_res.append(er.predict(audio))
+            print(emo_res,"@{emo_res}")
+            print(abs_pathes,"@{abs_pathes}")
+            t=ts.TableShow(header=["emotion","path"],lists=[emo_res,abs_pathes])
+            print(t.lists,"@{t.lists}")
+            t.run()
+
+
+            
+
+
 
 if __name__=="__main__":
     main()

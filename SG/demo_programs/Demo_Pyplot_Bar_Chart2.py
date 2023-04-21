@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+##!/usr/bin/env python
 import PySimpleGUI as sg
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import numpy as np

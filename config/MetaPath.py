@@ -27,6 +27,7 @@ project_dir=(current_dir/"..").resolve()
 # 然后执行`py .\tkinter_client\er_tk.py `的方式运行
 # (而不是直接在./tkinter_client下执行`py er_tk.py`),这样相对路路径就会从项目根目录开始
 meta_dir = Path("./meta_files")
+recognize_result_dir = Path("./recognize_result")
 grid_dir = Path("./grid")
 features_dir = Path("./features")
 speech_dbs_dir=project_dir/ "data"
@@ -35,9 +36,10 @@ ravdess_files_glob = "data/ravdess/Actor_*"
 savee_files_glob = "data/savee/AudioData/*/*.wav"
 
 
-meta_dir, grid_dir, emodb_files_glob, ravdess_files_glob,savee_files_glob, features_dir = [
+#计算绝对路径
+meta_dir,recognize_result_dir, grid_dir, emodb_files_glob, ravdess_files_glob,savee_files_glob, features_dir = [
     (project_dir / p)
-    for p in (meta_dir, grid_dir, emodb_files_glob, ravdess_files_glob,savee_files_glob, features_dir)
+    for p in (meta_dir,recognize_result_dir, grid_dir, emodb_files_glob, ravdess_files_glob,savee_files_glob, features_dir)
 ]
 # 语料库配置
 ravdess, emodb, savee = ["ravdess", "emodb", "savee"]

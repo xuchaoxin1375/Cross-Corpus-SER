@@ -1,5 +1,5 @@
-#!/usr/bin/env python
-#!/usr/bin/env python
+##!/usr/bin/env python
+##!/usr/bin/env python
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 import numpy as np

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+##!/usr/bin/env python
 import PIL
 from PIL import Image
 from sys import exit
