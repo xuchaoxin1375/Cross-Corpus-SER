@@ -32,14 +32,15 @@ grid_dir = Path("./grid")
 features_dir = Path("./features")
 speech_dbs_dir=project_dir/ "data"
 emodb_files_glob = "data/emodb/wav/*.wav"
-ravdess_files_glob = "data/ravdess/Actor_*"
+ravdess_files_glob_old = "data/ravdess/Actor_*"
+ravdess_files_glob="data/ravdess/Actor_*/*.wav"
 savee_files_glob = "data/savee/AudioData/*/*.wav"
 
 
 #计算绝对路径
 meta_dir,recognize_result_dir, grid_dir, emodb_files_glob, ravdess_files_glob,savee_files_glob, features_dir = [
     (project_dir / p)
-    for p in (meta_dir,recognize_result_dir, grid_dir, emodb_files_glob, ravdess_files_glob,savee_files_glob, features_dir)
+    for p in (meta_dir,recognize_result_dir, grid_dir, emodb_files_glob,ravdess_files_glob, savee_files_glob, features_dir)
 ]
 # 语料库配置
 ravdess, emodb, savee = ["ravdess", "emodb", "savee"]
@@ -62,7 +63,7 @@ bclf, brgr = [grid_dir / item for item in (bclf, brgr)]
 def get_example_audio_file(db=savee):
     select_sample_dict=dict(
         emodb=emodb_files_glob,
-        ravdess=ravdess_files_glob,
+        ravdess=ravdess_files_glob_old,
         savee=savee_files_glob
     )
     db_glob=str(select_sample_dict[db])

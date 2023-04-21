@@ -195,6 +195,7 @@ def make_window(theme=None, size=None):
             sg.Checkbox("neutral", key="neutral", default=True, enable_events=True),
             sg.Checkbox("ps", key="ps", enable_events=True),
             sg.Checkbox("sad", key="sad", default=True, enable_events=True),
+            sg.Checkbox("others", key="others", default=True, enable_events=True)
         ],
     ]
     f_config_option_border = option_border_frame(
@@ -502,6 +503,7 @@ def scan_choosed_options(values):
         neutral=values["neutral"],
         ps=values["ps"],
         sad=values["sad"],
+        others=values["others"]
     )
     e_config = get_used_keys(e_config_dict)
     return e_config

@@ -13,7 +13,8 @@ AVAILABLE_EMOTIONS = {
     "fear",
     "disgust",
     "ps", # pleasant surprised
-    "boredom"
+    "boredom",
+    "others"
 }
 #deprecated
 def get_f_config_dict(features_list)->dict[str,bool]:

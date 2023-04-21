@@ -3,6 +3,7 @@ import os
 import random
 from glob import glob
 from pathlib import Path
+import re
 
 import pandas as pd
 from pandas import DataFrame
@@ -14,6 +15,7 @@ from config.MetaPath import (
     emodb_files_glob,
     meta_paths_of_db,
     ravdess,
+    ravdess_files_glob_old,
     ravdess_files_glob,
     savee,
     savee_files_glob,
@@ -49,6 +51,7 @@ def create_emodb_meta(
     shuffle=True,
     balance=False,
     sort=True,
+    use_others=False,
 ):
     """
     Reads speech emodb dataset from directory and write it to a metadata CSV file.
@@ -82,31 +85,37 @@ def create_emodb_meta(
     categories_reversed = {emotion: code for code, emotion in categories.items()}
     if e_config is None:
         raise ValueError(f"e_config is None")
+    # 分类或者过滤掉不需要的情感文件
+    #先简化翻译情感的字典
     for emotion, code in categories_reversed.items():
         if emotion not in e_config:
+            # 使用del删除字典中的元素
             del categories[code]
     # shuffle可以在这个环节进行:
     files_iter = glob(emodb_files_glob)
     if shuffle:
         random.shuffle(files_iter)
 
+    # 过滤/分类情感
     for file in files_iter:
-        try:
-            # emodb文件形如`03a01Wa.wav`
-            # - 03 表示这个音频记录来自第3位演员
-            # - a01 表示这个音频记录是该演员表演的第1种情感
-            # - W 表示这个情感是“愤怒”（Angry）的缩写
-            # - a 表示这个是该情感的第1个副本（第一个表演）
-            # - .wav 表示这个文件的格式为.wav格式
-            # 我们感兴趣的是第6个字符(也即是[5])
-            e = os.path.basename(file)[5]
-            emotion: str = categories[e]
+    
+        # emodb文件形如`03a01Wa.wav`
+        # - 03 表示这个音频记录来自第3位演员
+        # - a01 表示这个音频记录是该演员表演的第1种情感
+        # - W 表示这个情感是“愤怒”（Angry）的缩写
+        # - a 表示这个是该情感的第1个副本（第一个表演）
+        # - .wav 表示这个文件的格式为.wav格式
+        # 我们感兴趣的是第6个字符(也即是[5])
+        e = os.path.basename(file)[5]
+        emotion: str = categories.get(e,"others") if use_others else categories.get(e,None)
             # 可以使用字典的get方法来避免KeyError,不过这里我们考虑通过异常抛出做出及时的反馈
-        except KeyError:
-            # print("key error")
-            continue
-        tp.append(file)
-        te.append(emotion)
+        # except KeyError:
+        #     # print("key error")
+        #     # 如果精简后的字典中没有对应的情感,那么说明这个文件是不被需要的,过滤掉
+        #     continue
+        if emotion:
+            tp.append(file)
+            te.append(emotion)
         # target['emotion'].append(emotion)
         # target['path'].append(file)
     n_samples = len(target["path"])
@@ -157,6 +166,7 @@ def create_savee_meta(
     shuffle=True,
     balance=False,
     sort=True,
+    use_others=False
 ):
     db = savee
     train_name, test_name = check_meta_names(e_config, train_name, test_name, db)
@@ -191,9 +201,16 @@ def create_savee_meta(
         emos.append(emo)
 
     p_e_df = DataFrame({"path": paths, "emotion": emos})
-    # emo_bool_mask=df["emotion"]
     emo_bool_mask = p_e_df["emotion"].isin(e_config)
-    p_e_df = p_e_df[emo_bool_mask]
+    if use_others:
+        # emos.append("others")
+        emo_bool_mask=~emo_bool_mask
+        p_e_df["emotion"][emo_bool_mask==1]="others"
+        print(p_e_df)
+    else:
+        # emo_bool_mask=df["emotion"]
+        p_e_df = p_e_df[emo_bool_mask]
+
     if verbose:
         print(f"{p_e_df.shape=}")
         n_samples = len(p_e_df)
@@ -208,14 +225,6 @@ def create_savee_meta(
             test_samples,
         )
 
-    # paths = p_e_df["path"]
-    # emotions = p_e_df["emotion"]
-    # spl = tts(paths, emotions, train_size=train_size, shuffle=shuffle)
-    # X_train, X_test, y_train, y_test = spl
-
-    # DataFrame({"path": X_train, "emotion": y_train}).to_csv(train_name, index=False)
-    # DataFrame({"path": X_test, "emotion": y_test}).to_csv(test_name, index=False)
-    # write_to_csv(train_name, test_name, sort, X_train, X_test, y_train, y_test)
 
     spl = tts(p_e_df, train_size=train_size, shuffle=shuffle)
     Xy_train, Xy_test = spl
@@ -240,6 +249,7 @@ def create_ravdess_meta(
     shuffle=True,
     balance=False,
     sort=True,
+    use_others=False
 ):
     """
     Reads speech training(RAVDESS) datasets from directory and write it to a metadata CSV file.
@@ -250,36 +260,84 @@ def create_ravdess_meta(
         verbose (int/bool): verbositiy level, 0 for silence, 1 for info, default is 1
     """
     db = ravdess
-    meta_dict = {"path": [], "emotion": []}
 
     # 这个数据库文件比较多,为了敏捷性,控制只处理特定情感的文件而不是全部情感文件
-    # 我们将TESS,RAVDESS语料库放在了训练集目录training
     print(f"{db} files meta extacting...")
     if e_config is None:
         raise ValueError(f"{db}e_config is None")
-    for e in e_config:
-        # for training speech directory
-        ravdess_file_glob_emo = f"{ravdess_files_glob}/*_{e}.wav"
-        total_files = glob(ravdess_file_glob_emo)
-        for i, path in enumerate(total_files):
-            meta_dict["path"].append(path)
-            meta_dict["emotion"].append(e)
-        # 提示所有训练集文件meta处理完毕
-        if verbose and total_files:
-            print(f"There are {len(total_files)} training audio files for category:{e}")
-    meta_df = DataFrame(meta_dict)
-    # print(target)
-    train_name, test_name = meta_paths_of_db(db, e_config=e_config)
-    Xy_train, Xy_test = tts(
-        meta_df, train_size=train_size, random_state=0, shuffle=shuffle
-    )
-    print(Xy_train[:5], "@{X_train}")
-    print(train_name, "@{train_name}")
+    # 对特定情感文件的过滤(这里直接通过遍历指定的情感种类,配合glob来直接过滤掉不需要的情感)
+
+
+    emos = []
+    paths = []
+    audios = glob(ravdess_files_glob)
+    # total = len(audios)
+    # audios = audios[: int(total * subset_size)]
+    for audio in audios:
+        audio_name = os.path.basename(audio)
+        name, ext_ = os.path.splitext(audio_name)
+        # 定义一个正则表达式，用于匹配开头的单词
+        pattern = r".*_(\w+)"
+        # 使用 re 模块的 findall 函数查找所有匹配项
+        m = re.search(pattern, name)
+        # print(audio_name,m)
+        # 打印出所有匹配项的值
+        emo = m.group(1)
+
+        print(emo,"@{emo}")
+        
+        paths.append(audio)
+        emos.append(emo)
+
+    p_e_df = DataFrame({"path": paths, "emotion": emos})
+    emo_bool_mask = p_e_df["emotion"].isin(e_config)
+    if use_others:
+        # emos.append("others")
+        emo_bool_mask=~emo_bool_mask
+        p_e_df["emotion"][emo_bool_mask==1]="others"
+        print(p_e_df)
+    else:
+        # emo_bool_mask=df["emotion"]
+        p_e_df = p_e_df[emo_bool_mask]
+
+    if verbose:
+        print(f"{p_e_df.shape=}")
+        n_samples = len(p_e_df)
+        print("[ravdess] Total files to write:", n_samples)
+        # dividing training/testing sets
+        test_samples: int = int((1 - train_size) * n_samples)
+        train_samples: int = int(train_size * n_samples)
+        print(
+            f"[{db}_{e_config}] Training samples:",
+            train_samples,
+            "\nTesting samples:",
+            test_samples,
+        )
+    spl = tts(p_e_df, train_size=train_size, shuffle=shuffle)
+
+    Xy_train, Xy_test = spl
     from_df_write_to_csv(train_name=train_name, test_name=test_name, sort=sort, Xy_train=Xy_train, Xy_test=Xy_test)
 
     if verbose:
-        print("ravdess db was splited to 2 csv files!")
-        print(f"the train/test size rate is:{train_size}:{(1-train_size)}")
+        print(train_name, "@{train_name}")
+        print(test_name, "@{test_name}")
+        print("文件创建完毕!")
+    return spl
+
+    # meta_df = DataFrame(meta_dict)
+    # # print(target)
+    # train_name, test_name = meta_paths_of_db(db, e_config=e_config)
+    # Xy_train, Xy_test = tts(
+    #     meta_df, train_size=train_size, random_state=0, shuffle=shuffle
+    # )
+    # if verbose:
+    #     print(Xy_train[:5], "@{X_train}")
+    #     print(train_name, "@{train_name}")
+    # from_df_write_to_csv(train_name=train_name, test_name=test_name, sort=sort, Xy_train=Xy_train, Xy_test=Xy_test)
+
+    # if verbose:
+    #     print("ravdess db was splited to 2 csv files!")
+    #     print(f"the train/test size rate is:{train_size}:{(1-train_size)}")
 
 
 def from_df_write_to_csv(train_name="", test_name="", sort=True, Xy_train=None, Xy_test=None):
@@ -315,8 +373,11 @@ def create_csv_by_metaname(meta_file, shuffle=True):
     # 直接解析成三个字符串
     # print(name,"@{name}")
     _partitoin, db, emotion_first_letters = name.split("_")
-
     e_config = extend_emotion_names(emotion_first_letters)
+    if 'others' in e_config:
+        use_others=True
+    else:
+        use_others=False
 
     field_p2 = [db, emotion_first_letters]
     train_name = "_".join(["train"] + field_p2) + ".csv"
@@ -328,10 +389,13 @@ def create_csv_by_metaname(meta_file, shuffle=True):
         shuffle=shuffle,
         #   train_name=train_name,
         #   test_name=test_name
+        use_others=use_others
     )
 
 
 ##
+from config.EF import e_config_def
+
 if __name__ == "__main__":
     # write_emodb_csv(e_config=AHNPS)
     # write_ravdess_csv()
@@ -339,8 +403,11 @@ if __name__ == "__main__":
     # create_csv_by_metaname(name1)
     name2 = "train_savee_AS.csv"
     name3 = "test_savee_HNS.csv"
-    create_csv_by_metaname(name3, shuffle=True)
-
+    # create_csv_by_metaname(name3, shuffle=True)
+    ##
+    # create_emodb_meta(e_config=e_config_def+["others"],train_name="tr_emodb.csv",test_name='te_emodb.csv',use_others=True)
+    # create_ravdess_meta(e_config=e_config_def+["others"],train_name="tr_ravdess.csv",test_name='te_ravdess.csv',use_others=True)
+    # create_savee_meta(e_config=e_config_def+["others"],train_name="tr_savee.csv",test_name='te_savee.csv',use_others=True)
     ##
     # import numpy as np
     # from sklearn.model_selection import train_test_split

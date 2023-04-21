@@ -613,8 +613,9 @@ class EmotionRecognizer:
 from config.MetaPath import (test_emodb_csv)
 
 passive_emo = ["angry", "sad"]
+passive_emo_others=passive_emo+["others"]
 typical_emo = ['happy', 'neutral', 'sad']
-e_config = typical_emo
+e_config = passive_emo_others
 if __name__ == "__main__":
 
     # my_model = RandomForestClassifier(max_depth=3, max_features=0.2)
@@ -643,12 +644,12 @@ if __name__ == "__main__":
     print(f"{test_score=}")
 
 
-    file=r'D:\repos\CCSER\SER\data\savee\AudioData\DC\h01.wav'
-    file=r'D:/repos/CCSER/SER/data/emodb/wav/03a01Fa.wav'
-    predict_res=er.predict(file)
-    print(f"{predict_res=}")
-    predict_proba=er.predict_proba(file)
-    print(f"{predict_proba=}")
+    # file=r'D:\repos\CCSER\SER\data\savee\AudioData\DC\h01.wav'
+    # file=r'D:/repos/CCSER/SER/data/emodb/wav/03a01Fa.wav'
+    # predict_res=er.predict(file)
+    # print(f"{predict_res=}")
+    # predict_proba=er.predict_proba(file)
+    # print(f"{predict_proba=}")
 
 ##
 
