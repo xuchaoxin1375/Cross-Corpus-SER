@@ -1,7 +1,10 @@
 ##
 import PySimpleGUI as sg
+from uiconfig import ccser_theme, title_color, __version__, ML_KEY
+import uiconfig as ufg
 import ipdb
-
+from user import UserAuthenticatorGUI
+from fviewer import audio_viewer_layout, fviewr_events
 from demo_programs.Demo_Nice_Buttons import red_pill64, image_file_to_bytes, wcolor
 
 # from psgdemos import *
@@ -41,9 +44,9 @@ test = "test"
 algorithm = ""
 audio_selected = ""
 speech_folder_path = speech_dbs_dir
+
+userUI = UserAuthenticatorGUI()
 # ---辅助信息---
-ML_KEY = "-ML-"  # Multline's key
-__version__ = "1.1"
 
 
 ##
@@ -77,7 +80,7 @@ def option_border_frame(title="Border Title", layout="", key="option_border"):
     frame = sg.Frame(
         layout=layout,
         title=title,
-        title_color="white",
+        title_color=title_color,
         relief=sg.RELIEF_SUNKEN,
         tooltip="Use these to set flags",
         key=key,
@@ -113,7 +116,7 @@ def create_border_frame(result="inputYourContentToHighligt", key="border"):
             sg.Text(
                 f"{result}",
                 font=("Helvetica", 24, "bold"),
-                background_color="green",
+                background_color=ufg.background_color,
                 text_color="red",
                 key=f"{key}",
             )
@@ -136,7 +139,7 @@ def create_border_frame(result="inputYourContentToHighligt", key="border"):
 # ---create the window---
 def make_window(theme=None, size=None):
     if theme:
-        print(theme)
+        # print(theme)
         sg.theme(theme)
     menu_def = [["&Application", ["E&xit"]], ["&Help", ["&About"]]]
     # 据我观察,通常布局的类型为list[list[element]],也就是说,是一个关于sg组件元素的二轴数组布局,不妨称之为基础布局
@@ -260,7 +263,8 @@ def make_window(theme=None, size=None):
             sg.RButton(
                 "start train",
                 image_data=image_file_to_bytes(red_pill64, (100, 50)),
-                button_color=wcolor,
+                button_color=("white", "white"),
+                # button_color=wcolor,
                 font="Any 15",
                 pad=(0, 0),
                 key="start train",
@@ -268,18 +272,17 @@ def make_window(theme=None, size=None):
         ]
     ]
     draw_layout = [
-        [sg.Text("请选择一个文件,绘制其[波形图|频谱图|Mel频谱图]：")],
+        [sg.Text("绘制所选文件的其[波形图|频谱图|Mel频谱图]：")],
         # [sg.Input(), sg.FileBrowse()],
         [
             sg.Checkbox("waveForm", key="wave_form"),
             sg.Checkbox("FreqGraph", key="freq_graph"),
             sg.Checkbox("MelFreqGraph", key="mel_freq_graph"),
         ],
-        [sg.Button("OK", key="draw_graph"), sg.Button("Cancel")],
+        [sg.Button("draw_graph"), sg.Button("Cancel")],
     ]
 
     info_layout = [
-
         [sg.T("CCSER Client By Cxxu_zjgsu " + __version__)],
         [
             sg.T(
@@ -301,7 +304,7 @@ def make_window(theme=None, size=None):
         ],
     ]
     # output tab
-    logging_layout = [
+    analyzer_layout = [
         [sg.Text("Anything printed will display here!")],
         [
             sg.Multiline(
@@ -321,7 +324,7 @@ def make_window(theme=None, size=None):
     settings_layout = [
         [sg.Text("Settings")],
     ] + theme_layout
-    about_layout=info_layout
+    about_layout = info_layout
     # ---column left---
 
     left_col_layout = (
@@ -331,28 +334,33 @@ def make_window(theme=None, size=None):
         + algos_layout
         + train_fit_layout
         + file_choose_layout
-        + emotion_recognition_layout 
-        + [
+        + emotion_recognition_layout
+        + draw_layout
+        # + file_viewer_layout
+    )
+    right_column_layout = (
+        [
             [
                 sg.Button("open folder"),
                 sg.Text("<folder of speech db>", key="speech_folder_path"),
+            ],
+        ]
+        + audio_viewer_layout
+        + [
+            [
+                sg.Multiline(
+                    size=(70, 21),
+                    write_only=True,
+                    # expand_x=True,
+                    expand_y=True,
+                    key=ML_KEY,
+                    reroute_stdout=True,
+                    echo_stdout_stderr=True,
+                    reroute_cprint=True,
+                )
             ]
         ]
-        # + file_viewer_layout
     )
-    right_column_layout =  draw_layout+[[
-            sg.Multiline(
-                size=(70, 21),
-                write_only=True,
-                # expand_x=True,
-                expand_y=True,
-                key=ML_KEY,
-                reroute_stdout=True,
-                echo_stdout_stderr=True,
-                reroute_cprint=True,
-            )
-        ]]
-
     left_column = sg.Column(
         left_col_layout, expand_x=True, expand_y=True, element_justification="l"
     )
@@ -374,11 +382,14 @@ def make_window(theme=None, size=None):
         expand_y=True,
         k="-PANE-",
     )
+    global userUI
+    userUI = UserAuthenticatorGUI()
     user_layout = [
         [sg.Text("Welcome@User")],
-        [sg.Input(default_text="user name or ID",key="-USER-")],
-        [sg.Input(default_text="password",key="-PASSWORD-")],
-    ]
+        # [sg.Input(default_text="user name or ID",key="-USER-")],
+        # [sg.Input(default_text="password",key="-PASSWORD-")],
+    ] + userUI.create_user_layout()
+
     main_tab_layout = [
         [
             sg.Text(
@@ -392,7 +403,7 @@ def make_window(theme=None, size=None):
             )
         ],
         [main_pane],
-        [sg.B("Quit")],
+        [sg.B(ufg.close)],
     ]
     # main_page_layout = main_tab_layout
 
@@ -408,9 +419,9 @@ def make_window(theme=None, size=None):
             sg.TabGroup(
                 [
                     [
-                        sg.Tab("Welcome@User",user_layout),
+                        sg.Tab("Welcome@User", user_layout),
                         sg.Tab("MainPage", main_tab_layout),
-                        sg.Tab("Output", logging_layout),
+                        sg.Tab("Analyzer", analyzer_layout),
                         sg.Tab("Settings", settings_layout),
                         sg.Tab("about", about_layout),
                     ]
@@ -436,7 +447,7 @@ def make_window(theme=None, size=None):
     return window
 
 
-def initial(values=None,verbose=1):
+def initial(values=None, verbose=1):
     """收集组件的默认值,在用户操作前就应该扫描一遍设置在组件的默认值
 
     Parameters
@@ -451,7 +462,7 @@ def initial(values=None,verbose=1):
     e_config = scan_choosed_options(values)
     algorithm = selected_algo(values)
     f_config = selected_features(values)
-    if verbose>=2:
+    if verbose >= 2:
         # print(train_db, test_db, e_config, algorithm, f_config)
         print(f"train_db = {train_db}")
         print(f"test_db = {test_db}")
@@ -495,13 +506,27 @@ def scan_choosed_options(values):
     return e_config
 
 
-def recognize_auido(window=None, train_db=None, test_db=None, e_config=None, f_config=None, algorithm=None, audio_selected=None):
+def recognize_auido(
+    window=None,
+    train_db=None,
+    test_db=None,
+    e_config=None,
+    f_config=None,
+    algorithm=None,
+    audio_selected=None,
+):
     print("audio_selected:", audio_selected)
     if not audio_selected:
         # audio_selected = get_example_audio_file()
         sys.exit("请选择音频文件!")
 
-    er = start_train_model(train_db=train_db, test_db=test_db, e_config=e_config, f_config=f_config, algorithm=algorithm)
+    er = start_train_model(
+        train_db=train_db,
+        test_db=test_db,
+        e_config=e_config,
+        f_config=f_config,
+        algorithm=algorithm,
+    )
     re_result = er.predict(audio_selected)
     print(f"{re_result=}")
     window["emotion_recognition_res"].update(f"{re_result}")
@@ -521,7 +546,10 @@ def recognize_auido(window=None, train_db=None, test_db=None, e_config=None, f_c
     else:
         window["predict_proba"].update("该模型的参数设置为禁用置信度计算")
 
-def start_train_model(train_db=None, test_db=None, e_config=None, f_config=None, algorithm=None):
+
+def start_train_model(
+    train_db=None, test_db=None, e_config=None, f_config=None, algorithm=None
+):
     print("开始识别..")
     print(
         "检查参数..",
@@ -542,7 +570,7 @@ def start_train_model(train_db=None, test_db=None, e_config=None, f_config=None,
         estimator.__class__.__name__: estimator for estimator, _, _ in bclf_estimators
     }
     # ipdb.set_trace()
-    if isinstance( algorithm,list):
+    if isinstance(algorithm, list):
         sys.exit()
     ML_estimators_dict["BEST_ML_MODEL"] = None
     # if algorithm=='BEST_ML_MODEL':
@@ -574,35 +602,34 @@ def start_train_model(train_db=None, test_db=None, e_config=None, f_config=None,
     print(f"{train_score=}")
     return er
 
-
+##
 def main(verbose=1):
-    window = make_window(size=size)
-
+    theme = ccser_theme
+    window = make_window(theme=theme, size=size)
     # Initialize the selected databases list
-    # event, values = window.read()
+    event, values = window.read()
     e_config = []
     f_config = []
     train_db = ""
     test_db = ""
     algorithm = ""
-            
+    # 初始化!
+    train_db, test_db, e_config, algorithm, f_config = initial(values=values, verbose=2)
+
     while True:
-        event, values = window.read()
-        # 初始化!
-        train_db, test_db, e_config, algorithm, f_config = initial(values=values)
-        if verbose>=2:
+        if verbose >= 2:
             print(f"train_db = {train_db}")
             print(f"test_db = {test_db}")
             print(f"e_config = {e_config}")
             print(f"algorithm = {algorithm}")
             print(f"f_config = {f_config}")
 
-        # if event:  # 监听任何event
-        #     print(event, "@{event}")
+        if event:  # 监听任何event
+            print(event, "@{event}")
 
         # 语料库的选择
-        if event in (None, "Exit", sg.WIN_CLOSED):
-            print("Exit!")
+        if event in (None, ufg.close, sg.WIN_CLOSED):
+            print(ufg.close)
             break
         elif event == "train_db":
             train_db = values["train_db"]
@@ -674,11 +701,23 @@ def main(verbose=1):
             window["speech_folder_path"].update(speech_folder_path)
         # print("完成文件选取")
         # --情感识别阶段--
-        elif event=='start train':
-            start_train_model( train_db=train_db, test_db=test_db, e_config=e_config, f_config=f_config, algorithm=algorithm)
+        elif event == "start train":
+            start_train_model(
+                train_db=train_db,
+                test_db=test_db,
+                e_config=e_config,
+                f_config=f_config,
+                algorithm=algorithm,
+            )
         elif event == "recognize it":
             recognize_auido(
-                window=window, train_db=train_db, test_db=test_db, e_config=e_config, f_config=f_config, algorithm=algorithm, audio_selected=audio_selected
+                window=window,
+                train_db=train_db,
+                test_db=test_db,
+                e_config=e_config,
+                f_config=f_config,
+                algorithm=algorithm,
+                audio_selected=audio_selected,
             )
 
         elif event == "draw_graph":
@@ -705,6 +744,16 @@ def main(verbose=1):
             # sg.theme('dark grey 9')
             # window = make_window(theme=theme_chosen)
             window = make_window()
+
+        else:
+        # 具有独立的事件循环,直接调用即可
+            userUI.run_module(event, values, verbose=1)
+            # audio_viewer事件循环模块
+            fviewr_events(window, event, values)
+
+        #!请在上面添加事件循环
+        # 本例在事件循环之前已经调用过一次read()方法,如果连续两次调用中间没有没有对事件进行捕获,那么第一次的事件将会丢失
+        event, values = window.read()
 
     print("关闭窗口.")
 
