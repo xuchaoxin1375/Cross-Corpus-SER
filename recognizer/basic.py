@@ -227,8 +227,9 @@ class EmotionRecognizer:
         # print(feature3,"@{feature3}",feature3.shape)
         model = self.model if self.model else self.best_model()
         res = model.predict(feature)
-        print(res, "@{res}")
-        return res
+        # res可能是个列表
+        # print(res, "@{res}")
+        return res[0]
         # return self.model.predict(feature2)[0]
 
     def peek_test_set(self, n=5):

@@ -1,8 +1,10 @@
 ##
 import PySimpleGUI as sg
+import data_visualization as dv
 from uiconfig import ccser_theme, title_color, __version__, ML_KEY
 import uiconfig as ufg
 import ipdb
+import query as q
 from user import UserAuthenticatorGUI
 from fviewer import audio_viewer_layout, fviewr_events,selected_files
 import fviewer
@@ -32,7 +34,8 @@ import sys
 
 def import_config_bookmark():
     pass
-
+def define_constants():
+    pass
 
 ##
 
@@ -142,7 +145,7 @@ def make_window(theme=None, size=None):
     if theme:
         # print(theme)
         sg.theme(theme)
-    menu_def = [["&Application", ["E&xit"]], ["&Help", ["&About"]]]
+    menu_def = [["&Application", ["E&xit"]], ["Help",["Introduction"]]]
     # 据我观察,通常布局的类型为list[list[element]],也就是说,是一个关于sg组件元素的二轴数组布局,不妨称之为基础布局
     # 并且,若我们将排放在同一行的元素,(称他们为一个元素序列),元素序列的包含sg.<element>个数可以是>=1的
     # 从这个角度理解,那么布局可以理解为`元素序列`按照shape=(-1,1)的形状排放
@@ -322,7 +325,8 @@ def make_window(theme=None, size=None):
                 auto_refresh=True,
             )
         ],
-    ]
+    ]+dv.layout+q.query_layout
+
     settings_layout = [
         [sg.Text("Settings")],
     ] + theme_layout
@@ -359,6 +363,8 @@ def make_window(theme=None, size=None):
                     reroute_stdout=True,
                     echo_stdout_stderr=True,
                     reroute_cprint=True,
+                    auto_refresh=True,
+                    autoscroll=True,
                 )
             ]
         ]
@@ -387,7 +393,7 @@ def make_window(theme=None, size=None):
     global userUI
     userUI = UserAuthenticatorGUI()
     user_layout = [
-        [sg.Text("Welcome@User")],
+        # [sg.Text("Welcome:"),sg.Text("User",key=current_user_key)],
         # [sg.Input(default_text="user name or ID",key="-USER-")],
         # [sg.Input(default_text="password",key="-PASSWORD-")],
     ] + userUI.create_user_layout()
@@ -395,10 +401,11 @@ def make_window(theme=None, size=None):
     main_tab_layout = [
         [
             sg.Text(
-                "Welcome to experience CCSER Client!",
+                # "Welcome to experience CCSER Client!",
+                "𝒲ℯ𝓁𝒸ℴ𝓂ℯ 𝓉ℴ ℯ𝓍𝓅ℯ𝓇𝒾ℯ𝓃𝒸ℯ 𝒞𝒞𝒮ℰℛ 𝒞𝓁𝒾ℯ𝓃𝓉!",
                 size=(45, 1),
                 justification="center",
-                font=("Helvetica", 16),
+                font=("Helvetica", 50),
                 relief=sg.RELIEF_RIDGE,
                 k="-TEXT HEADING-",
                 enable_events=True,
@@ -664,10 +671,10 @@ def main(verbose=1):
             print(f"f_config = {f_config}")
 
         if event:  # 监听任何event
-            print(event, "@{event}")
+            print(event, "@{event}",__file__)
 
         # 语料库的选择
-        if event in (None, ufg.close, sg.WIN_CLOSED):
+        if event in (ufg.close, sg.WIN_CLOSED):
             print(ufg.close)
             break
         elif event == "train_db":
@@ -790,12 +797,18 @@ def main(verbose=1):
             # sg.theme('dark grey 9')
             # window = make_window(theme=theme_chosen)
             window = make_window()
-
+        elif event == "Introduction":
+            from constants.beauty import logo
+            sg.popup_scrolled(logo)
         else:
         # 具有独立的事件循环,直接调用即可
-            userUI.run_module(event, values, verbose=1)
-            # audio_viewer事件循环模块
-            fviewr_events(window, event, values)
+            userUI.run_module(event, values,window=window, verbose=1)
+            q.query_events( event, values,theme=theme)
+        #!如果希望每轮循环都要运行的代码就从if/elif断开,写在这里
+        # audio_viewer事件循环模块
+        fviewr_events(window, event, values)
+
+            
 
         #!请在上面添加事件循环
         # 本例在事件循环之前已经调用过一次read()方法,如果连续两次调用中间没有没有对事件进行捕获,那么第一次的事件将会丢失
@@ -808,3 +821,5 @@ def main(verbose=1):
 
 if __name__ == "__main__":
     main()
+
+##

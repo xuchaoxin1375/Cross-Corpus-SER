@@ -1,4 +1,6 @@
 import PySimpleGUI as sg
+import pandas as pd
+from config.MetaPath import recognize_result_dir
 class TableShow():
     def __init__(self,header=None,lists=None):
         """将二维列表作为表格数据显示
@@ -12,24 +14,24 @@ class TableShow():
         self.lists=lists
         self.length=len(lists[0])
         # 创建表格数据
-        data = [[l[i] for l in lists] for i in range(self.length)]
-        print(data,"@{data}")
+        self.data_rows = [[l[i] for l in lists] for i in range(self.length)]
+        # print(self.data_rows,"@{data}")
         # 定义表头
         # header = ["c1","c2"]
-        self.header=header
-
+        self.header=header#columns
+        self.data_df=pd.DataFrame(self.data_rows,columns=self.header)
         # 创建表格布局
         warning="the save operation will comsume  some time to complete!Be patient!"
         self.layout = [
             [
                 sg.Table(
-                    values=data,
+                    values=self.data_rows,
                     headings=header,
                     max_col_width=100,
                     # background_color="lightblue",
                     auto_size_columns=True,
                     justification="center",
-                    num_rows=min(25, len(data)),
+                    num_rows=min(25, len(self.data_rows)),
                     expand_x=True,
                     expand_y=True,
                 )
@@ -40,7 +42,7 @@ class TableShow():
 
         ]
     def run(self):
-        window = sg.Window("结果表格", self.layout,resizable=True,size=(500,200))
+        window = sg.Window("结果表格", self.layout,resizable=True,size=(500,400))
         # 事件循环
         while True:
             event, values = window.read()
@@ -48,8 +50,7 @@ class TableShow():
                 break
             # 处理事件
             elif event == "save to file":
-                import pandas as pd
-                from config.MetaPath import recognize_result_dir
+
                 if not recognize_result_dir.exists():
                     recognize_result_dir.mkdir()
                 # 将日期和时间格式化为字符串
@@ -58,8 +59,12 @@ class TableShow():
                 datetime_str = now.strftime("%Y-%m-%d@%H-%M-%S")
                 path=recognize_result_dir/f"recognize_result_{self.length}_{datetime_str}.csv"
                 print("Datetime String:", path)
-                
-                pd.DataFrame(self.lists,columns=self.header).to_csv(path)
+
+                # data={
+                #     self.header[0]:self.lists[0],
+                #     self.header[1]:self.lists[1]
+                # }
+                self.data_df.to_csv(path)
                 break
 
         # 关闭窗口

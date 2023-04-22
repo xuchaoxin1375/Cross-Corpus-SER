@@ -21,7 +21,7 @@ storage64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAMAAADXqc3KA
 def ShowMeTheButtons():
     # ------ Menu Definition ------ #
     menu_def = [['&File', ['&Open', '&Save', '&Properties', 'E&xit']],
-                ['&Edit', ['&Paste', ['Special', 'Normal', ], 'Undo'], ],
+                ['&Edit', ['&Paste', ['Special', 'Normal::q', ], 'Undo'], ],
                 ['&Toolbar', ['---', 'Command &1', 'Command &2',
                               '---', 'Command &3', 'Command &4']],
                 ['&Help', '&About...'], ]
