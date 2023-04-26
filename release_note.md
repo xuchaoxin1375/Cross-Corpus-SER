@@ -16,4 +16,7 @@
 - 2023-04-25@21:35:50
   - new:
     - update the layout of the client
-    - use the table element to show "test_score","train_score" and "predict_proba" if
+    - use the table element to show "test_score","train_score" and "predict_proba" if it is usable
+    - update the file viwer part function and operation logic with more flexibility.
+  - kwon problems:
+    - with the display or not display the predict_proba layout,the left column may need to resize the window to make the last part of view to visible!
