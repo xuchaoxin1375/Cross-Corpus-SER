@@ -1,0 +1,9 @@
+{
+    "welcome_message": "欢迎使用我的应用！",
+    "choose_emotion_config":"请选择一个情感组合进行试验：推荐组合AS,HNS,AHNS,AHNPS\n注意,savee库种的`surprise`和`pleasantSurprise`)有一定区别,\n所以AHNPS组合不推荐用于savee上",
+    "choose_feature_config":"请选择一个或多个特征：",
+    "choose_algorithm":"选择一个算法进行试验:",
+    "choose_audio":"请选择一个音频文件样本,识别其情感",
+    "recognize_the_audio_emotion":"识别该语音文件的情感",
+    "draw_graph":"绘制所选文件的其[波形图|频谱图|Mel频谱图]："
+}

@@ -1,6 +1,8 @@
 import sqlite3
 import PySimpleGUI as sg
-from uiconfig import ccser_theme
+import constants.beauty as bt
+
+ccser_theme = bt.ccser_theme
 
 username_register_key = "username_register"
 password_register_key = "password_register"
@@ -179,16 +181,22 @@ class UserAuthenticatorGUI:
         elif event == "Login":
             username = values[username_login_key]
             password = values[passowrd_login_key]
-            if self.authenticator.authenticate_user(username, password):
+
+            res=self.authenticator.authenticate_user(username, password)
+            if res:
                 sg.popup(f"User {username} authenticated successfully!🎈")
             else:
-                sg.popup("Authentication failed.😂🤣 Please try again.")
+                sg.popup("Authentication failed.😂 Please try again.")
             if window:
                 window[current_user_key].update("@" + username)
             # 报告当前用户的ID和信息
             if verbose:
                 ua = self.authenticator
                 print(f"[I]{ua.current_user=},{ua.log_state=}")
+                from datetime import datetime, timezone
+                now_utc = datetime.now(timezone.utc)
+                # print(now_utc)
+                print(f"[I]{ua.current_user=},{ua.log_state=}\n{now_utc=}")
 
     def start_event_loop(self):
         """开始PySimpleGUI事件循环"""
@@ -196,7 +204,7 @@ class UserAuthenticatorGUI:
             event, values = self.window.read()
             if event in (sg.WIN_CLOSED, "Cancel"):
                 break
-            self.events(event, window=self.window,values=values, verbose=self.verbose)
+            self.events(event, window=self.window, values=values, verbose=self.verbose)
 
     def run(self):
         """运行用户验证程序"""

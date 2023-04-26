@@ -1,0 +1,22 @@
+import PySimpleGUI as sg
+
+# 创建窗口和 Frame 元素
+layout = [
+    [sg.Frame('Frame 1', [[sg.Text('Frame content')]], key='-FRAME-')],
+    [sg.Button('Update Frame')],
+]
+window = sg.Window('My Window', layout)
+
+# 事件循环
+while True:
+    event, values = window.read()
+    if event == sg.WIN_CLOSED:
+        break
+    if event == 'Update Frame':
+        # 更新 Frame 布局
+        new_layout = [[sg.Text('Updated content')]]
+        
+        window['-FRAME-'].update(new_layout)
+
+# 关闭窗口
+window.close()

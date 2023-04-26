@@ -43,7 +43,7 @@ def data_visualize_events(t:TableShow=None, window=None, event=None):
             ax.pie(x=x, labels=emo_labels, autopct="%1.1f%%")
             ax.set_title("emotion composition analyzer")
             # 将图表绘制到 PySimpleGUI 的 Canvas 中
-            canvas = window["-CANVAS-"].TKCanvas
+            # canvas = window["-CANVAS-"].TKCanvas
             fig_canvas = fig.canvas
             fig_canvas.draw()
             graph = fig_canvas.get_tk_widget()

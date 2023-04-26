@@ -6,6 +6,7 @@
 
 ## Introduction
 
+- 跨库语音情感识别系统设计与实现
 - 本项目采用的算法大多是传统的机器学习算法,实验表明,这些算法在单库识别上具有不错的性能和效果
 - 采用深度学习的方法可以进一步提高识别性能
 - 然而对于跨库识别而言,传统的机器学习算法表现的有些力不从心,近几年利用深度学习的方法对跨库识别的研究成为了情感计算的新热点
@@ -130,7 +131,6 @@ for i in tqdm(range(10), leave=False):
       SUCCESS: Specified value was saved.
       ```
 
-
 ## SpeechDatabases
 
 - 这里主要使用3个语音数据库
@@ -204,15 +204,15 @@ The initial letter(s) of the file name represents the emotion class, and the fol
   该数据库已广泛用于情感识别和分类等领域的研究，以及其他相关领域，如语音处理、情感计算和人机交互。该数据库可免费供学术研究使用。
 - Code of emotions:
 
-  | letter              | emotion (english) | letter | emotion (german) |
-  | ------------------- | ----------------- | ------ | ---------------- |
-  | A                   | anger             | W      | Ärger (Wut)      |
-  | B                   | boredom           | L      | Langeweile       |
-  | D                   | disgust           | E      | Ekel             |
-  | F                   | anxiety/fear      | A      | Angst            |
-  | H                   | happiness         | F      | Freude           |
-  | S                   | sadness           | T      | Trauer           |
-  | N = neutral version |                   |        |                  |
+  | letter | emotion (english) | emotion (german) | letter              |
+  | ------ | ----------------- | ---------------- | ------------------- |
+  | W      | anger             | Ärger (Wut)      | A                   |
+  | L      | boredom           | Langeweile       | B                   |
+  | E      | disgust           | Ekel             | D                   |
+  | A      | anxiety/fear      | Angst            | F                   |
+  | F      | happiness         | Freude           | H                   |
+  | T      | sadness           | Trauer           | S                   |
+  |        |                   |                  | N = neutral version |
 
 - EMODB是一个包含了演员表演不同情感的音视频记录的数据库，其中语音文件的命名方式比较规范，以下是一个示例文件名的分析：
 
@@ -359,13 +359,9 @@ The initial letter(s) of the file name represents the emotion class, and the fol
 
 - `grid.search`模块提供了计算各个算法最优超参数的实现
 
-## 本项目使用的算法(分类模型)
+# 本项目使用的算法(分类模型)😂
 
-### 一个基础的分类教程
-
-- [How to Make a Speech Emotion Recognizer Using Python And Scikit-learn - Python Code (thepythoncode.com)](https://www.thepythoncode.com/article/building-a-speech-emotion-recognizer-using-sklearn)
-
-### Classifiers
+## ML Classifiers
 
 - SVC
 - RandomForestClassifier
@@ -379,7 +375,8 @@ The initial letter(s) of the file name represents the emotion class, and the fol
 
 - Scikit-learn中的SVC是一种支持向量机（Support Vector Machine）分类器，用于解决二分类和多分类问题。SVC是一种非常强大的模型，可以处理高维度的数据，并且能够有效地处理非线性可分的数据。
 
-- SVC的主要思想是在特征空间中找到一个最优的超平面（hyperplane），将不同类别的数据分开。在二维空间中，超平面是一条直线，而在高维空间中，超平面是一个超平面。
+- SVC的主要思想是在特征空间中找到一个最优的超平面（hyperplane），将不同类别的数据分开。
+- 在二维空间中，超平面是一条直线，而在高维空间中，超平面是一个超平面。
 - SVC的训练过程是通过寻找一个**最大间隔**（maximum margin）的超平面来实现的，即找到一个超平面，使得所有训练样本离该超平面的距离最大化。这个最大间隔的超平面是通过拉格朗日乘子法（Lagrange multipliers）求解一个二次规划（quadratic programming）问题来实现的。
 - SVC可以使用不同的**核函数**（kernel function）来学习非线性的决策边界。
   - 常用的核函数包括线性核函数、多项式核函数、径向基函数（Radial Basis Function，RBF）核函数等。
@@ -593,7 +590,13 @@ BaggingRegressor是sklearn库中实现袋装法回归的类。它提供了许多
 
 在使用BaggingRegressor时，需要根据具体的数据集和任务需求，选择合适的参数来构建模型。同时，还可以通过交叉验证等技术来评估模型的性能和调整参数，以获得更好的预测结果。需要注意的是，BaggingRegressor算法在处理高偏差低方差的模型时效果比较好，例如决策树等模型。
 
-### 相关api
+### 其他
+
+#### 一个基础的分类教程
+
+- [How to Make a Speech Emotion Recognizer Using Python And Scikit-learn - Python Code (thepythoncode.com)](https://www.thepythoncode.com/article/building-a-speech-emotion-recognizer-using-sklearn)
+
+#### 相关api
 
 #### skearn.ensemble
 
@@ -729,6 +732,8 @@ SVR（Support Vector Regression）是一种基于支持向量机（SVM）的回�
 
 ### 跨库识别
 
+#### angry&sad
+
 - `train_emodb_AS.csv+test_ravdess_AS.csv`
 
   - ```bash
@@ -780,6 +785,9 @@ SVR（Support Vector Regression）是一种基于支持向量机（SVM）的回�
     [+] Best model : RandomForestClassifier with 77.094% test accuracy
     test_score=0.770935960591133
     ```
+
+
+#### angry&happy&sad
 
 - AHS情感识别
 

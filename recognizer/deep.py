@@ -51,12 +51,18 @@ class DeepEmotionRecognizer(EmotionRecognizer):
         数据集和特征相关参数初始化
         默认识别3种情感HNS
 
+        - RNN（Recurrent Neural Network，循环神经网络）是一类用于处理序列数据的神经网络，它的每个时间步都会接收一个输入和一个来自上一个时间步的隐藏状态，并输出一个新的隐藏状态和一个输出。
+
+        - LSTM（Long Short-Term Memory，长短时记忆网络）和GRU（Gated Recurrent Unit，门控循环单元）都是RNN的变体，旨在解决RNN的梯度消失和梯度爆炸问题，以及长期依赖性问题。
+        - LSTM和GRU都是通过引入门机制来控制信息的流动，从而使得模型可以更好地记忆长期依赖性信息。
+        LSTM引入了三个门（输入门、遗忘门和输出门），GRU则引入了两个门（重置门和更新门）。这些门控制了状态的更新，使得模型可以更好地捕捉序列中的关键信息。因此，LSTM和GRU相对于传统的RNN具有更好的性能。
+
+        - 总之，LSTM和GRU是RNN的改进版本，它们在处理序列数据时可以更好地捕捉长期依赖性信息。
+        - Dropout是一种用于深度神经网络的正则化技术，旨在减少过拟合（overfitting）的发生。
+        - Dropout在训练过程中**随机地**将一些神经元的输出设置为0，从而强制使神经网络中的**每个神经元**都变得不可或缺，因此可以更好地泛化到新数据上。
         params:
         -
-            emotions (list): list of emotions to be used. Note that these emotions must be available in
-                RAVDESS & EMODB Datasets, available nine emotions are the following:
-                    'neutral', 'calm', 'happy', 'sad', 'angry', 'fear', 'disgust', 'ps' ( pleasant surprised ), 'boredom'.
-                Default is ["sad", "neutral", "happy"].
+            emotions (list): list of emotions to be used. Note that these emotions must be available.
             ravdess (bool): whether to use RAVDESS Speech datasets, default is True.
             emodb (bool): whether to use EMO-DB Speech dataset, default is True.
             custom_db (bool): whether to use custom Speech dataset that is located in `data/train-custom`

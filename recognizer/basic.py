@@ -18,9 +18,10 @@ from tqdm import tqdm
 from audio.extractor import load_data_from_meta
 from config.EF import (e_config_def, f_config_def, validate_emotions)
 from config.MetaPath import (emodb, meta_paths_of_db, ravdess, savee,validate_partition,project_dir)
+import config.MetaPath as meta
 from audio.core import best_estimators, extract_feature
 
-
+##
 class EmotionRecognizer:
     """A class for training, testing and predicting emotions based on
     speech's features that are extracted and fed into `sklearn` or `keras` model"""
@@ -616,7 +617,7 @@ from config.MetaPath import (test_emodb_csv)
 passive_emo = ["angry", "sad"]
 passive_emo_others=passive_emo+["others"]
 typical_emo = ['happy', 'neutral', 'sad']
-e_config = passive_emo_others
+e_config = typical_emo
 if __name__ == "__main__":
 
     # my_model = RandomForestClassifier(max_depth=3, max_features=0.2)
@@ -646,13 +647,14 @@ if __name__ == "__main__":
 
 
     # file=r'D:\repos\CCSER\SER\data\savee\AudioData\DC\h01.wav'
-    # file=r'D:/repos/CCSER/SER/data/emodb/wav/03a01Fa.wav'
+    file=meta.speech_dbs_dir/emodb/r'wav/03a01Fa.wav'
     # predict_res=er.predict(file)
     # print(f"{predict_res=}")
     # predict_proba=er.predict_proba(file)
     # print(f"{predict_proba=}")
 
 ##
+
 
 # rec.update_test_set_by_meta(r'D:\repos\CCSER\SER\meta_files\test_ravdess_AHNPS.csv')
 

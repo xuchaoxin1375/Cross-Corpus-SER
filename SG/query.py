@@ -1,7 +1,8 @@
 import PySimpleGUI as sg
 NAME_SIZE = 20
-import uiconfig as ufg
-sg.theme(ufg.ccser_theme)
+import constants.uiconfig as ufg
+import constants.beauty as bt
+sg.theme(bt.ccser_theme)
 def name(name):
     dots = NAME_SIZE-len(name)-2
     return sg.Text(name + ' ' + ' '*dots, size=(NAME_SIZE,1), pad=(0,0), font='Courier 10')

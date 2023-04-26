@@ -1,69 +1,36 @@
-import PySimpleGUI as sg
+# import PySimpleGUI as sg
 
-# # res=sg.popup("hello")
-# long_text="""
-# # layout = [[sg.popup("hello")]]
-# # window.read()
-# # window.close()
-# """
-# res=sg.popup_scrolled(long_text)
-# print(res)
-##
+# # 创建文件浏览框
+# layout = [[sg.Text('请选择一个文件夹：')], [sg.In(key='-FOLDER-'), sg.FolderBrowse(enable_events=True)]]
 
-# layout=[
-#     [sg.Input("enable_events=True",key="in1",enable_events=True)],
-#     [sg.Input("enable_evenets=False",key="in2",enable_events=False)],
-#     [sg.B("OK")]
-# ]
-# window=sg.Window("My App",layout)
+# # 显示窗口并运行事件循环
+# window = sg.Window('文件浏览框', layout)
+# event,values="1","1"
 # while True:
-#     e,v=window.read()
-#     print(e,v)
-#     if e==sg.WIN_CLOSED:
+#     event, values = window.read()
+#     print(event,values)
+#     if event == sg.WINDOW_CLOSED:
 #         break
-
-# ##
-# long_text="""
-
-# ░█████╗░░█████╗░░██████╗███████╗██████╗░░░░░░░░█████╗░██╗░░░░░██╗███████╗███╗░░██╗████████╗
-# ██╔══██╗██╔══██╗██╔════╝██╔════╝██╔══██╗░░░░░░██╔══██╗██║░░░░░██║██╔════╝████╗░██║╚══██╔══╝
-# ██║░░╚═╝██║░░╚═╝╚█████╗░█████╗░░██████╔╝█████╗██║░░╚═╝██║░░░░░██║█████╗░░██╔██╗██║░░░██║░░░
-# ██║░░██╗██║░░██╗░╚═══██╗██╔══╝░░██╔══██╗╚════╝██║░░██╗██║░░░░░██║██╔══╝░░██║╚████║░░░██║░░░
-# ╚█████╔╝╚█████╔╝██████╔╝███████╗██║░░██║░░░░░░╚█████╔╝███████╗██║███████╗██║░╚███║░░░██║░░░
-# ░╚════╝░░╚════╝░╚═════╝░╚══════╝╚═╝░░╚═╝░░░░░░░╚════╝░╚══════╝╚═╝╚══════╝╚═╝░░╚══╝░░░╚═╝░░░
-
-# """
-# sg.popup_scrolled(long_text)
+#     else:
+#         folder = values['-FOLDER-']
+#         sg.popup(f'你选择的文件夹是：{folder}')
+#     print(event,values)
+# print(event,values)
 # window.close()
-##
-import PySimpleGUI as sg      
+# import PySimpleGUI as sg
 
-sg.theme('LightGreen')      
-sg.set_options(element_padding=(0, 0))      
+# layout = [
+#     [sg.Input(key='-FILE-', enable_events=True), sg.FileBrowse()],
+#     [sg.Button('OK'), sg.Button('Cancel')]
+# ]
 
-# ------ Menu Definition ------ #      
-menu_def = [['File', ['Open', 'Save', 'Exit'  ]],      
-            ['Edit', ['Paste', ['Special', 'Normal', ], 'Undo'], ],      
-            ['Help', 'About...'], ]      
+# window = sg.Window('File Browse', layout)
 
-# ------ GUI Defintion ------ #      
-layout = [      
-    [sg.Menu(menu_def, )],      
-    [sg.Output(size=(60, 20))]      
-            ]      
+# while True:
+#     event, values = window.read()
+#     if event in (sg.WIN_CLOSED, 'Cancel'):
+#         break
+#     elif event == '-FILE-':
+#         print(f'File selected: {values["-FILE-"]}')
 
-window = sg.Window("Windows-like program", layout, default_element_size=(12, 1), auto_size_text=False, auto_size_buttons=False,      
-                    default_button_element_size=(12, 1))      
-
-# ------ Loop & Process button menu choices ------ #      
-while True:      
-    event, values = window.read()      
-    if event == sg.WIN_CLOSED or event == 'Exit':      
-        break      
-    print('Button = ', event)      
-    # ------ Process menu choices ------ #      
-    if event == 'About...':      
-        sg.popup('About this program', 'Version 1.0', 'PySimpleGUI rocks...')      
-    elif event == 'Open':      
-        filename = sg.popup_get_file('file to open', no_window=True)      
-        print(filename)  
+# window.close()

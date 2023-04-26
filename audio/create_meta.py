@@ -230,10 +230,10 @@ def create_savee_meta(
     Xy_train, Xy_test = spl
     from_df_write_to_csv(train_name=train_name, test_name=test_name, sort=sort, Xy_train=Xy_train, Xy_test=Xy_test)
 
-    if verbose:
+    if verbose>=2:
         print(train_name, "@{train_name}")
         print(test_name, "@{test_name}")
-        print("文件创建完毕!")
+        print(f"file created!\n{train_name},{test_name}")
     return spl
 
 
