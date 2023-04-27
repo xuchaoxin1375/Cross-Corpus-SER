@@ -1,15 +1,16 @@
 import PySimpleGUI as sg
 import json
+from config.MetaPath import trans_en,trans_zh
 
 
 
 def get_your_language_translator(language="English"):
     if language in ('English','英文'):
-        with open('translations/en.json', 'r',encoding='utf-8') as f:
+        with open(trans_en, 'r',encoding='utf-8') as f:
             translations = json.load(f)
     elif language in ('中文',"Chinese"):
                 # encoding='utf-8',否则中文字符报错:UnicodeDecodeError: 'charmap' codec can't decode byte 0x81 in position 53: character maps to <undefined>
-        with open('translations/zh.json', 'r',encoding='utf-8') as f:
+        with open(trans_zh, 'r',encoding='utf-8') as f:
             translations = json.load(f)
     return translations
 

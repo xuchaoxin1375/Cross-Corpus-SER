@@ -1,21 +1,25 @@
-##使用pip可以一口气安装(具体的版本可以参考environ.yml)
 
-#conda install --file req
-python=3.9
-numpy~=1.23.5
-pandas~=1.5.3
-matplotlib
-scikit-learn~=1.2
+# please read `readme.md` about more of the requirements
+# don't write non-ascii characoter in the file
+# conda install python==3.9
+#librosa0.9.2 Will install some dependent Matplot versions (otherwise it may cause problems)
+
+#pip install -r requirements.txt
 notebook
-
-
-#pip install -r req
+librosa==0.9.2 
+scikit-learn
+pandas
+matplotlib
+numpy
 wave
-librosa==0.9.2
 soundfile
-tensorflow==2.10.0
-tqdm~=4.64.1
-pyaudio~=0.2.13
-scipy~=1.10.0
-joblib~=1.2.0
-attrs~=22.1.0
+tqdm
+pyaudio
+scipy
+joblib
+ipdb
+pydub
+pluggy
+psgdemos #this contain psgdemos and PySimpleGUI framework
+# playsound
+# tensorflow==2.10.0

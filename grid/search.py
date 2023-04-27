@@ -74,7 +74,6 @@ def search_brgr(e_config, n_jobs):
         print(f"{e_config} {best_estimator.__class__.__name__} achieved {cv_best_score:.3f} cross validation MAE score!")
 
     print(f"[+] saving best regressors for {e_config}...")
-    # pickle.dump(best_estimators, open(f"grid/best_regressors.pickle", "wb"))
     dump(best_estimators, brgr)
 
 # search_brgr(emotions_csv, n_jobs)

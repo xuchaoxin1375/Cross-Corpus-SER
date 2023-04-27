@@ -3,7 +3,6 @@ import os
 import time
 from pathlib import Path
 import PySimpleGUI as sg
-import playsound
 import re
 from config.MetaPath import speech_dbs_dir, savee
 import constants.uiconfig as ufg

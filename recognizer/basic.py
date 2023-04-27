@@ -12,6 +12,7 @@ from sklearn.metrics import (accuracy_score, classification_report,
                              confusion_matrix, fbeta_score, make_scorer,
                              mean_absolute_error, mean_squared_error)
 from sklearn.model_selection import GridSearchCV
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
 from tqdm import tqdm
 
@@ -405,6 +406,7 @@ class EmotionRecognizer:
         if len(y_test) == 0:
             raise ValueError("y_test is empty")
         # 预测计算
+        print(X_test.shape, y_test.shape,"🎈")
         y_pred = model.predict(X_test)  # type: ignore
         if choosing == False:
             self.y_pred = np.array(y_pred)
@@ -618,13 +620,14 @@ passive_emo = ["angry", "sad"]
 passive_emo_others=passive_emo+["others"]
 typical_emo = ['happy', 'neutral', 'sad']
 e_config = typical_emo
-if __name__ == "__main__":
-
+def main(EmotionRecognizer, e_config):
     # my_model = RandomForestClassifier(max_depth=3, max_features=0.2)
     my_model = SVC(C=0.001, gamma=0.001, kernel="poly",probability=True)
-    # my_model = None
+    my_model=KNeighborsClassifier(n_neighbors=3, p=1, weights='distance')
+    my_model = None
 
     # rec = EmotionRecognizer(model=my_model,e_config=AHNPS,f_config=f_config_def,test_dbs=[ravdess],train_dbs=[ravdess], verbose=1)
+    # rec = EmotionRecognizer(model=my_model,e_config=AHNPS,f_config=f_config_def,test_dbs=emodb,train_dbs=emodb, verbose=1)
 
     single_db=emodb
     meta_dict = {"train_dbs": single_db, "test_dbs": single_db}
@@ -636,7 +639,6 @@ if __name__ == "__main__":
         verbose=1,
     )
 
-    # rec = EmotionRecognizer(model=my_model,e_config=AHNPS,f_config=f_config_def,test_dbs=emodb,train_dbs=emodb, verbose=1)
 
     er.train()
     
@@ -645,9 +647,15 @@ if __name__ == "__main__":
     test_score = er.test_score()
     print(f"{test_score=}")
 
+    return er
+
+if __name__ == "__main__":
+
+    er=main(EmotionRecognizer, e_config)
+##
 
     # file=r'D:\repos\CCSER\SER\data\savee\AudioData\DC\h01.wav'
-    file=meta.speech_dbs_dir/emodb/r'wav/03a01Fa.wav'
+    # file=meta.speech_dbs_dir/emodb/r'wav/03a01Fa.wav'
     # predict_res=er.predict(file)
     # print(f"{predict_res=}")
     # predict_proba=er.predict_proba(file)

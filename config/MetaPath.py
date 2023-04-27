@@ -35,7 +35,10 @@ emodb_files_glob = "data/emodb/wav/*.wav"
 ravdess_files_glob_old = "data/ravdess/Actor_*"
 ravdess_files_glob="data/ravdess/Actor_*/*.wav"
 savee_files_glob = "data/savee/AudioData/*/*.wav"
-
+translations_dir=project_dir/"SG/translations"
+trans_zh=translations_dir/"zh.json"
+trans_en=translations_dir/"en.json"
+# print(trans_en.exists())
 
 #计算绝对路径
 meta_dir,recognize_result_dir, grid_dir, emodb_files_glob, ravdess_files_glob,savee_files_glob, features_dir = [

@@ -21,30 +21,56 @@
 
 ## Requirements
 
+- 在conda环境中(推荐使用全新创建的环境)
+  - 根据我的经验来看,我们只用conda创建环境,以及按照python
+  - 但是安装第三方包的时候`conda install`往往不是一个好的选择
+  - 如果不是包官方推荐,那么建议都用`pip install`安装
+    - 例如pytorch支持用conda安装
+    - tensorflow推荐用pip 安装
+  - 特别是当包的依赖关系复杂,每次安装要分析很久,当项目依赖的包版本都清楚可用,那么意味着检查依赖这一步不需要了,使用`pip install`会高效的多
+- 安装python`conda install python=3.9`
+- 执行安装命令行:`pip install -r requirements.txt`
+
 ### python version
 
 - **Python 3.9**
 
 ### Python Packages
 
-- **tensorflow==2.10**
-- **librosa==0.9.2**
-- **numpy**
-- **pandas**
-- **soundfile==0.9.0**
-- **wave**
-- **scikit-learn==1.2**
-- tqdm
-- notebook
-- **matplotlib==2.2.3**
-- **pyaudio==0.2.11**
 - 可执行文件ffmpeg
 
-### 安装环境和依赖
+### 安装环境和依赖的补充说明🎈
 
 - ```bash
   pip3 install -r requirements.txt
   ```
+
+- 通常,越是基础的库越应该放在后面安装,例如librosa的可能会依赖于特定版本而不是最新版本的基础库(例如numpy,matplotlib)
+
+- 而一些可以独立工作的包安装位置相对不那么严格
+
+- 创建环境的时候注意带上python,或者创建一个空环境后,先使用`conda install python=3.9`来安装python,否则后续的`pip install`将无法正常工作
+
+- python的版本受到许多依赖的限制,尤其是深度学习框架(比如`tensorflow`),初次之外,python的版本可以根据需要调整,为了兼容性起见,通常推荐python的版本举例最新发布的python版本低2到3个中版本,例如当前的最新版本是`3.m.n`那么推荐那安装`3.(m-2)`,最后的n通常无关紧要,在这种情况下一些第三方包一般都适配到了`3.(m-n)`
+
+#### 需要注意的包
+
+- librosa 
+
+  - librosa 0.9.2 is not the lastes version,but the newest version don't work well with some matplotlib version
+  - these problems appeared that I install `matplotlib` with `conda install` and `librosa`with `pip isntall`
+  - The compatibility issues may be caused by mixing two installation methods.
+  - so I just use 0.9.2 version instead of the lastest one
+  - However, the newer version may become the more preferred choice in the future, once the bugs or compatibility issues have been fixed.
+
+- pluggy
+
+  - the pluggy may installed automatically or not(I write here becases it when I test the `requirements.txt` in a brand new conda environment ,the pip prompt me that the pluggy was not installed 
+
+- tensorflow
+
+  - if you just want to experience the basic ML alogrithms' working on SER task,it's no need for you to install tensorflow
+  - in may case , I use tensorflow==2.10,but other version of tensorflow above 2.6 may work well too
 
   
 
