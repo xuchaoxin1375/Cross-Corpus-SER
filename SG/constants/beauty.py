@@ -12,6 +12,7 @@ frame_size = (600, 50)
 lb_size = (60, 10)
 ml_size = (60, 20)
 seperator_color = "blue"
+score_ndigits=4
 welcom_title_size = (45, 1)
 slider_size = (60, 10)
 ccser_theme = "Reddit"
@@ -329,6 +330,7 @@ if __name__ == "__main__":
     # layout_inner = [[sg.Text("demo")]]
     # layout = [[result_frame(title="demo", layout=layout_inner)]]
     # layout=res_content_layout("demo", expand_x=True)
+    
     layout=normal_content_layout("demo")
     window = sg.Window("demo of beauty elements", layout,resizable=True)
     window.read()

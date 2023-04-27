@@ -445,7 +445,7 @@ def fviewer_events(window, event=None, values=None, verbose=1):
             print(emo_res, "@{emo_res}")
             print(abs_pathes, "@{abs_pathes}")
 
-            t = ts.TableShow(header=["emotion", "path"], lists=[emo_res, abs_pathes])
+            t = ts.TableShow(header=["emotion", "path"], data_lists=[emo_res, abs_pathes])
             print(t.lists, "@{t.lists}")
             t.run()
 

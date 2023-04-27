@@ -2,7 +2,7 @@ import PySimpleGUI as sg
 import pandas as pd
 from config.MetaPath import recognize_result_dir
 class TableShow():
-    def __init__(self,header=None,lists=None):
+    def __init__(self,header=None,data_lists=None):
         """将二维列表作为表格数据显示
 
         Parameters
@@ -11,14 +11,15 @@ class TableShow():
             _description_
         """
 
-        self.lists=lists
-        self.length=len(lists[0])
+        self.lists=data_lists
+        self.length=len(data_lists[0])
         # 创建表格数据
-        self.data_rows = [[l[i] for l in lists] for i in range(self.length)]
+        self.data_rows = [[l[i] for l in data_lists] for i in range(self.length)]
         # print(self.data_rows,"@{data}")
         # 定义表头
         # header = ["c1","c2"]
         self.header=header#columns
+
         self.data_df=pd.DataFrame(self.data_rows,columns=self.header)
         # 创建表格布局
         warning="the save operation will comsume  some time to complete!Be patient!"
@@ -42,7 +43,7 @@ class TableShow():
 
         ]
     def run(self):
-        window = sg.Window("结果表格", self.layout,resizable=True,size=(500,400))
+        window = sg.Window("result table", self.layout,resizable=True,size=(500,400))
         # 事件循环
         while True:
             event, values = window.read()
@@ -73,6 +74,6 @@ class TableShow():
 if __name__=="__main__":
         
     # 创建窗口
-    ts=TableShow(header=list("ABC"),lists=[[1,2,2],[3,4,4],[5,6,6]])
+    ts=TableShow(header=list("ABC"),data_lists=[[1,2,2],[3,4,4],[5,6,6]])
     ts.run()
     

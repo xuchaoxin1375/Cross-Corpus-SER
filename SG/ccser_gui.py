@@ -1,29 +1,26 @@
 ##
-import os
 import inspect
+import os
+
 import constants.beauty as bt
+import constants.uiconfig as ufg
 import data_visualization as dv
 import fviewer
 import ipdb
+import numpy as np
 import PySimpleGUI as sg
 import query as q
-import constants.uiconfig as ufg
-import constants.beauty as bt
-from constants.beauty import (
-    ccser_theme,
-    db_introduction,
-    h2,
-    logo,
-    option_frame,
-    result_frame,
-)
-from demo_programs.Demo_Nice_Buttons import image_file_to_bytes, red_pill64, wcolor
+from constants.beauty import (ccser_theme, db_introduction, h2, logo,
+                              option_frame, result_frame)
+from constants.uiconfig import ML_KEY, __version__
+from demo_programs.Demo_Nice_Buttons import (image_file_to_bytes, red_pill64,
+                                             wcolor)
 from fviewer import audio_viewer_layout, fviewer_events, selected_files
 from joblib import load
 from multilanguage import get_your_language_translator
-from constants.uiconfig import ML_KEY, __version__
 from user import UserAuthenticatorGUI
 
+from config.algoparams import ava_cv_modes
 
 lang = get_your_language_translator("English")
 import sys
@@ -33,16 +30,9 @@ import sys
 from audio.core import get_used_keys
 from audio.graph import showFreqGraph, showMelFreqGraph, showWaveForm
 from config.EF import ava_algorithms, ava_emotions, ava_features
-from config.MetaPath import (
-    ava_dbs,
-    bclf,
-    brgr,
-    emodb,
-    get_example_audio_file,
-    ravdess,
-    savee,
-    speech_dbs_dir,
-)
+from config.MetaPath import (ava_dbs, bclf, brgr, emodb,
+                             get_example_audio_file, ravdess, savee,
+                             speech_dbs_dir)
 
 
 def import_config_bookmark():
@@ -58,7 +48,7 @@ def define_constants():
 
 size = (1500, 1000)
 # size=None
-
+# ava_cv_modes=("kfold","ss","sss")
 train = "trian"
 test = "test"
 algorithm = ""
@@ -66,7 +56,18 @@ audio_selected = ""
 speech_folder = speech_dbs_dir
 no_result_yet = f"No Result Yet"
 predict_res_key = "emotion_predict_res"
+kfold_radio_key = "kfold"
+shuffle_split_radio_key = "ss"
+show_confusion_matrix_key = "show_confusion_matrix"
+
+stratified_shuffle_split_radio_key = "sss"
+current_model_key = "current_model"
+current_model_tip_key = "current_model_tip"
 predict_proba_tips_key = "predict_proba"
+cv_splits_slider_key = "cv_splits_slider"
+
+train_cv_result_table_key = "train_cv_result_table"
+# test_score&train_score view
 train_result_table_key = "train_result_table"
 predict_proba_table_key = "predict_proba_table"
 predict_proba_frame_key = "predict_proba_frame"
@@ -76,7 +77,7 @@ userUI = UserAuthenticatorGUI()
 
 
 ##
-def get_algos_elements_list():
+def get_algos_elements_list(ava_algorithms=ava_algorithms):
     """
       Radio组件需要设置分组,这里分组就设置额为:algorithm
     利用default参数设置选中默认值(默认选中第一个)
@@ -98,7 +99,6 @@ def get_algos_elements_list():
                 enable_events=True,
             )
         )
-
     return algos_radios
 
 
@@ -238,7 +238,84 @@ def make_window(theme=None, size=None):
                 num_rows=1,  # 默认表格会有一定的高度,这里设置为1,避免出现空白
                 hide_vertical_scroll=True,
             )
+        ],
+        [
+            sg.Table(
+                values=[["pending"] * 2],
+                headings=["fold", "accu_score"],
+                justification="center",
+                font="Arial 16",
+                expand_x=True,
+                key=train_cv_result_table_key,
+                num_rows=1,  # 默认表格会有一定的高度,这里设置为1,避免出现空白
+                hide_vertical_scroll=True,
+                visible=False,
+            )
+        ],
+        # [
+        #     sg.Table(
+        #         values=[["pending"] * 2],
+        #         headings=["confusion_matrix", "accu_score"],
+        #         justification="center",
+        #         font="Arial 16",
+        #         expand_x=True,
+        #         key=train_cv_result_table_key,
+        #         num_rows=1,  # 默认表格会有一定的高度,这里设置为1,避免出现空白
+        #         hide_vertical_scroll=True,
+        #         visible=False,
+        #     )
+        # ]
+    ]
+    confution_matrix_button_layout=[
+        [sg.B("show confusion matrix", key=show_confusion_matrix_key)],
+    ]
+
+    cv_mode_layout = [
+        [
+            sg.T("cv mode:"),
+            sg.Radio(
+                "k-fold",
+                group_id="cv_mode",
+                key=kfold_radio_key,
+                default=False,
+                enable_events=True,
+            ),
+            sg.Radio(
+                "shuffle-split",
+                group_id="cv_mode",
+                key=shuffle_split_radio_key,
+                default=False,
+                enable_events=True,
+            ),
+            sg.Radio(
+                "stratified-shuffle-split",
+                group_id="cv_mode",
+                key=stratified_shuffle_split_radio_key,
+                default=True,
+                enable_events=True,
+            ),
         ]
+    ]
+    cv_param_settings_layout = [
+        [
+            sg.T("cv splits:"),
+            sg.Slider(
+                range=(1, 10),
+                key=cv_splits_slider_key,
+                orientation="h",
+                expand_x=True,
+                default_value=5,
+                enable_events=True,
+            ),
+        ],
+        *cv_mode_layout,
+    ]
+    other_settings_frame_layout = [
+        [
+            bt.option_frame(
+                title="Other Parameter Settings", layout=cv_param_settings_layout
+            ),
+        ],
     ]
     train_fit_button_layout = [
         [
@@ -252,9 +329,12 @@ def make_window(theme=None, size=None):
                 pad=(0, 0),
                 key="start train",
             ),
+            sg.pin(sg.T("current model:", key=current_model_tip_key, visible=False)),
+            sg.T("", key=current_model_key),
         ]
     ]
-    train_result_layout = [
+
+    train_result_frame_layout = [
         [
             bt.result_frame(
                 title=lang["train_result_title"],
@@ -268,11 +348,11 @@ def make_window(theme=None, size=None):
         text=no_result_yet, justification="c", key=predict_res_key
     )
     # predict_proba_tips_layout = [[sg.Text("pending", key=predict_proba_tips_key)]]
-    #默认不显示predict_proba的不可用说明
+    # 默认不显示predict_proba的不可用说明
     predict_proba_tips_layout = bt.normal_content_layout(
-        text="pending", key=predict_proba_tips_key,visible=False
+        text="pending", key=predict_proba_tips_key, visible=False
     )
-    #默认显示predict_proba表格
+    # 默认显示predict_proba表格
     predict_proba_table_layout = [
         [
             sg.Table(
@@ -289,10 +369,7 @@ def make_window(theme=None, size=None):
             )
         ]
     ]
-    predict_prob_layout=[
-        *predict_proba_tips_layout,
-        *predict_proba_table_layout
-    ]
+    predict_prob_layout = [*predict_proba_tips_layout, *predict_proba_table_layout]
     predict_res_frames_layout = [
         [result_frame(layout=predict_res_layout)],
         [
@@ -380,8 +457,10 @@ def make_window(theme=None, size=None):
         + e_config_layout
         + f_config_layout
         + algos_layout
+        + other_settings_frame_layout
         + train_fit_button_layout
-        + train_result_layout
+        + train_result_frame_layout
+        + confution_matrix_button_layout
         + file_choose_layout
         + predict_res_frames_layout
         + draw_layout
@@ -527,7 +606,7 @@ def initial(values=None, verbose=1):
     train_db = values["train_db"]
     test_db = values["test_db"]
     e_config = scan_choosed_options(values)
-    algorithm = selected_algo(values)
+    algorithm = selected_radio_in(values)
     f_config = selected_features(values)
     if verbose >= 2:
         # print(train_db, test_db, e_config, algorithm, f_config)
@@ -551,14 +630,13 @@ def selected_features(values):
     return f_config
 
 
-def selected_algo(values):
-    global algorithm
-    for algo in ava_algorithms:
-        if values and values[algo]:
-            # 获取选中的算法名称(key)
-            algorithm = algo
+def selected_radio_in(values,ava_list=ava_algorithms):
+    # global algorithm
+    # res=""
+    for algo_name in ava_list:
+        if values and values[algo_name]:
             break
-    return algorithm
+    return algo_name
 
 
 def scan_choosed_options(values):
@@ -644,18 +722,18 @@ def recognize_auido(
 
         data = list(predict_proba.items())
         # print(data,"@{data}")
-        data = [[emo, proba] for emo, proba in data]
-        #关闭proba_tip的显示
+        data = [[emo, round(proba,bt.score_ndigits)] for emo, proba in data]
+        # 关闭proba_tip的显示
         window[predict_proba_tips_key].update(visible=False)
-        #更新proba表格内容
+        # 更新proba表格内容
         # window[predict_proba_tips_frame_key].update(visible=False)
         ppt = window[predict_proba_table_key]
         # inspect.getfullargspec(ppt.update)
         ppt.update(
             values=data,
             num_rows=4,
-            #    display_row_numbers=True
-            visible=True
+            #display_row_numbers=True
+            visible=True,
         )
         # window[]
         # window[predict_proba_table_frame_key].update(visible=True)
@@ -667,7 +745,7 @@ def recognize_auido(
             ),
             visible=True,
         )
-        #关闭表格的显示
+        # 关闭表格的显示
         window[predict_proba_table_key].update(visible=False)
     window.refresh()
 
@@ -696,11 +774,7 @@ def start_train_model(
     from recognizer.basic import EmotionRecognizer
 
     if verbose:
-        print("train_db:", train_db)
-        print("test_db:", test_db)
-        print("e_config:", e_config)
-        print("f_config:", f_config)
-        print("algorithm:", algorithm)
+        check_training_arguments(train_db, test_db, e_config, f_config, algorithm)
 
     bclf_estimators = load(bclf)
 
@@ -719,7 +793,6 @@ def start_train_model(
 
     if algorithm == "RNN":
         from recognizer.deep import DeepEmotionRecognizer
-
         der = DeepEmotionRecognizer(
             train_dbs=train_db, test_dbs=test_db, e_config=e_config, f_config=f_config
         )
@@ -752,6 +825,7 @@ def model_res(er, verbose=1):
     """
     train_score = er.train_score()
     test_score = er.test_score()
+
     if verbose:
         print(f"{er.model=}")
         print(f"{test_score=}")
@@ -776,7 +850,7 @@ def main(verbose=1):
 
     while True:
         if verbose >= 2:
-            check_training_arguments(e_config, f_config, train_db, test_db, algorithm)
+            check_training_arguments(train_db, test_db, e_config, f_config, algorithm)
 
         if event:  # 监听任何event
             print(event, "@{event}", __file__)
@@ -812,7 +886,7 @@ def main(verbose=1):
                 print(f_config, "@{f_config}")
 
         elif event in ava_algorithms:
-            algorithm = selected_algo(values)
+            algorithm = selected_radio_in(values)
             if verbose:
                 print(algorithm, "@{algorithm}")
                 # print(event, "处于选择algorithm的循环中.")
@@ -832,6 +906,7 @@ def main(verbose=1):
             # print("完成文件选取")
         # --情感识别阶段--
         elif event == "start train":
+            n_splits = values[cv_splits_slider_key]
             er = start_train_model(
                 train_db=train_db,
                 test_db=test_db,
@@ -839,15 +914,10 @@ def main(verbose=1):
                 f_config=f_config,
                 algorithm=algorithm,
             )
+
             # 训练收尾工作:将计算结果(识别器)传递给fviewer,赋能fviewer可以(直接利用识别器对象)进行识别
 
-            fviewer.er = er  # 是否为多余#TODO
-            train_score, test_score = model_res(er, verbose=verbose)
-            # window["train_result"].update(f"{train_score=},{test_score=}")
-            res = [round(x, 4) for x in (train_score, test_score)]
-            window["train_result_table"].update(
-                values=[res]
-            )  # values类型是list[list[any]],每个内部列表表示表格的一个行的数据
+            refresh_trained_view(verbose, window, er, values)
 
         elif event == "recognize it":
             recognize_auido(
@@ -891,6 +961,11 @@ def main(verbose=1):
             content = [logo, db_introduction]
             res = "\n".join(content)
             sg.popup_scrolled(res, size=(150, 100), title="Introduction")
+        elif event==show_confusion_matrix_key:
+                from SG.demo_pandas_table import TablePandas
+                cm=er.confusion_matrix()
+                tp=TablePandas(df=cm)
+                tp.show_confution_matrix_window()
         else:
             # 具有独立的事件循环,直接调用即可
             userUI.run_module(event, values, window=window, verbose=1)
@@ -906,6 +981,47 @@ def main(verbose=1):
     print("关闭窗口.")
 
     window.close()
+
+
+def refresh_trained_view(verbose, window, er, values):
+    """
+    Refreshes the trained view with the given parameters.
+    these args are available for the table element to update
+    args=ArgSpec(args=['self', 'values', 'num_rows', 'visible', 'select_rows', 'alternating_row_color', 'row_colors'],
+
+    varargs=None, keywords=None, defaults=(None, None, None, None, None, None))🎈
+    Args:
+    verbose (bool): Whether to print verbose output or not.
+    window (sg.Window): The PySimpleGUI window object to update.
+    er (EvaluationResult): The evaluation result object to use for updating the view.
+    """
+    fviewer.er = er  # 是否为多余#TODO
+    train_score, test_score = model_res(er, verbose=verbose)
+    # window["train_result"].update(f"{train_score=},{test_score=}")
+    res = [round(x, bt.score_ndigits) for x in (train_score, test_score)]
+    window[train_result_table_key].update(
+        values=[res]
+    )  # values类型是list[list[any]],每个内部列表表示表格的一个行的数据
+    window[current_model_tip_key].update(visible=True)
+    window[current_model_key].update(value=er.model)
+    n_splits = values[cv_splits_slider_key]
+    # cv_mode=values[kfold_radio_key]
+    cv_mode=selected_radio_in(values,ava_list=ava_cv_modes)
+    # print(cv_mode,"@{cv_mode}🎈")
+
+    fold_scores = er.model_cv_score(mean_only=False, n_splits=n_splits,cv_mode=cv_mode)
+    folds = len(fold_scores)
+    mean_score = np.mean(fold_scores)
+    fold_scores_rows = [
+        [str(f"{i+1}"), round(score, bt.score_ndigits)]
+        for i, score in enumerate(fold_scores)
+    ]
+    fold_scores_rows.append(["mean_score", round(mean_score, bt.score_ndigits)])
+    tcrt = window[train_cv_result_table_key].update
+    # args=inspect.signature(tcrt)
+    # print(f"{args=}🎈")
+    tcrt(values=fold_scores_rows, num_rows=folds + 1, visible=True)
+
 
 
 def open_folder_event(window):
@@ -946,7 +1062,7 @@ def file_selected_record(verbose, event, values):
         print(event, values["-FILENAME-"])
 
 
-def check_training_arguments(e_config, f_config, train_db, test_db, algorithm):
+def check_training_arguments(train_db, test_db, e_config, f_config, algorithm):
     print(f"train_db = {train_db}")
     print(f"test_db = {test_db}")
     print(f"e_config = {e_config}")

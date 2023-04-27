@@ -56,7 +56,6 @@
 #### 需要注意的包
 
 - librosa 
-
   - librosa 0.9.2 is not the lastes version,but the newest version don't work well with some matplotlib version
   - these problems appeared that I install `matplotlib` with `conda install` and `librosa`with `pip isntall`
   - The compatibility issues may be caused by mixing two installation methods.
@@ -64,15 +63,59 @@
   - However, the newer version may become the more preferred choice in the future, once the bugs or compatibility issues have been fixed.
 
 - pluggy
-
   - the pluggy may installed automatically or not(I write here becases it when I test the `requirements.txt` in a brand new conda environment ,the pip prompt me that the pluggy was not installed 
 
 - tensorflow
-
   - if you just want to experience the basic ML alogrithms' working on SER task,it's no need for you to install tensorflow
   - in may case , I use tensorflow==2.10,but other version of tensorflow above 2.6 may work well too
 
-  
+
+### 其他情况说明
+
+- 我在一次调试matplotlib backend设置的过程中,偶然发现在notebook中使用`%matplotlib qt`失败
+
+- 后来我尝试卸载重装matplotlib和pyside
+
+- 然而提示我一些`dll`问题和权限错误问题
+
+- 这些问题时平时不曾遇到
+
+- 我猜测可能时机器太久没有关机了(平时我都是休眠),导致系统出现了一些错误
+
+  - 机器发生错误是很有可能的,就比如学校图书馆的刷脸系统,验证通过平时屏幕显示绿色,然而最近通过显示的也是红色
+  - 而在早期的windows7上,有时候从休眠中回复直接会失败
+
+- 然后我重启机器,发现任务栏多出了个搜索框,系统更新了没有重启可能也造成了一些影响
+
+- 有时候还会出现各种意外的问题
+
+  - 例如`KNeighborsClassifier`训练完毕后,用它预测新的样本或在训练集上预测会报错:
+
+    - ```python
+      
+      File d:\condaPythonEnvs\tf210\lib\site-packages\sklearn\neighbors\_classification.py:237, in KNeighborsClassifier.predict(self, X)
+          235     neigh_dist = None
+          236 else:
+      --> 237     neigh_dist, neigh_ind = self.kneighbors(X)
+          239 classes_ = self.classes_
+          240 _y = self._y
+      
+          643 get_config = getattr(self._dynlib, "openblas_get_config",
+          644                      lambda: None)
+          645 get_config.restype = ctypes.c_char_p
+      --> 646 config = get_config().split()
+          647 if config[0] == b"OpenBLAS":
+          648     return config[1].decode("utf-8")
+      
+      AttributeError: 'NoneType' object has no attribute 'split'
+      ```
+
+    - 而当我切换到另一个环境又可以工作,说明是应该不是系统问题,而更可能是环境出了问题
+
+#### 意料之外的错误的解决方案
+
+- 重启你的机器,这或许解决一些系统错误
+- 创建/切换虚拟环境,也许是安装某些包引起依赖降级或者环境污染
 
 #### 关于进度条显示:tqdm
 
@@ -397,6 +440,104 @@ The initial letter(s) of the file name represents the emotion class, and the fol
 - BaggingClassifier
 - Recurrent Neural Networks (Keras)
 
+### 选择合适的分类器(用k-fold评估)
+
+- ```python
+  from sklearn.datasets import load_iris
+  from sklearn.linear_model import LinearRegression
+  from sklearn.model_selection import cross_val_score
+  
+  # 加载iris(鸢尾花)数据集
+  X, y = load_iris(return_X_y=True)
+  
+  # 使用线性回归模型进行交叉验证
+  model = LinearRegression()
+  
+  scores = cross_val_score(model, X, y, cv=5)
+  print("Scores:", scores)
+  print("Mean score:", scores.mean())
+  ```
+
+  - ```bash
+    Scores: [0.96666667 0.96666667 0.9        0.96666667 1.        ]
+    Mean score: 0.9600000000000002
+    ```
+
+- ```python
+  # 加载iris(鸢尾花)数据集
+  X, y = load_iris(return_X_y=True)
+  
+  # model=RandomForestClassifier()
+  model=SVC()
+  scores = cross_val_score(model, X, y, cv=5,verbose=3)
+  print("Scores:", scores)
+  print("Mean score:", scores.mean())
+  ```
+
+  - ```bash
+    Scores: [0.96666667 0.96666667 0.96666667 0.93333333 1.        ]
+    Mean score: 0.9666666666666666
+    ```
+
+- 而使用决策树模型进行分类,效果比较好,在5折叠验证中,都在0.9以上
+
+- 使用SVC或者RF,效果更加好
+
+#### 使用shuffle
+
+- 不对有序数据集iris洗牌,效果:
+
+  ```python
+  
+  # 加载iris(鸢尾花)数据集
+  X, y = load_iris(return_X_y=True)
+  
+  # 定义5折交叉验证
+  kf = KFold(
+      n_splits=5,
+      #    shuffle=True,
+      # random_state=42,
+  )
+  
+  # 使用线性回归模型进行训练和测试
+  model = LinearRegression()
+  # model=RandomForestClassifier()
+  scores_cv = []
+  for train_index, test_index in kf.split(X):
+      X_train, X_test = X[train_index], X[test_index]
+      y_train, y_test = y[train_index], y[test_index]
+      model.fit(X_train, y_train)
+      score = model.score(X_test, y_test)
+      scores_cv.append(score)
+      print("Score:", score)
+  mean_score = np.mean(scores_cv)
+  print(f"{mean_score=}")
+  ```
+
+  - ```bash
+    Score: 0.0
+    Score: 0.8512492308414581
+    Score: 0.0
+    Score: 0.7615543936085848
+    Score: 0.0
+    mean_score=0.32256072489000853
+    ```
+
+  - 通常出现这种情况的话,可以认为是数据集读入策略有问题
+
+- 解开shuffle=True的注释,得到正常的预测性能
+
+- ```bash
+  Score: 0.9468960016420045
+  Score: 0.9315787260143983
+  Score: 0.9177129838664249
+  Score: 0.9026578332122843
+  Score: 0.921073136533955
+  mean_score=0.9239837362538135
+  ```
+
+  
+
 #### SVC
 
 - Scikit-learn中的SVC是一种支持向量机（Support Vector Machine）分类器，用于解决二分类和多分类问题。SVC是一种非常强大的模型，可以处理高维度的数据，并且能够有效地处理非线性可分的数据。
@@ -414,7 +555,7 @@ The initial letter(s) of the file name represents the emotion class, and the fol
 - 在Scikit-learn中，SVC的使用非常简单，只需要创建一个SVC对象，设置一些超参数，然后调用fit()方法训练模型。可以使用predict()方法对新数据进行分类预测。
 - 总之，SVC是一种强大的分类器，适用于解决二分类和多分类问题，尤其擅长处理高维度和非线性可分的数据。
 
-#### sklearn.svm.svc
+##### sklearn.svm.svc
 
 - [`sklearn.svm`](https://scikit-learn.org/stable/modules/classes.html#module-sklearn.svm).SVC
 

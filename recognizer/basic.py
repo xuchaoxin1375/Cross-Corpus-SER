@@ -2,7 +2,7 @@
 # from typing_extensions import deprecated
 import random
 from time import time
-
+from config.algoparams import ava_cv_modes
 import matplotlib.pyplot as pl
 import numpy as np
 import pandas as pd
@@ -11,7 +11,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import (accuracy_score, classification_report,
                              confusion_matrix, fbeta_score, make_scorer,
                              mean_absolute_error, mean_squared_error)
-from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import GridSearchCV, KFold, ShuffleSplit, StratifiedShuffleSplit, cross_val_score
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
 from tqdm import tqdm
@@ -401,12 +401,14 @@ class EmotionRecognizer:
         y_test = self.y_test
         # 调用训练好的模型进行预测
         model = self.model if self.model is not None else self.best_model()
-        if len(X_test) == 0:
-            raise ValueError("X_test is empty")
-        if len(y_test) == 0:
-            raise ValueError("y_test is empty")
+        self.validate_empty_array(X_test=X_test,y_test=y_test)
+        # if len(X_test) == 0:
+        #     raise ValueError("X_test is empty")
+        # if len(y_test) == 0:
+        #     raise ValueError("y_test is empty")
         # 预测计算
-        print(X_test.shape, y_test.shape,"🎈")
+        if verbose:
+            print(X_test.shape, y_test.shape,"🎈")
         y_pred = model.predict(X_test)  # type: ignore
         if choosing == False:
             self.y_pred = np.array(y_pred)
@@ -419,7 +421,53 @@ class EmotionRecognizer:
             report = classification_report(y_true=y_test, y_pred=y_pred)
             print(report, self.model.__class__.__name__)
         return res
+    def model_cv_score(self, choosing=False, verbose=1,mean_only=True,n_splits=5,test_size=0.2,cv_mode="sss"):
+        """
+        使用交叉验证的方式来评估模型
+        Calculates score on testing data
+        """
+        X_train = self.X_train
+        y_train = self.y_train
+        # 调用训练好的模型进行预测
+        model = self.model if self.model is not None else self.best_model()
+        self.validate_empty_array(X_train, y_train)
 
+        # 预测计算
+        if verbose:
+            print(X_train.shape, y_train.shape,"🎈")
+            print(f"{n_splits=}")
+        n_splits=int(n_splits)
+
+        y_pred = model.predict(X_train)  # type: ignore
+        if choosing == False:
+            self.y_pred = np.array(y_pred)
+        # 交叉验证的方式评估模型的得分
+        cv_mode_dict=dict(
+            sss=StratifiedShuffleSplit(n_splits=n_splits, test_size=test_size, random_state=0),
+            ss=ShuffleSplit(n_splits=n_splits, test_size=test_size, random_state=0),
+            kfold=KFold(n_splits=n_splits, shuffle=True, random_state=0),
+        )
+        cv_mode_selected=cv_mode_dict[cv_mode]
+        if verbose:
+            print(f"{cv_mode=}🎈")
+        if self.classification_task:
+            # res = accuracy_score(y_true=y_test, y_pred=y_pred)
+            res=cross_val_score(model, X_train, y_train, cv=cv_mode_selected)
+            if mean_only:
+                res=res.mean()
+            
+        else:
+            res = mean_squared_error(y_true=y_train, y_pred=y_pred)
+        if self.verbose >= 2 or verbose >= 1:
+            report = classification_report(y_true=y_train, y_pred=y_pred)
+            print(report, self.model.__class__.__name__)
+        return res
+
+    def validate_empty_array(self, X_test=[], y_test=[]):
+        if len(X_test) == 0:
+            raise ValueError("X is empty")
+        if len(y_test) == 0:
+            raise ValueError("y is empty")
     def meta_paths_of_db(self, db, partition="test"):
         res = meta_paths_of_db(
             db=db,
@@ -528,12 +576,12 @@ class EmotionRecognizer:
             # make it percentage
             matrix *= 100
         if labeled:
-            matrix = pd.DataFrame(
+            matrix_df = pd.DataFrame(
                 matrix,
                 index=[f"true_{e}" for e in self.e_config],
                 columns=[f"predicted_{e}" for e in self.e_config],
             )
-        return matrix
+        return matrix_df
 
     def draw_confusion_matrix(self):
         """Calculates the confusion matrix and shows it"""
@@ -624,7 +672,7 @@ def main(EmotionRecognizer, e_config):
     # my_model = RandomForestClassifier(max_depth=3, max_features=0.2)
     my_model = SVC(C=0.001, gamma=0.001, kernel="poly",probability=True)
     my_model=KNeighborsClassifier(n_neighbors=3, p=1, weights='distance')
-    my_model = None
+    # my_model = None
 
     # rec = EmotionRecognizer(model=my_model,e_config=AHNPS,f_config=f_config_def,test_dbs=[ravdess],train_dbs=[ravdess], verbose=1)
     # rec = EmotionRecognizer(model=my_model,e_config=AHNPS,f_config=f_config_def,test_dbs=emodb,train_dbs=emodb, verbose=1)
@@ -646,6 +694,8 @@ def main(EmotionRecognizer, e_config):
     print(f"{train_score=}")
     test_score = er.test_score()
     print(f"{test_score=}")
+    cv_score=er.model_cv_score()
+    print(f"{cv_score=}")
 
     return er
 

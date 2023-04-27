@@ -53,21 +53,16 @@ gb_best=(GradientBoostingClassifier(learning_rate=0.3, loss='log_loss', max_dept
 # bclf[1]=rf_best
 # bclf[2]=gb_best
 ##
-# dump(rf_best, "qq.joblib")
 # bclf[-1] = bag_best
 ##
 bclf_res=load("bclf.joblib")
 for item in bclf_res:
     print(item)
 
-# ##
-# brgr
-# ##
 # # 修改回归模型
 # bag_rgr_best = (BaggingRegressor(max_features=1, max_samples=0.1),
 #                 {'max_features': 1, 'max_samples': 0.1, 'n_estimators': 10},
 #                 0.6521001743540973)
 
-                
 # # brgr[-1]=bag_rgr_best
 

@@ -1,0 +1,1 @@
+ava_cv_modes=("kfold","ss","sss")

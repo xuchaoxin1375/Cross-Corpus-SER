@@ -1,3 +1,4 @@
 *.wav
 *.npy
+*.nyc
 *.csv

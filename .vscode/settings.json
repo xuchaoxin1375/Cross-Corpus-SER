@@ -4,5 +4,9 @@
     "python.linting.pylintEnabled": true,
     "git.ignoreLimitWarning": true,
     "python.linting.lintOnSave": false,
-    "python.analysis.typeCheckingMode": "off"
+    "python.analysis.typeCheckingMode": "off",
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.black-formatter"
+    },
+    "python.formatting.provider": "none"
 }

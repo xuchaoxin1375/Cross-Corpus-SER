@@ -21,5 +21,6 @@ ipdb
 pydub
 pluggy
 psgdemos #this contain psgdemos and PySimpleGUI framework
+black #the python code formatter of th project
 # playsound
 # tensorflow==2.10.0
