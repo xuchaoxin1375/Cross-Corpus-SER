@@ -16,7 +16,7 @@ from config.MetaPath import (
     validate_partition,
     ava_dbs,
 )
-from audio.core import extract_feature
+from audio.core import extract_feature_of_audio
 
 # from pathlib import Path
 Series = pd.Series
@@ -294,11 +294,12 @@ class AudioExtractor:
             print([id(attr) for attr in attributes])
         return attributes
 
-    def _extract_feature_in_meta(self, partition="", meta_path=""):
+    def _extract_feature_in_meta(self, partition="", meta_path="",verbose=1):
         """根据meta_files提取相应语音文件的特征
         这里仅完成单次提取
 
-        矩阵文件名中的e_config字段暂定为self.e_config,如果是这样,可能会和meta_path文件中的情感字段出现不一致的情况.
+        矩阵文件名中的e_config字段暂定为self.e_config
+        如果是这样,可能会和meta_path文件中的情感字段出现不一致的情况.
 
         Parameters
         ----------
@@ -308,31 +309,15 @@ class AudioExtractor:
             标记被提取文件是来自训练集还是测试集(验证集)
         """
         # 检查数据集是否按照配置的情感进行筛选和划分:
-        # if(not os.path.exists(meta_path)):
-        #     create_csv_by_metaname(meta_file=meta_path)
-        # self.load_metadata(meta_path)
-
+ 
         audio_paths, emotions = self.load_metadata(meta_path)
         # 将计算结果保存为对象属性
-
         self.audio_paths = audio_paths
         self.emotions = emotions
-        # 尝试计算语料库的名字(字段)
-        meta_name = os.path.basename(meta_path)
-        meta_name,ext=os.path.splitext(meta_name)
-        meta_fields = meta_name.split("_")
-        db = meta_fields[1]
-        # print(f"{meta_path=}@")
-        # print(f"{db=}@")
 
-        db = db if db in ava_dbs else ""
-        #计算情感字段
-        emotions_first_letters=meta_fields[-1]
-        origin_efls = get_first_letters(self.e_config)
-        if emotions_first_letters != origin_efls:
-            raise ValueError(
-                f"{emotions_first_letters} is not inconsistant with {self.e_config}"
-            )
+        # 尝试计算语料库的名字和情感配置名字
+        db = self.fields_parse(meta_path)
+        
         if not os.path.isdir(self.features_dir):
             os.mkdir(self.features_dir)
 
@@ -352,12 +337,9 @@ class AudioExtractor:
             self.features_dir,
             features_file_name,
         )
-
-        print(f"检查特征文件{features_file_path}是否存在...")
-        print(f"{self.e_config=}")
-
-        # if self.e_config == HNS:
-        #     raise ValueError(f"{self.e_config=}")
+        if verbose:
+            print(f"检查特征文件{features_file_path}是否存在...")
+            print(f"{self.e_config=}")
         
         ffp = os.path.isfile(features_file_path)
         if ffp:
@@ -370,11 +352,41 @@ class AudioExtractor:
             if self.verbose:
                 print("npy文件不存在,尝试创建...")
             # 如果尚未提取过特征,则在此处进行提取,同时保存提取结果,以便下次直接使用
-            features = self.features_save(partition, audio_paths, features_file_path)
+            features = self.features_extract_save(partition, audio_paths, features_file_path)
 
         return features, audio_paths, emotions
 
-    def features_save(self, partition, audio_paths, features_file_path):
+    def fields_parse(self, meta_path):
+
+        #计算语料库字段名
+        meta_fields, db = self.db_field_parse(meta_path)
+
+        #计算情感字段并检查
+        self.validate_emotion_config_consistence(meta_fields)
+            
+        return db
+
+    def db_field_parse(self, meta_path):
+        meta_name = os.path.basename(meta_path)
+        meta_name,ext=os.path.splitext(meta_name)
+        meta_fields = meta_name.split("_")
+        db = meta_fields[1]
+        # print(f"{meta_path=}@")
+        # print(f"{db=}@")
+
+        db = db if db in ava_dbs else ""
+        return meta_fields,db
+
+    def validate_emotion_config_consistence(self, meta_fields):
+        emotions_first_letters=meta_fields[-1]
+        origin_efls = get_first_letters(self.e_config)
+        #检查情感配置是否具有一致性
+        if emotions_first_letters != origin_efls:
+            raise ValueError(
+                f"{emotions_first_letters} is not inconsistant with {self.e_config}"
+            )
+
+    def features_extract_save(self, partition, audio_paths, features_file_path):
         """将提取的特征(ndarray)保存持久化保存(为npy文件)
         利用qtmd提供可视化特征抽取进度
 
@@ -406,7 +418,7 @@ class AudioExtractor:
                 print(f"正在抽取第{cnt}个文件的特征..")
             # 调用utils模块中的extract_featrue进行特征提取
             f_config = self.f_config
-            feature = extract_feature(audio_file, f_config=f_config)
+            feature = extract_feature_of_audio(audio_file, f_config=f_config)
             if self.feature_dimension is None:
                 # MCM特征组合下(3特征),有180维的单轴数组,5特征下,有193维
                 self.feature_dimension = feature.shape[0]

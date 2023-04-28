@@ -22,7 +22,7 @@ from config.EF import validate_emotions
 from recognizer.basic import EmotionRecognizer
 # from ER import EmotionRecognizer
 from config.MetaPath import get_first_letters
-from audio.core import extract_feature, get_dropout_str
+from audio.core import extract_feature_of_audio, get_dropout_str
 
 
 class DeepEmotionRecognizer(EmotionRecognizer):
@@ -337,7 +337,7 @@ class DeepEmotionRecognizer(EmotionRecognizer):
             print("[+] Model trained")
 
     def predict(self, audio_path):
-        feature = extract_feature(audio_path, **self._f_config_dict).reshape(
+        feature = extract_feature_of_audio(audio_path, **self._f_config_dict).reshape(
             (1, 1, self.input_length)
         )
         if self.classification_task:
@@ -349,7 +349,7 @@ class DeepEmotionRecognizer(EmotionRecognizer):
 
     def predict_proba(self, audio_path):
         if self.classification_task:
-            feature = extract_feature(audio_path, **self._f_config_dict).reshape(
+            feature = extract_feature_of_audio(audio_path, **self._f_config_dict).reshape(
                 (1, 1, self.input_length)
             )
             proba = self.model.predict(feature)[0][0]

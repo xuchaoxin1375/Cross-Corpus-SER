@@ -1,15 +1,18 @@
 ##
 
 import os
+from pathlib import Path
 
 import librosa
 import numpy as np
 import soundfile
 from joblib import load
+from sklearn.preprocessing import StandardScaler
 
 from audio.converter import convert_audio
-from config.EF import MCM, ava_features
-from config.MetaPath import bclf, brgr,project_dir
+from config.EF import MCM, ava_features, f_config_def
+from config.MetaPath import bclf, brgr, project_dir,speech_dbs_dir
+
 
 def get_used_keys(config_dict):
     """将传入的字典中值为True的key添加到列表中并返回
@@ -60,7 +63,7 @@ def get_dropout_str(dropout, n_layers=3):
         return "_".join([str(dropout) for _ in range(n_layers)])
 
 
-def extract_feature(audio_file_name, f_config):
+def extract_feature_of_audio(audio_file_name, f_config):
     """
     用于从音频文件中提取音频特征。该函数支持提取多种不同的特征，
     包括MFCC、Chroma、MEL Spectrogram Frequency、Contrast和Tonnetz。
@@ -69,6 +72,16 @@ def extract_feature(audio_file_name, f_config):
     它还使用了Python的关键字参数（kwargs），在函数调用时，允许用户根据需要选择要提取的特征类型。
     在函数的实现中，它首先检查音频文件的格式是否正确，如果不正确，则将其转换为16000采样率和单声道通道。
     然后，它使用Librosa库提取所选的特征，并将它们连接成一个numpy数组，并返回该数组。
+
+    这段代码使用了Python中的with语句和soundfile库中的SoundFile类。
+    它的作用是打开名为file_name的音频文件，并将其作为sound_file对象传递给代码块，
+    以便在代码块中对该文件进行操作。
+    with语句的好处是，在代码块结束时，它会自动关闭文件句柄，无需手动关闭。
+    使用soundfile.SoundFile()函数创建的sound_file对象是一个上下文管理器，它提供了一些方法和属性，
+    可以用于读取和操作音频文件。在该函数中，我们使用sound_file对象读取音频文件，获取其采样率和数据类型等信息。
+    在代码块的最后，with语句自动关闭了sound_file对象，释放了与该文件的所有资源。
+    需要注意的是，在使用soundfile库打开音频文件时，我们可以使用with语句来确保文件句柄在使用完毕后被正确关闭。
+    这可以避免在操作大量音频文件时出现资源泄漏和文件句柄耗尽等问题。
 
     params:
     -
@@ -98,20 +111,13 @@ def extract_feature(audio_file_name, f_config):
     try:
         print(audio_file_name,"@{audio_file_name}")
         #考虑将此时的工作路径切换为项目根目录,以便利用相对路径访问文件
-        os.chdir(project_dir)
-        # sys.exist()
+        # os.chdir(project_dir)
+        p = Path(audio_file_name)
+        if p.is_file()==False:
+            raise FileNotFoundError(f"{p.absolute().resolve()} does not exist")
         with soundfile.SoundFile(audio_file_name) as sound_file:
             # 成功打开
             pass
-            # 这行代码使用了Python中的with语句和soundfile库中的SoundFile类。
-            # 它的作用是打开名为file_name的音频文件，并将其作为sound_file对象传递给代码块，
-            # 以便在代码块中对该文件进行操作。
-            # with语句的好处是，在代码块结束时，它会自动关闭文件句柄，无需手动关闭。
-            # 使用soundfile.SoundFile()函数创建的sound_file对象是一个上下文管理器，它提供了一些方法和属性，
-            # 可以用于读取和操作音频文件。在该函数中，我们使用sound_file对象读取音频文件，获取其采样率和数据类型等信息。
-            # 在代码块的最后，with语句自动关闭了sound_file对象，释放了与该文件的所有资源。
-            # 需要注意的是，在使用soundfile库打开音频文件时，我们可以使用with语句来确保文件句柄在使用完毕后被正确关闭。
-            # 这可以避免在操作大量音频文件时出现资源泄漏和文件句柄耗尽等问题。
     except RuntimeError:
         # not properly formated, convert to 16000 sample rate & mono channel using ffmpeg
         # get the basename
@@ -186,21 +192,8 @@ def extract_features_handler(new_filename, f_config):
         提取结果(shape=(n,))
     """
     with soundfile.SoundFile(new_filename) as sound_file:
-        X = sound_file.read(dtype="float32")
-        sample_rate = sound_file.samplerate
-        # print(f'{sample_rate=}')
-        # 根据参数情况,提取需要的情感特征
-        # 对于chroma和constrast两种特征,计算stft的幅值矩阵(复数取模,实数化)
-        stft = []
-        from config.EF import chroma, contrast, mel, mfcc, tonnetz
-        global extractors_debug
-        extractors1 = {mfcc: mfcc_extract, mel: mel_extract, tonnetz: tonnetz_extract}
-        extractors2 = {chroma: chroma_extract, contrast: contrast_extract}
+        X, sample_rate, extractors1, extractors2, stft = pre_calculate(f_config, sound_file)
 
-        extractors_debug=extractors1,extractors2
-
-        if chroma in f_config or contrast in f_config:
-            stft = stft_prepare(X)
         # 建立一个空数组来存储需要提取的特征
         result = np.array([])
         f_res=None
@@ -213,7 +206,24 @@ def extract_features_handler(new_filename, f_config):
                 f_res=extractors2[f](sample_rate, stft)
             # print(f_res.shape,f,"@{f_res.shape}")#type:ignore
             result = np.hstack((result, f_res))
+            
+        # print(result.shape)
     return result
+
+def pre_calculate(f_config, sound_file):
+    X = sound_file.read(dtype="float32")
+    sample_rate = sound_file.samplerate
+        # print(f'{sample_rate=}')
+        # 根据参数情况,提取需要的情感特征
+        # 对于chroma和constrast两种特征,计算stft的幅值矩阵(复数取模,实数化)
+    from config.EF import chroma, contrast, mel, mfcc, tonnetz
+    extractors1 = {mfcc: mfcc_extract, mel: mel_extract, tonnetz: tonnetz_extract}
+    extractors2 = {chroma: chroma_extract, contrast: contrast_extract}
+
+    stft = []
+    if chroma in f_config or contrast in f_config:
+        stft = stft_prepare(X)
+    return X,sample_rate,extractors1,extractors2,stft
 
 
 def stft_prepare(X):
@@ -332,13 +342,23 @@ def best_estimators(classification_task=True,fast=True):
     return res
 
 def test1():
-    from config.EF import f_config_def
-    audio_path= "../data/emodb/wav/03a01Fa.wav"
-    features = extract_feature(audio_path, f_config_def)
+
+    
+    audio_path= speech_dbs_dir/"emodb/wav/03a01Fa.wav"
+    print(os.path.exists(audio_path))
+
+    features = extract_feature_of_audio(audio_path, f_config_def)
     return features
 
 if __name__ == "__main__":
-    audio_config = MCM
+    pass
     # res = get_audio_config(audio_config)
     # print(res)
-    res=best_estimators()
+    # res=best_estimators()
+
+
+    audio_path= speech_dbs_dir/"emodb/wav/03a01Fa.wav"
+    print(os.path.exists(audio_path))
+
+    features = extract_feature_of_audio(audio_path, f_config_def)
+

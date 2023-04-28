@@ -20,7 +20,7 @@ from audio.extractor import load_data_from_meta
 from config.EF import (e_config_def, f_config_def, validate_emotions)
 from config.MetaPath import (emodb, meta_paths_of_db, ravdess, savee,validate_partition,project_dir)
 import config.MetaPath as meta
-from audio.core import best_estimators, extract_feature
+from audio.core import best_estimators, extract_feature_of_audio
 
 ##
 class EmotionRecognizer:
@@ -219,7 +219,7 @@ class EmotionRecognizer:
         given an `audio_path`, this method extracts the features
         and predicts the emotion
         """
-        feature1 = extract_feature(audio_path, self.f_config)
+        feature1 = extract_feature_of_audio(audio_path, self.f_config)
         # print(feature1.shape)
         # print(feature1,"@{feature1}",feature1.shape)
         # feature2=feature1.T
@@ -248,7 +248,7 @@ class EmotionRecognizer:
         Predicts the probability of each emotion.
         """
         if self.classification_task:
-            feature = extract_feature(audio_path, self.f_config).reshape(1, -1)
+            feature = extract_feature_of_audio(audio_path, self.f_config).reshape(1, -1)
             proba = self.model.predict_proba(feature)[0]
             result = {}
             for emotion, prob in zip(self.model.classes_, proba):

@@ -10,11 +10,16 @@ import ipdb
 import numpy as np
 import PySimpleGUI as sg
 import query as q
-from constants.beauty import (ccser_theme, db_introduction, h2, logo,
-                              option_frame, result_frame)
+from constants.beauty import (
+    ccser_theme,
+    db_introduction,
+    h2,
+    logo,
+    option_frame,
+    result_frame,
+)
 from constants.uiconfig import ML_KEY, __version__
-from demo_programs.Demo_Nice_Buttons import (image_file_to_bytes, red_pill64,
-                                             wcolor)
+from demo_programs.Demo_Nice_Buttons import image_file_to_bytes, red_pill64, wcolor
 from fviewer import audio_viewer_layout, fviewer_events, selected_files
 from joblib import load
 from multilanguage import get_your_language_translator
@@ -30,9 +35,16 @@ import sys
 from audio.core import get_used_keys
 from audio.graph import showFreqGraph, showMelFreqGraph, showWaveForm
 from config.EF import ava_algorithms, ava_emotions, ava_features
-from config.MetaPath import (ava_dbs, bclf, brgr, emodb,
-                             get_example_audio_file, ravdess, savee,
-                             speech_dbs_dir)
+from config.MetaPath import (
+    ava_dbs,
+    bclf,
+    brgr,
+    emodb,
+    get_example_audio_file,
+    ravdess,
+    savee,
+    speech_dbs_dir,
+)
 
 
 def import_config_bookmark():
@@ -101,6 +113,25 @@ def get_algos_elements_list(ava_algorithms=ava_algorithms):
         )
     return algos_radios
 
+def get_train_fit_start_layout():
+    train_fit_start_layout = [
+        [
+            # sg.Button('start train'),
+            sg.RButton(
+                "start train",
+                image_data=image_file_to_bytes(red_pill64, (100, 50)),
+                button_color=("white", "white"),
+                # button_color=wcolor,
+                font="Any 15",
+                pad=(0, 0),
+                key="start train",
+            ),
+            sg.pin(sg.T("current model:", key=current_model_tip_key, visible=False)),
+            sg.T("", key=current_model_key),
+        ]
+    ]
+
+    return train_fit_start_layout
 
 ##
 # ---create the window---
@@ -109,7 +140,172 @@ def make_window(theme=None, size=None):
         # print(theme)
         sg.theme(theme)
     menu_def = [["&Application", ["E&xit"]], ["Help", ["Introduction"]]]
+    # ---user register and login---
+    user_layout = get_user_layout()
     # ---choose theme---
+    theme_layout = get_theme_layout()
+    # ---file viewer--
+    # file_viewer_layout = file_view_layout()
+    # ---create 2 column layout---
+    # ---column left---
+    db_choose_layout = get_db_choose_layout()
+    e_config_layout = get_e_config_layout()
+    f_config_layout = get_f_config_layout()
+    algos_layout = get_algo_layout()
+    other_settings_frame_layout = get_other_settings_layout()
+    train_fit_start_layout = get_train_fit_start_layout()
+    train_result_tables_layout = get_train_res_tables_layout()
+    train_result_frame_layout = train_res_frame_layout(train_result_tables_layout)
+
+    confution_matrix_button_layout = [
+        [sg.B("show confusion matrix", key=show_confusion_matrix_key)],
+    ]
+
+    file_choose_layout = get_file_choose_layout()
+    predict_res_frames_layout = get_predict_res_layout()
+    draw_layout = get_draw_layout()
+
+    # ---column left---
+
+    left_col_layout = (
+        db_choose_layout
+        + e_config_layout
+        + f_config_layout
+        + algos_layout
+        + other_settings_frame_layout
+        + train_fit_start_layout
+        + train_result_frame_layout
+        + confution_matrix_button_layout
+        + file_choose_layout
+        + predict_res_frames_layout
+        + draw_layout
+        # + file_viewer_layout
+    )
+
+    left_column = sg.Column(
+        left_col_layout,
+        expand_x=True,
+        expand_y=True,
+        element_justification="l",
+        scrollable=True,
+        vertical_scroll_only=True,
+    )
+    # ---column right---
+
+    info_layout = get_info_layout()
+
+    # output tab
+    analyzer_layout = get_analyzer_layout()
+
+    settings_layout = [
+        [sg.Text("Settings")],
+    ] + theme_layout
+    about_layout = info_layout
+    # ---column right---
+    right_column_layout = audio_viewer_layout + get_logging_viewer_layout()
+
+    right_column = sg.Column(
+        right_column_layout,
+        expand_x=True,
+        expand_y=True,
+        element_justification="l",
+        scrollable=True,
+        vertical_scroll_only=True,
+    )
+
+    main_pane = sg.Pane(
+        [
+            left_column,
+            #  [sg.VerticalSeparator(pad=None)],
+            # column_middle_separator,
+            right_column,
+        ],
+        orientation="h",
+        expand_x=True,
+        expand_y=True,
+        k="-PANE-",
+    )
+    main_pane_layout = [[left_column, right_column]]
+
+    main_tab_layout = get_title_layout() + main_pane_layout
+
+    # --top Menu bar---
+    Menubar_layout = [
+        [sg.MenubarCustom(menu_def, key="-MENU-", font="Courier 15", tearoff=True)]
+    ]
+
+    # ---tabs---
+    tabs_layout = [
+        [
+            sg.TabGroup(
+                [
+                    [
+                        sg.Tab("WelcomeUser", user_layout),
+                        sg.Tab("MainPage", main_tab_layout),
+                        sg.Tab("Analyzer", analyzer_layout),
+                        sg.Tab("Settings", settings_layout),
+                        sg.Tab("about", about_layout),
+                    ]
+                ],
+                key="-TAB GROUP-",
+                expand_x=True,
+                expand_y=True,
+            ),
+        ]
+    ]
+    # --full layout--
+    layout = Menubar_layout + tabs_layout
+
+    # ---create window---
+    window = sg.Window(
+        title="ccser_client",
+        layout=layout,
+        # alpha_channel=0.9,
+        resizable=True,
+        size=size,
+    )
+    return window
+
+def get_user_layout():
+    global userUI
+    userUI = UserAuthenticatorGUI()
+    user_layout = [
+        # [sg.Text("Welcome:"),sg.Text("User",key=current_user_key)],
+        # [sg.Input(default_text="user name or ID",key="-USER-")],
+        # [sg.Input(default_text="password",key="-PASSWORD-")],
+    ] + userUI.create_user_layout()
+    
+    return user_layout
+
+
+def train_res_frame_layout(train_result_tables_layout):
+    train_result_frame_layout = [
+        [
+            bt.result_frame(
+                title=lang["train_result_title"],
+                layout=train_result_tables_layout,
+                frame_key="train_result_frame",
+            ),
+        ]
+    ]
+
+    return train_result_frame_layout
+
+
+
+
+def get_db_choose_layout():
+    db_choose_layout = [
+        [bt.h2("Select the training database")],
+        [sg.Combo(ava_dbs, key="train_db", default_value=emodb, enable_events=True)],
+        [bt.h2("Select the testing database")],
+        [sg.Combo(ava_dbs, key="test_db", default_value=emodb, enable_events=True)],
+    ]
+
+    return db_choose_layout
+
+
+def get_theme_layout():
     theme_layout = [
         [
             sg.Text(
@@ -126,82 +322,11 @@ def make_window(theme=None, size=None):
         ],
         [sg.Button("Set Theme")],
     ]
-    # ---file viewer--
-    # file_viewer_layout = file_view_layout()
-    # ---create 2 column layout---
-    # ---column left---
-    db_choose_layout = [
-        [bt.h2("Select the training database")],
-        [sg.Combo(ava_dbs, key="train_db", default_value=emodb, enable_events=True)],
-        [bt.h2("Select the testing database")],
-        [sg.Combo(ava_dbs, key="test_db", default_value=emodb, enable_events=True)],
-    ]  # shape=(-1,1)
 
-    # [sg.Checkbox(emo) for emo in ava_emotions]
-    emotion_config_checboxes_layout = [
-        [
-            sg.Checkbox("angry", key="angry", default=True, enable_events=True),
-            sg.Checkbox("happy", key="happy", enable_events=True),
-            sg.Checkbox("neutral", key="neutral", default=True, enable_events=True),
-            sg.Checkbox("ps", key="ps", enable_events=True),
-            sg.Checkbox("sad", key="sad", default=True, enable_events=True),
-            sg.Checkbox("others", key="others", default=True, enable_events=True),
-        ]
-    ]
+    return theme_layout
 
-    e_config_layout = [
-        [
-            bt.h2(
-                text="choose the emotion config",
-                # relief=sg.RELIEF_SOLID,
-                # style_add='underline',
-                style_add="italic",
-                tooltip=lang["choose_emotion_config"],
-            ),
-        ],
-        [
-            bt.option_frame(
-                title="Emotion Config chooser", layout=emotion_config_checboxes_layout
-            )
-        ],
-    ]
-    f_config_option_frame = option_frame(
-        title="Feature Config chooser",
-        layout=[
-            [
-                sg.Checkbox("MFCC", key="mfcc", default=True, enable_events=True),
-                sg.Checkbox("Mel", key="mel", enable_events=True),
-                sg.Checkbox("Contrast", key="contrast", enable_events=True),
-                # 可以考虑在这里换行
-                # ],
-                # [
-                sg.Checkbox("Chromagram", key="chroma", enable_events=True),
-                sg.Checkbox("Tonnetz", key="tonnetz", enable_events=True),
-            ],
-        ],
-        frame_key="f_config_layout",
-    )
-    f_config_layout = [
-        [bt.h2(lang["choose_feature_config"])],
-        [f_config_option_frame],
-    ]
-    # ---column right---
-    algos = get_algos_elements_list()
-    len_of_algos = len(algos)
 
-    algo_frame = option_frame(
-        title="Algorithms chooser",
-        layout=[
-            algos[: len_of_algos // 2],
-            algos[len_of_algos // 2 :],
-        ],
-        frame_key="algo_border_frame",
-    )
-    algos_layout = [
-        [bt.h2(lang["choose_algorithm"])],
-        [algo_frame],
-    ]
-
+def get_file_choose_layout():
     file_choose_layout = [
         [bt.h2(lang["choose_audio"])],
         [
@@ -226,7 +351,12 @@ def make_window(theme=None, size=None):
             ),
         ],
     ]
-    train_result_table_layout = [
+
+    return file_choose_layout
+
+
+def get_train_res_tables_layout():
+    train_result_tables_layout = [
         [
             sg.Table(
                 values=[["pending"] * 2],
@@ -252,24 +382,167 @@ def make_window(theme=None, size=None):
                 visible=False,
             )
         ],
-        # [
-        #     sg.Table(
-        #         values=[["pending"] * 2],
-        #         headings=["confusion_matrix", "accu_score"],
-        #         justification="center",
-        #         font="Arial 16",
-        #         expand_x=True,
-        #         key=train_cv_result_table_key,
-        #         num_rows=1,  # 默认表格会有一定的高度,这里设置为1,避免出现空白
-        #         hide_vertical_scroll=True,
-        #         visible=False,
-        #     )
-        # ]
-    ]
-    confution_matrix_button_layout=[
-        [sg.B("show confusion matrix", key=show_confusion_matrix_key)],
     ]
 
+    return train_result_tables_layout
+
+
+def get_title_layout():
+    return [
+        [
+            sg.Text(
+                # "Welcome to experience CCSER Client!",
+                lang["welcome_title"],
+                size=bt.welcom_title_size,
+                justification="center",
+                font=("Comic", 50),
+                relief=sg.RELIEF_RIDGE,
+                k="-TEXT HEADING-",
+                enable_events=True,
+                expand_x=True,
+            )
+        ],
+    ]
+
+
+def get_draw_layout():
+    draw_layout = [
+        [bt.h2(lang["draw_diagram"], tooltip=lang["draw_diagram_detail"])],
+        # [sg.Input(), sg.FileBrowse()],
+        [
+            sg.Checkbox("waveForm", key="wave_form"),
+            sg.Checkbox("FreqGraph", key="freq_graph"),
+            sg.Checkbox("MelFreqGraph", key="mel_freq_graph"),
+        ],
+        # todo reset
+        [sg.Button("draw_graph"), sg.Button("Reset", key="reset graph Checkbox")],
+    ]
+
+    return draw_layout
+
+
+def get_logging_viewer_layout():
+    return [
+        [sg.Text("dev logging tool:")],
+        [sg.HorizontalSeparator(color=bt.seperator_color)],
+        [
+            sg.Multiline(
+                size=bt.ml_size,
+                write_only=True,
+                # expand_x=True,
+                expand_y=True,
+                key=ML_KEY,
+                reroute_stdout=True,
+                echo_stdout_stderr=True,
+                reroute_cprint=True,
+                auto_refresh=True,
+                autoscroll=True,
+            )
+        ],
+    ]
+
+
+def get_analyzer_layout():
+    analyzer_layout = (
+        [
+            [bt.h2("Anything printed will display here!")],
+            [
+                sg.Multiline(
+                    size=bt.ml_size,
+                    # expand_x=True,
+                    # expand_y=True,
+                    write_only=True,
+                    reroute_stdout=True,
+                    reroute_stderr=True,
+                    echo_stdout_stderr=True,
+                    autoscroll=True,
+                    auto_refresh=True,
+                )
+            ],
+        ]
+        + dv.layout
+        + q.query_layout
+    )
+
+    return analyzer_layout
+
+
+def get_info_layout():
+    info_layout = [
+        [sg.T("CCSER Client By Cxxu_zjgsu " + __version__)],
+        [
+            sg.T(
+                "PySimpleGUI ver "
+                + sg.version.split(" ")[0]
+                + "  tkinter ver "
+                + sg.tclversion_detailed,
+                font="Default 8",
+                pad=(0, 0),
+            )
+        ],
+        [sg.T("Python ver " + sys.version, font="Default 8", pad=(0, 0))],
+        [
+            sg.T(
+                "Interpreter " + sg.execute_py_get_interpreter(),
+                font="Default 8",
+                pad=(0, 0),
+            )
+        ],
+    ]
+
+    return info_layout
+
+
+def get_predict_res_layout():
+    predict_res_layout = bt.res_content_layout(
+        text=no_result_yet, justification="c", key=predict_res_key
+    )
+
+    # 默认不显示predict_proba的不可用说明
+    predict_proba_tips_layout = bt.normal_content_layout(
+        text="pending", key=predict_proba_tips_key, visible=False
+    )
+    # 默认显示predict_proba表格
+    predict_proba_table_layout = [
+        [
+            sg.Table(
+                values=[["pending"] * 2],
+                headings=["emotino", "proba"],
+                justification="c",
+                font="Arial 16",
+                expand_x=True,
+                expand_y=False,
+                key=predict_proba_table_key,
+                auto_size_columns=True,
+                display_row_numbers=True,
+                num_rows=1,
+            )
+        ]
+    ]
+    predict_prob_layout = [*predict_proba_tips_layout, *predict_proba_table_layout]
+    predict_res_frames_layout = [
+        [result_frame(layout=predict_res_layout)],
+        [
+            result_frame(
+                title="predict_proba_tips",
+                layout=predict_prob_layout,
+                frame_key=predict_proba_frame_key,
+                # visible=False,
+            )
+        ],
+        # [
+        #     result_frame(
+        #         title="predict_proba_table",
+        #         layout=predict_proba_table_layout,
+        #         frame_key=predict_proba_table_frame_key,
+        #     ),
+        # ],
+    ]
+
+    return predict_res_frames_layout
+
+
+def get_other_settings_layout():
     cv_mode_layout = [
         [
             sg.T("cv mode:"),
@@ -317,280 +590,85 @@ def make_window(theme=None, size=None):
             ),
         ],
     ]
-    train_fit_button_layout = [
+
+    return other_settings_frame_layout
+
+
+def get_algo_layout():
+    algos = get_algos_elements_list()
+    len_of_algos = len(algos)
+
+    algo_frame = option_frame(
+        title="Algorithms chooser",
+        layout=[
+            algos[: len_of_algos // 2],
+            algos[len_of_algos // 2 :],
+        ],
+        frame_key="algo_border_frame",
+    )
+    algos_layout = [
+        [bt.h2(lang["choose_algorithm"])],
+        [algo_frame],
+    ]
+
+    return algos_layout
+
+
+def get_e_config_layout():
+    emotion_config_checboxes_layout = [
         [
-            # sg.Button('start train'),
-            sg.RButton(
-                "start train",
-                image_data=image_file_to_bytes(red_pill64, (100, 50)),
-                button_color=("white", "white"),
-                # button_color=wcolor,
-                font="Any 15",
-                pad=(0, 0),
-                key="start train",
-            ),
-            sg.pin(sg.T("current model:", key=current_model_tip_key, visible=False)),
-            sg.T("", key=current_model_key),
+            sg.Checkbox("angry", key="angry", default=True, enable_events=True),
+            sg.Checkbox("happy", key="happy", enable_events=True),
+            sg.Checkbox("neutral", key="neutral", default=True, enable_events=True),
+            sg.Checkbox("ps", key="ps", enable_events=True),
+            sg.Checkbox("sad", key="sad", default=True, enable_events=True),
+            sg.Checkbox("others", key="others", default=True, enable_events=True),
         ]
     ]
 
-    train_result_frame_layout = [
+    e_config_layout = [
         [
-            bt.result_frame(
-                title=lang["train_result_title"],
-                layout=train_result_table_layout,
-                frame_key="train_result_frame",
+            bt.h2(
+                text="choose the emotion config",
+                # relief=sg.RELIEF_SOLID,
+                # style_add='underline',
+                style_add="italic",
+                tooltip=lang["choose_emotion_config"],
             ),
-        ]
-    ]
-    # bt.res_content_layout(no_result_yet,res_key='train_result')
-    predict_res_layout = bt.res_content_layout(
-        text=no_result_yet, justification="c", key=predict_res_key
-    )
-    # predict_proba_tips_layout = [[sg.Text("pending", key=predict_proba_tips_key)]]
-    # 默认不显示predict_proba的不可用说明
-    predict_proba_tips_layout = bt.normal_content_layout(
-        text="pending", key=predict_proba_tips_key, visible=False
-    )
-    # 默认显示predict_proba表格
-    predict_proba_table_layout = [
+        ],
         [
-            sg.Table(
-                values=[["pending"] * 2],
-                headings=["emotino", "proba"],
-                justification="c",
-                font="Arial 16",
-                expand_x=True,
-                expand_y=False,
-                key=predict_proba_table_key,
-                auto_size_columns=True,
-                display_row_numbers=True,
-                num_rows=1,
-            )
-        ]
-    ]
-    predict_prob_layout = [*predict_proba_tips_layout, *predict_proba_table_layout]
-    predict_res_frames_layout = [
-        [result_frame(layout=predict_res_layout)],
-        [
-            result_frame(
-                title="predict_proba_tips",
-                layout=predict_prob_layout,
-                frame_key=predict_proba_frame_key,
-                # visible=False,
+            bt.option_frame(
+                title="Emotion Config chooser", layout=emotion_config_checboxes_layout
             )
         ],
-        # [
-        #     result_frame(
-        #         title="predict_proba_table",
-        #         layout=predict_proba_table_layout,
-        #         frame_key=predict_proba_table_frame_key,
-        #     ),
-        # ],
-    ]
-    draw_layout = [
-        [bt.h2(lang["draw_diagram"], tooltip=lang["draw_diagram_detail"])],
-        # [sg.Input(), sg.FileBrowse()],
-        [
-            sg.Checkbox("waveForm", key="wave_form"),
-            sg.Checkbox("FreqGraph", key="freq_graph"),
-            sg.Checkbox("MelFreqGraph", key="mel_freq_graph"),
-        ],
-        # todo reset
-        [sg.Button("draw_graph"), sg.Button("Reset", key="reset graph Checkbox")],
     ]
 
-    info_layout = [
-        [sg.T("CCSER Client By Cxxu_zjgsu " + __version__)],
-        [
-            sg.T(
-                "PySimpleGUI ver "
-                + sg.version.split(" ")[0]
-                + "  tkinter ver "
-                + sg.tclversion_detailed,
-                font="Default 8",
-                pad=(0, 0),
-            )
-        ],
-        [sg.T("Python ver " + sys.version, font="Default 8", pad=(0, 0))],
-        [
-            sg.T(
-                "Interpreter " + sg.execute_py_get_interpreter(),
-                font="Default 8",
-                pad=(0, 0),
-            )
-        ],
-    ]
-    # dbs_introduce_layout=[
-    #     [sg.Text("数据库选择")],
-    # ]
-    # output tab
-    analyzer_layout = (
-        [
-            [bt.h2("Anything printed will display here!")],
+    return e_config_layout
+
+
+def get_f_config_layout():
+    f_config_option_frame = option_frame(
+        title="Feature Config chooser",
+        layout=[
             [
-                sg.Multiline(
-                    size=bt.ml_size,
-                    # expand_x=True,
-                    # expand_y=True,
-                    write_only=True,
-                    reroute_stdout=True,
-                    reroute_stderr=True,
-                    echo_stdout_stderr=True,
-                    autoscroll=True,
-                    auto_refresh=True,
-                )
+                sg.Checkbox("MFCC", key="mfcc", default=True, enable_events=True),
+                sg.Checkbox("Mel", key="mel", enable_events=True),
+                sg.Checkbox("Contrast", key="contrast", enable_events=True),
+                # 可以考虑在这里换行
+                # ],
+                # [
+                sg.Checkbox("Chromagram", key="chroma", enable_events=True),
+                sg.Checkbox("Tonnetz", key="tonnetz", enable_events=True),
             ],
-        ]
-        + dv.layout
-        + q.query_layout
-    )
-
-    settings_layout = [
-        [sg.Text("Settings")],
-    ] + theme_layout
-    about_layout = info_layout
-    # ---column left---
-
-    left_col_layout = (
-        db_choose_layout
-        + e_config_layout
-        + f_config_layout
-        + algos_layout
-        + other_settings_frame_layout
-        + train_fit_button_layout
-        + train_result_frame_layout
-        + confution_matrix_button_layout
-        + file_choose_layout
-        + predict_res_frames_layout
-        + draw_layout
-        # + file_viewer_layout
-    )
-    right_column_layout = (
-        #  [
-        #     [
-        #         sg.Button("open folder"),
-        #         sg.Text("<folder of speech db>", key="speech_folder_path"),
-        #     ],
-        # ]
-        # +
-        audio_viewer_layout
-        + [
-            [sg.Text("dev logging tool:")],
-            [sg.HorizontalSeparator(color=bt.seperator_color)],
-            [
-                sg.Multiline(
-                    size=bt.ml_size,
-                    write_only=True,
-                    # expand_x=True,
-                    expand_y=True,
-                    key=ML_KEY,
-                    reroute_stdout=True,
-                    echo_stdout_stderr=True,
-                    reroute_cprint=True,
-                    auto_refresh=True,
-                    autoscroll=True,
-                )
-            ],
-        ]
-    )
-    left_column = sg.Column(
-        left_col_layout,
-        expand_x=True,
-        expand_y=True,
-        element_justification="l",
-        scrollable=True,
-        vertical_scroll_only=True,
-    )
-    # column_middle_separator = sg.Column([[sg.VerticalSeparator()]], background_color='yellow')
-
-    right_column = sg.Column(
-        right_column_layout,
-        expand_x=True,
-        expand_y=True,
-        element_justification="l",
-        scrollable=True,
-        vertical_scroll_only=True,
-    )
-
-    main_pane = sg.Pane(
-        [
-            left_column,
-            #  [sg.VerticalSeparator(pad=None)],
-            # column_middle_separator,
-            right_column,
         ],
-        orientation="h",
-        expand_x=True,
-        expand_y=True,
-        k="-PANE-",
+        frame_key="f_config_layout",
     )
-    main_pane_layout = [[left_column, right_column]]
-    global userUI
-    userUI = UserAuthenticatorGUI()
-    user_layout = [
-        # [sg.Text("Welcome:"),sg.Text("User",key=current_user_key)],
-        # [sg.Input(default_text="user name or ID",key="-USER-")],
-        # [sg.Input(default_text="password",key="-PASSWORD-")],
-    ] + userUI.create_user_layout()
-
-    main_tab_layout = [
-        [
-            sg.Text(
-                # "Welcome to experience CCSER Client!",
-                lang["welcome_title"],
-                size=bt.welcom_title_size,
-                justification="center",
-                font=("Comic", 50),
-                relief=sg.RELIEF_RIDGE,
-                k="-TEXT HEADING-",
-                enable_events=True,
-                expand_x=True,
-            )
-        ],
-        # [main_pane],
-        # [sg.B(ufg.close)],
-    ] + main_pane_layout
-    # main_page_layout = main_tab_layout
-
-    # ----full layout----
-    # --top Menu bar---
-    Menubar_layout = [
-        [sg.MenubarCustom(menu_def, key="-MENU-", font="Courier 15", tearoff=True)]
+    f_config_layout = [
+        [bt.h2(lang["choose_feature_config"])],
+        [f_config_option_frame],
     ]
 
-    # ---tabs---
-    tabs_layout = [
-        [
-            sg.TabGroup(
-                [
-                    [
-                        sg.Tab("WelcomeUser", user_layout),
-                        sg.Tab("MainPage", main_tab_layout),
-                        sg.Tab("Analyzer", analyzer_layout),
-                        sg.Tab("Settings", settings_layout),
-                        sg.Tab("about", about_layout),
-                    ]
-                ],
-                key="-TAB GROUP-",
-                expand_x=True,
-                expand_y=True,
-            ),
-        ]
-    ]
-
-    layout = Menubar_layout + tabs_layout
-    # layout=theme_layout
-
-    # ---create window---
-    window = sg.Window(
-        title="ccser_client",
-        layout=layout,
-        # alpha_channel=0.9,
-        resizable=True,
-        size=size,
-    )
-    return window
+    return f_config_layout
 
 
 def initial(values=None, verbose=1):
@@ -630,7 +708,7 @@ def selected_features(values):
     return f_config
 
 
-def selected_radio_in(values,ava_list=ava_algorithms):
+def selected_radio_in(values, ava_list=ava_algorithms):
     # global algorithm
     # res=""
     for algo_name in ava_list:
@@ -722,7 +800,7 @@ def recognize_auido(
 
         data = list(predict_proba.items())
         # print(data,"@{data}")
-        data = [[emo, round(proba,bt.score_ndigits)] for emo, proba in data]
+        data = [[emo, round(proba, bt.score_ndigits)] for emo, proba in data]
         # 关闭proba_tip的显示
         window[predict_proba_tips_key].update(visible=False)
         # 更新proba表格内容
@@ -732,7 +810,7 @@ def recognize_auido(
         ppt.update(
             values=data,
             num_rows=4,
-            #display_row_numbers=True
+            # display_row_numbers=True
             visible=True,
         )
         # window[]
@@ -793,6 +871,7 @@ def start_train_model(
 
     if algorithm == "RNN":
         from recognizer.deep import DeepEmotionRecognizer
+
         der = DeepEmotionRecognizer(
             train_dbs=train_db, test_dbs=test_db, e_config=e_config, f_config=f_config
         )
@@ -961,11 +1040,12 @@ def main(verbose=1):
             content = [logo, db_introduction]
             res = "\n".join(content)
             sg.popup_scrolled(res, size=(150, 100), title="Introduction")
-        elif event==show_confusion_matrix_key:
-                from SG.demo_pandas_table import TablePandas
-                cm=er.confusion_matrix()
-                tp=TablePandas(df=cm)
-                tp.show_confution_matrix_window()
+        elif event == show_confusion_matrix_key:
+            from SG.demo_pandas_table import TablePandas
+
+            cm = er.confusion_matrix()
+            tp = TablePandas(df=cm)
+            tp.show_confution_matrix_window()
         else:
             # 具有独立的事件循环,直接调用即可
             userUI.run_module(event, values, window=window, verbose=1)
@@ -1006,10 +1086,10 @@ def refresh_trained_view(verbose, window, er, values):
     window[current_model_key].update(value=er.model)
     n_splits = values[cv_splits_slider_key]
     # cv_mode=values[kfold_radio_key]
-    cv_mode=selected_radio_in(values,ava_list=ava_cv_modes)
+    cv_mode = selected_radio_in(values, ava_list=ava_cv_modes)
     # print(cv_mode,"@{cv_mode}🎈")
 
-    fold_scores = er.model_cv_score(mean_only=False, n_splits=n_splits,cv_mode=cv_mode)
+    fold_scores = er.model_cv_score(mean_only=False, n_splits=n_splits, cv_mode=cv_mode)
     folds = len(fold_scores)
     mean_score = np.mean(fold_scores)
     fold_scores_rows = [
@@ -1021,7 +1101,6 @@ def refresh_trained_view(verbose, window, er, values):
     # args=inspect.signature(tcrt)
     # print(f"{args=}🎈")
     tcrt(values=fold_scores_rows, num_rows=folds + 1, visible=True)
-
 
 
 def open_folder_event(window):
