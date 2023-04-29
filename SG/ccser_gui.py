@@ -34,7 +34,7 @@ import sys
 # from SG.psgdemos import find_in_file, get_editor, get_explorer, get_file_list, filter_tooltip, find_re_tooltip, find_tooltip, get_file_list_dict, settings_window, using_local_editor, window_choose_line_to_edit
 from audio.core import get_used_keys
 from audio.graph import showFreqGraph, showMelFreqGraph, showWaveForm
-from config.EF import ava_algorithms, ava_emotions, ava_features
+from config.EF import ava_algorithms, ava_emotions, ava_features, ava_svd_solver
 from config.MetaPath import (
     ava_dbs,
     bclf,
@@ -66,9 +66,20 @@ test = "test"
 algorithm = ""
 audio_selected = ""
 speech_folder = speech_dbs_dir
+start_train_key = "start train"
 no_result_yet = f"No Result Yet"
 predict_res_key = "emotion_predict_res"
+std_scaler_key = "std_scaler"
+pca_key = "pca_params"
+feature_dimension_key = "feature_dimension"
+feature_dimension_pca_tip_key = "feature_dimension_pca_tip"
+feature_dimension_pca_key = "feature_dimension_pca"
+pca_enable_key = "pca_enable"
+pca_components_key = "pca_components"
+pca_svd_solver_key = "pca_svd_solver"
+
 kfold_radio_key = "kfold"
+skfold_radio_key = "skfold"
 shuffle_split_radio_key = "ss"
 show_confusion_matrix_key = "show_confusion_matrix"
 
@@ -113,6 +124,7 @@ def get_algos_elements_list(ava_algorithms=ava_algorithms):
         )
     return algos_radios
 
+
 def get_train_fit_start_layout():
     train_fit_start_layout = [
         [
@@ -133,6 +145,7 @@ def get_train_fit_start_layout():
 
     return train_fit_start_layout
 
+
 ##
 # ---create the window---
 def make_window(theme=None, size=None):
@@ -151,6 +164,7 @@ def make_window(theme=None, size=None):
     db_choose_layout = get_db_choose_layout()
     e_config_layout = get_e_config_layout()
     f_config_layout = get_f_config_layout()
+    f_transform_layout = get_f_transform_layout()
     algos_layout = get_algo_layout()
     other_settings_frame_layout = get_other_settings_layout()
     train_fit_start_layout = get_train_fit_start_layout()
@@ -171,6 +185,7 @@ def make_window(theme=None, size=None):
         db_choose_layout
         + e_config_layout
         + f_config_layout
+        + f_transform_layout
         + algos_layout
         + other_settings_frame_layout
         + train_fit_start_layout
@@ -202,7 +217,8 @@ def make_window(theme=None, size=None):
     ] + theme_layout
     about_layout = info_layout
     # ---column right---
-    right_column_layout = audio_viewer_layout + get_logging_viewer_layout()
+    right_column_layout = audio_viewer_layout
+    # + get_logging_viewer_layout()
 
     right_column = sg.Column(
         right_column_layout,
@@ -266,6 +282,7 @@ def make_window(theme=None, size=None):
     )
     return window
 
+
 def get_user_layout():
     global userUI
     userUI = UserAuthenticatorGUI()
@@ -274,7 +291,7 @@ def get_user_layout():
         # [sg.Input(default_text="user name or ID",key="-USER-")],
         # [sg.Input(default_text="password",key="-PASSWORD-")],
     ] + userUI.create_user_layout()
-    
+
     return user_layout
 
 
@@ -290,8 +307,6 @@ def train_res_frame_layout(train_result_tables_layout):
     ]
 
     return train_result_frame_layout
-
-
 
 
 def get_db_choose_layout():
@@ -422,6 +437,30 @@ def get_draw_layout():
 
 
 def get_logging_viewer_layout():
+    """
+    #!这个函数可能潜在的导致特征提取变得异常缓慢,可能是:
+    - GUI框架中将输出导出到sg.Multiline问题(比如将这部分抽出为函数导致的,在实际试验中,tqdm进度条会因为使用这个组件实时输出导致样式发生变换)
+    - 这其中的具体原因尚不明确
+    - 也可能是tqdm可视化的问题
+
+
+    Returns a layout for a dev logging tool.
+
+    The layout consists of a Text element with the label "dev logging tool:",
+    a HorizontalSeparator element with the color specified by the bt.seperator_color
+    variable, and a Multiline element with the following parameters:
+    - size: specified by the bt.ml_size variable
+    - write_only: True
+    - key: specified by the ML_KEY variable
+    - reroute_stdout: True
+    - echo_stdout_stderr: True
+    - reroute_cprint: True
+    - auto_refresh: True
+    - autoscroll: True
+
+    Returns:
+    - A list containing the layout elements as described above.
+    """
     return [
         [sg.Text("dev logging tool:")],
         [sg.HorizontalSeparator(color=bt.seperator_color)],
@@ -430,7 +469,7 @@ def get_logging_viewer_layout():
                 size=bt.ml_size,
                 write_only=True,
                 # expand_x=True,
-                expand_y=True,
+                # expand_y=True,
                 key=ML_KEY,
                 reroute_stdout=True,
                 echo_stdout_stderr=True,
@@ -550,6 +589,13 @@ def get_other_settings_layout():
                 "k-fold",
                 group_id="cv_mode",
                 key=kfold_radio_key,
+                default=True,
+                enable_events=True,
+            ),
+            sg.Radio(
+                "sk-fold",
+                group_id="cv_mode",
+                key=skfold_radio_key,
                 default=False,
                 enable_events=True,
             ),
@@ -564,7 +610,7 @@ def get_other_settings_layout():
                 "stratified-shuffle-split",
                 group_id="cv_mode",
                 key=stratified_shuffle_split_radio_key,
-                default=True,
+                default=False,
                 enable_events=True,
             ),
         ]
@@ -646,6 +692,36 @@ def get_e_config_layout():
     return e_config_layout
 
 
+tooltip_pca_components = """
+PCA components
+Number of components to keep. if n_components is not set all components are kept:
+
+n_components == min(n_samples, n_features)
+If n_components == 'mle' and svd_solver == 'full', Minka’s MLE is used to guess the dimension. Use of n_components == 'mle' will interpret svd_solver == 'auto' as svd_solver == 'full'.
+
+If 0 < n_components < 1 and svd_solver == 'full', select the number of components such that the amount of variance that needs to be explained is greater than the percentage specified by n_components.
+
+If svd_solver == 'arpack', the number of components must be strictly less than the minimum of n_features and n_samples.
+
+Hence, the None case results in:
+
+n_components == min(n_samples, n_features) - 1
+"""
+tooltip_pca_svd_solver = """
+If auto :
+The solver is selected by a default policy based on X.shape and n_components: if the input data is larger than 500x500 and the number of components to extract is lower than 80% of the smallest dimension of the data, then the more efficient ‘randomized’ method is enabled. Otherwise the exact full SVD is computed and optionally truncated afterwards.
+
+If full :
+run exact full SVD calling the standard LAPACK solver via scipy.linalg.svd and select the components by postprocessing
+
+If arpack :
+run SVD truncated to n_components calling ARPACK solver via scipy.sparse.linalg.svds. It requires strictly 0 < n_components < min(X.shape)
+
+If randomized :
+run randomized SVD by the method of Halko et al.
+"""
+
+
 def get_f_config_layout():
     f_config_option_frame = option_frame(
         title="Feature Config chooser",
@@ -654,9 +730,6 @@ def get_f_config_layout():
                 sg.Checkbox("MFCC", key="mfcc", default=True, enable_events=True),
                 sg.Checkbox("Mel", key="mel", enable_events=True),
                 sg.Checkbox("Contrast", key="contrast", enable_events=True),
-                # 可以考虑在这里换行
-                # ],
-                # [
                 sg.Checkbox("Chromagram", key="chroma", enable_events=True),
                 sg.Checkbox("Tonnetz", key="tonnetz", enable_events=True),
             ],
@@ -669,6 +742,59 @@ def get_f_config_layout():
     ]
 
     return f_config_layout
+
+
+def get_f_transform_layout():
+    f_transform_frame_layout = option_frame(
+        title="Feature Transform chooser",
+        layout=[
+            [
+                sg.Checkbox(
+                    text="StandardScaler",
+                    key=std_scaler_key,
+                    default=False,
+                    enable_events=True,
+                ),
+                sg.Checkbox(
+                    text="pca", key=pca_enable_key, default=False, enable_events=True
+                ),
+            ],
+            [
+                sg.Input(
+                    key=pca_components_key,
+                    default_text="35",
+                    tooltip=tooltip_pca_components,
+                    enable_events=True,
+                ),
+                sg.Combo(
+                    values=ava_svd_solver,
+                    default_value="auto",
+                    tooltip=tooltip_pca_svd_solver,
+                    enable_events=True,
+                    key=pca_svd_solver_key,
+                ),
+            ],
+            [
+                sg.Text(text="feature_dimension:"),
+                sg.pin(sg.Text("pending", key=feature_dimension_key)),
+            ],
+            [
+                sg.pin(
+                    sg.Text(
+                        text="after pca",
+                        key=feature_dimension_pca_tip_key,
+                        visible=False,
+                    )
+                ),
+                sg.Text("pending", key=feature_dimension_pca_key, visible=False),
+            ],
+        ],
+    )
+    f_transform_layout = [
+        [bt.h2(lang["feature_transfomr_config"])],
+        [f_transform_frame_layout],
+    ]
+    return f_transform_layout
 
 
 def initial(values=None, verbose=1):
@@ -779,14 +905,7 @@ def recognize_auido(
         sys.exit("Please select an audio file at first!")
     if er is None:
         sg.popup("Please train an emotion recognition model at frist !")
-        # return
-        # er = start_train_model(
-        #     train_db=train_db,
-        #     test_db=test_db,
-        #     e_config=e_config,
-        #     f_config=f_config,
-        #     algorithm=algorithm,
-        # )
+
     else:
         emotion_predict_result = er.predict(audio_selected)
         print(f"{emotion_predict_result=}")
@@ -829,7 +948,13 @@ def recognize_auido(
 
 
 def start_train_model(
-    train_db=None, test_db=None, e_config=None, f_config=None, algorithm=None, verbose=1
+    train_db=None,
+    test_db=None,
+    e_config=None,
+    f_config=None,
+    algorithm=None,
+    values=None,
+    verbose=1,
 ):
     """
     Train an emotion recognition model and returns an EmotionRecognizer object.
@@ -869,6 +994,24 @@ def start_train_model(
     model = ML_estimators_dict[algorithm]
     print(train_db, test_db, e_config, f_config, algorithm, model, audio_selected)
 
+    # 设置特征预处理(transform)参数
+    pca_enable = values[pca_enable_key]
+    pca_params = None
+    if pca_enable:
+        pca_params = dict(
+            n_components=values[pca_components_key],
+            svd_solver=values[pca_svd_solver_key],
+        )
+    fts = dict(
+        std_scaler=values[std_scaler_key],
+        pca_params=pca_params,
+    )
+
+    if verbose:
+        print(fts, "@{fts}🎈")
+    fts_non_None = {key: value for key, value in fts.items() if value is not None}
+
+    # 正式开始拟合/训练模型
     if algorithm == "RNN":
         from recognizer.deep import DeepEmotionRecognizer
 
@@ -884,6 +1027,7 @@ def start_train_model(
             e_config=e_config,
             f_config=f_config,
             verbose=1,
+            **fts_non_None,
         )
     # 对数据进行训练(train方法自动导入数据)
     er.train()
@@ -933,11 +1077,11 @@ def main(verbose=1):
 
         if event:  # 监听任何event
             print(event, "@{event}", __file__)
-
-        # 语料库的选择
+        # 检测是否窗口要被关闭
         if event in (ufg.close, sg.WIN_CLOSED):
             print(ufg.close, "关闭窗口")
             break
+        # 语料库的选择
         elif event == "train_db":
             train_db = values["train_db"]
             if verbose > 1:
@@ -984,14 +1128,16 @@ def main(verbose=1):
             open_folder_event(window)
             # print("完成文件选取")
         # --情感识别阶段--
-        elif event == "start train":
-            n_splits = values[cv_splits_slider_key]
+        elif event == start_train_key:
+            # n_splits = values[cv_splits_slider_key]
+            # std_scaler=values[std_scaler_key]
             er = start_train_model(
                 train_db=train_db,
                 test_db=test_db,
                 e_config=e_config,
                 f_config=f_config,
                 algorithm=algorithm,
+                values=values,
             )
 
             # 训练收尾工作:将计算结果(识别器)传递给fviewer,赋能fviewer可以(直接利用识别器对象)进行识别
@@ -1084,6 +1230,13 @@ def refresh_trained_view(verbose, window, er, values):
     )  # values类型是list[list[any]],每个内部列表表示表格的一个行的数据
     window[current_model_tip_key].update(visible=True)
     window[current_model_key].update(value=er.model)
+    ae = er.ae
+    window[feature_dimension_key].update(value=ae.feature_dimension)
+    window[feature_dimension_pca_tip_key].update(visible=True)
+    window[feature_dimension_pca_key].update(
+        value=ae.get_dimensions(), visible=True
+    )
+
     n_splits = values[cv_splits_slider_key]
     # cv_mode=values[kfold_radio_key]
     cv_mode = selected_radio_in(values, ava_list=ava_cv_modes)

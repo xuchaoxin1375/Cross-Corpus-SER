@@ -1,5 +1,6 @@
 ##
 # from typing_extensions import deprecated
+from config.MetaPath import test_emodb_csv
 import random
 from time import time
 from config.algoparams import ava_cv_modes
@@ -7,20 +8,42 @@ import matplotlib.pyplot as pl
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
+
 # from deprecated import deprecated
-from sklearn.metrics import (accuracy_score, classification_report,
-                             confusion_matrix, fbeta_score, make_scorer,
-                             mean_absolute_error, mean_squared_error)
-from sklearn.model_selection import GridSearchCV, KFold, ShuffleSplit, StratifiedShuffleSplit, cross_val_score
+from sklearn.metrics import (
+    accuracy_score,
+    classification_report,
+    confusion_matrix,
+    fbeta_score,
+    make_scorer,
+    mean_absolute_error,
+    mean_squared_error,
+)
+from sklearn.model_selection import (
+    GridSearchCV,
+    KFold,
+    ShuffleSplit,
+    StratifiedKFold,
+    StratifiedShuffleSplit,
+    cross_val_score,
+)
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
 from tqdm import tqdm
 
-from audio.extractor import load_data_from_meta
-from config.EF import (e_config_def, f_config_def, validate_emotions)
-from config.MetaPath import (emodb, meta_paths_of_db, ravdess, savee,validate_partition,project_dir)
+from audio.extractor import AudioExtractor, load_data_from_meta
+from config.EF import e_config_def, f_config_def, validate_emotions
+from config.MetaPath import (
+    emodb,
+    meta_paths_of_db,
+    ravdess,
+    savee,
+    validate_partition,
+    project_dir,
+)
 import config.MetaPath as meta
 from audio.core import best_estimators, extract_feature_of_audio
+
 
 ##
 class EmotionRecognizer:
@@ -28,19 +51,20 @@ class EmotionRecognizer:
     speech's features that are extracted and fed into `sklearn` or `keras` model"""
 
     def __init__(
-            self,
-            model=None,
-            classification_task=True,
-            dbs=None,
-            e_config=None,
-            f_config=None,
-            train_dbs=None,
-            test_dbs=None,
-            balance=False,
-            shuffle=True,
-            override_csv=True,
-            verbose=1,
-            **kwargs,
+        self,
+        model=None,
+        classification_task=True,
+        dbs=None,
+        e_config=None,
+        f_config=None,
+        train_dbs=None,
+        test_dbs=None,
+        balance=False,
+        shuffle=True,
+        override_csv=True,
+        verbose=1,
+        **feature_transforms,
+        # **kwargs,
     ):
         """
         Params:
@@ -98,31 +122,22 @@ class EmotionRecognizer:
         )
 
         # print(self.train_meta_files, self.test_meta_files)
-
-        # if self.train_dbs and self.test_dbs:
-        #     if isinstance( self.train_dbs,str):
-        #         self.train_dbs = [self.train_dbs]
-        #         self.train_meta_files=[
-        #             meta_paths_of_db(db,e_config=self.e_config) for db in self.train_dbs
-        #         ]
-        #     if isinstance( self.test_dbs,str):
-        #         self.test_dbs = [self.test_dbs]
-        #         self.test_meta_files=[
-        #             meta_paths_of_db(db,e_config=self.e_config) for db in self.test_dbs
-        #         ]
+        self.feature_transforms = (
+            feature_transforms if feature_transforms else {"std_scaler": False}
+        )
 
         # 可以使用python 默认参数来改造写法
         # 默认执行分类任务
         self.classification_task = classification_task
         self.balance = balance
-        self.shuffle=shuffle
+        self.shuffle = shuffle
         self.override_csv = override_csv
         self.verbose = verbose
         # boolean attributes
         self.balance = False
         self.data_loaded = False
         self.model_trained = False
-
+        self.ae=None
         self.dbs = dbs if dbs else [ravdess]
         # 鉴于数据集(特征和标签)在评估方法时将反复用到,因此这里将设置相应的属性来保存它们
         # 另一方面,如果模仿sklearn中的编写风格,其实是将数据和模型计算分布在不同的模块(类)中,比如
@@ -158,7 +173,7 @@ class EmotionRecognizer:
         """
         # 判断是否已经导入过数据.如果已经导入,则跳过,否则执行导入
         if not self.data_loaded:
-            # 调用data_extractor中的数据导入函数
+            # 调用extractor中的数据导入函数
             data = load_data_from_meta(
                 train_meta_files=self.train_meta_files,
                 test_meta_files=self.test_meta_files,
@@ -166,19 +181,24 @@ class EmotionRecognizer:
                 e_config=self.e_config,
                 classification_task=self.classification_task,
                 balance=self.balance,
-                shuffle=self.shuffle
+                shuffle=self.shuffle,
+                feature_transforms=self.feature_transforms,
             )
             # 设置实例的各个属性
+            # 事实上,也可以直接用load_data_from_meta返回的结果中的ae对象,赋值ER对象(self.ae=data["ae"])
+            self.ae=data["ae"]
             self.X_train = data["X_train"]
             self.X_test = data["X_test"]
             self.y_train = data["y_train"]
             self.y_test = data["y_test"]
             self.train_audio_paths = data["train_audio_paths"]
             self.test_audio_paths = data["test_audio_paths"]
-           
+
             self.balanced_success(data)
             if self.verbose:
                 print("[I] Data loaded\n")
+                print(f"{self.ae=}")
+                print(f"{self.ae.pca=}🎈")
             self.data_loaded = True
             # print(id(self))
             if self.verbose > 1:
@@ -197,9 +217,9 @@ class EmotionRecognizer:
         if not self.data_loaded:
             # if data isn't loaded yet, load it then
             self.load_data()
-
-        print("@{self.model}:")
-        print(self.model)
+        if verbose > 1:
+            print("@{self.model}:")
+            print(self.model)
         model = self.model if self.model is not None else self.best_model()
         if not self.model_trained or choosing:
             X_train = self.X_train
@@ -218,20 +238,35 @@ class EmotionRecognizer:
         由于是单个音频的情感预测,因此不需要考虑shuffle和balance这些操作,只需要提取语音特征,然后进行调用模型预测即可
         given an `audio_path`, this method extracts the features
         and predicts the emotion
+        
+        以下语句不再适合具有pca降维操作下的情形
+        feature_audio = extract_feature_of_audio(audio_path, self.f_config)
+        print(feature1.shape)
+        print(feature1,"@{feature1}",feature1.shape)
+        feature2=feature1.T
+        print(feature2,"@{feature2}",feature2.shape)
+        print(feature3,"@{feature3}",feature3.shape)
         """
-        feature1 = extract_feature_of_audio(audio_path, self.f_config)
-        # print(feature1.shape)
-        # print(feature1,"@{feature1}",feature1.shape)
-        # feature2=feature1.T
-        # print(feature2,"@{feature2}",feature2.shape)
+        feature_audio = self.extract_feature_single_audio(audio_path)
 
-        feature = feature1.reshape(1, -1)
-        # print(feature3,"@{feature3}",feature3.shape)
+
+        feature = feature_audio.reshape(1, -1)
         model = self.model if self.model else self.best_model()
         res = model.predict(feature)
         # res可能是个列表
         # print(res, "@{res}")
         return res[0]
+
+    def extract_feature_single_audio(self, audio_path):
+
+        ae:AudioExtractor=self.ae
+        pca = ae.pca
+        print(pca,"@{pca} in 'predict' method")
+        # if pca:
+        #     feature_audio=pca.transform(feature_audio)
+        #     print(feature_audio.shape, "@{feature_audio.shape}")
+        feature_audio=ae.extract_features(partition="test",audio_paths=[audio_path])
+        return feature_audio
         # return self.model.predict(feature2)[0]
 
     def peek_test_set(self, n=5):
@@ -248,7 +283,8 @@ class EmotionRecognizer:
         Predicts the probability of each emotion.
         """
         if self.classification_task:
-            feature = extract_feature_of_audio(audio_path, self.f_config).reshape(1, -1)
+            # feature = extract_feature_of_audio(audio_path, self.f_config).reshape(1, -1)
+            feature=self.extract_feature_single_audio(audio_path)
             proba = self.model.predict_proba(feature)[0]
             result = {}
             for emotion, prob in zip(self.model.classes_, proba):
@@ -336,7 +372,7 @@ class EmotionRecognizer:
                 f_config=self.f_config,
                 balance=self.balance,
                 override_csv=False,
-                verbose=0
+                verbose=0,
             )
             # data already loaded
             er.X_train = self.X_train
@@ -353,7 +389,7 @@ class EmotionRecognizer:
 
             # 使用本对象self而不是在创建一个ER对象
             # self.model = estimator
-            # er = self  
+            # er = self
             # 以下的计算是用来选出model的,而不是直接作为self对象的属性,这里将self赋值给er,以示区别
 
             # train(fit) the model
@@ -401,14 +437,11 @@ class EmotionRecognizer:
         y_test = self.y_test
         # 调用训练好的模型进行预测
         model = self.model if self.model is not None else self.best_model()
-        self.validate_empty_array(X_test=X_test,y_test=y_test)
-        # if len(X_test) == 0:
-        #     raise ValueError("X_test is empty")
-        # if len(y_test) == 0:
-        #     raise ValueError("y_test is empty")
+        self.validate_empty_array(X_test=X_test, y_test=y_test)
+
         # 预测计算
         if verbose:
-            print(X_test.shape, y_test.shape,"🎈")
+            print(X_test.shape, y_test.shape, "🎈")
         y_pred = model.predict(X_test)  # type: ignore
         if choosing == False:
             self.y_pred = np.array(y_pred)
@@ -417,11 +450,21 @@ class EmotionRecognizer:
             res = accuracy_score(y_true=y_test, y_pred=y_pred)
         else:
             res = mean_squared_error(y_true=y_test, y_pred=y_pred)
-        if self.verbose >= 2 or verbose >= 1:
+        if self.verbose >= 1:
             report = classification_report(y_true=y_test, y_pred=y_pred)
-            print(report, self.model.__class__.__name__)
+
+            print(f"{verbose=}", report, self.model.__class__.__name__)
         return res
-    def model_cv_score(self, choosing=False, verbose=1,mean_only=True,n_splits=5,test_size=0.2,cv_mode="sss"):
+
+    def model_cv_score(
+        self,
+        choosing=False,
+        verbose=1,
+        mean_only=True,
+        n_splits=5,
+        test_size=0.2,
+        cv_mode="sss",
+    ):
         """
         使用交叉验证的方式来评估模型
         Calculates score on testing data
@@ -434,32 +477,37 @@ class EmotionRecognizer:
 
         # 预测计算
         if verbose:
-            print(X_train.shape, y_train.shape,"🎈")
+            print(X_train.shape, y_train.shape, "🎈")
             print(f"{n_splits=}")
-        n_splits=int(n_splits)
+        n_splits = int(n_splits)
 
         y_pred = model.predict(X_train)  # type: ignore
         if choosing == False:
             self.y_pred = np.array(y_pred)
         # 交叉验证的方式评估模型的得分
-        cv_mode_dict=dict(
-            sss=StratifiedShuffleSplit(n_splits=n_splits, test_size=test_size, random_state=0),
+        cv_mode_dict = dict(
+            sss=StratifiedShuffleSplit(
+                n_splits=n_splits, test_size=test_size, random_state=0
+            ),
             ss=ShuffleSplit(n_splits=n_splits, test_size=test_size, random_state=0),
             kfold=KFold(n_splits=n_splits, shuffle=True, random_state=0),
+            skfold=StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=0),
         )
-        cv_mode_selected=cv_mode_dict[cv_mode]
-        if verbose:
+        cv_mode_selected = cv_mode_dict[cv_mode]
+        if verbose > 1:
             print(f"{cv_mode=}🎈")
         if self.classification_task:
             # res = accuracy_score(y_true=y_test, y_pred=y_pred)
-            res=cross_val_score(model, X_train, y_train, cv=cv_mode_selected)
+            res = cross_val_score(model, X_train, y_train, cv=cv_mode_selected)
             if mean_only:
-                res=res.mean()
-            
+                res = res.mean()
+
         else:
             res = mean_squared_error(y_true=y_train, y_pred=y_pred)
-        if self.verbose >= 2 or verbose >= 1:
-            report = classification_report(y_true=y_train, y_pred=y_pred)
+        if self.verbose > 2:
+            report = classification_report(
+                y_true=y_train, y_pred=y_pred
+            )  # 训练集上,几乎总是是满分
             print(report, self.model.__class__.__name__)
         return res
 
@@ -468,6 +516,7 @@ class EmotionRecognizer:
             raise ValueError("X is empty")
         if len(y_test) == 0:
             raise ValueError("y is empty")
+
     def meta_paths_of_db(self, db, partition="test"):
         res = meta_paths_of_db(
             db=db,
@@ -661,55 +710,64 @@ class EmotionRecognizer:
         return random.choice(indices)
 
 
+def main():
+    passive_emo = ["angry", "sad"]
+    passive_emo_others = passive_emo + ["others"]
+    typical_emo = ["happy", "neutral", "sad"]
+    AHSO = ["angry", "neutral", "sad", "others"]
+    e_config = passive_emo
+    f_config = ["mfcc"]
 
-from config.MetaPath import (test_emodb_csv)
-
-passive_emo = ["angry", "sad"]
-passive_emo_others=passive_emo+["others"]
-typical_emo = ['happy', 'neutral', 'sad']
-e_config = typical_emo
-def main(EmotionRecognizer, e_config):
     # my_model = RandomForestClassifier(max_depth=3, max_features=0.2)
-    my_model = SVC(C=0.001, gamma=0.001, kernel="poly",probability=True)
-    my_model=KNeighborsClassifier(n_neighbors=3, p=1, weights='distance')
+    my_model = SVC(C=0.001, gamma=0.001, kernel="poly", probability=True)
+    # my_model=KNeighborsClassifier(n_neighbors=3, p=1, weights='distance')
     # my_model = None
 
     # rec = EmotionRecognizer(model=my_model,e_config=AHNPS,f_config=f_config_def,test_dbs=[ravdess],train_dbs=[ravdess], verbose=1)
     # rec = EmotionRecognizer(model=my_model,e_config=AHNPS,f_config=f_config_def,test_dbs=emodb,train_dbs=emodb, verbose=1)
 
-    single_db=emodb
+    single_db = emodb
     meta_dict = {"train_dbs": single_db, "test_dbs": single_db}
+
+    # meta_dict=dict(
+    #     train_dbs=emodb,
+    #     test_dbs=ravdess
+    # )
+
     er = EmotionRecognizer(
         model=my_model,
-        e_config=e_config,
-        f_config=f_config_def,
         **meta_dict,
+        e_config=e_config,
+        f_config=f_config,
         verbose=1,
+        std_scaler=False, pca=dict(n_components=39)
+        # std_scaler=False,
+        # pca={"n_components":"mle"}
+        # pca={'n_components': 60}
     )
-
-
     er.train()
-    
-    train_score=er.train_score()
+
+    train_score = er.train_score()
     print(f"{train_score=}")
     test_score = er.test_score()
     print(f"{test_score=}")
-    cv_score=er.model_cv_score()
+
+    cv_score = er.model_cv_score()
     print(f"{cv_score=}")
 
     return er
 
-if __name__ == "__main__":
 
-    er=main(EmotionRecognizer, e_config)
+if __name__ == "__main__":
+    er = main()
 ##
 
-    # file=r'D:\repos\CCSER\SER\data\savee\AudioData\DC\h01.wav'
-    # file=meta.speech_dbs_dir/emodb/r'wav/03a01Fa.wav'
-    # predict_res=er.predict(file)
-    # print(f"{predict_res=}")
-    # predict_proba=er.predict_proba(file)
-    # print(f"{predict_proba=}")
+# file=r'D:\repos\CCSER\SER\data\savee\AudioData\DC\h01.wav'
+# file=meta.speech_dbs_dir/emodb/r'wav/03a01Fa.wav'
+# predict_res=er.predict(file)
+# print(f"{predict_res=}")
+# predict_proba=er.predict_proba(file)
+# print(f"{predict_proba=}")
 
 ##
 

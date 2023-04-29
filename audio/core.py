@@ -109,7 +109,7 @@ def extract_feature_of_audio(audio_file_name, f_config):
         raise ValueError(f"{f_config}包含不受支持的特征名字,请在{ava_features}中选取")
 
     try:
-        print(audio_file_name,"@{audio_file_name}")
+        # print(audio_file_name,"@{audio_file_name}")
         #考虑将此时的工作路径切换为项目根目录,以便利用相对路径访问文件
         # os.chdir(project_dir)
         p = Path(audio_file_name)
@@ -286,13 +286,8 @@ def mfcc_extract(X, sample_rate):
     mfcc = librosa.feature.mfcc(y=X, sr=sample_rate, n_mfcc=40)
     # shape=(40,60)
     mfccT = mfcc.T  # shape=(60,40)
-    
     mfccs = np.mean(mfccT, axis=0)
-    # log:info
-    # print(f'{mfcc=},{mfcc.shape=}')
-    # print(f'{mfccT=},{mfccT.shape=}')
-    # print(f'{mfccs=},{mfccs.shape=}')
-    # result = np.hstack((result, mfccs))
+
     return mfccs
 
 

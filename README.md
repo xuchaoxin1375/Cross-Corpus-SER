@@ -310,7 +310,7 @@ The initial letter(s) of the file name represents the emotion class, and the fol
 - 添加语料库(记为db)到本项目中比较简单,只需要在config模块中执行一定的配置即可
 - 不过由于语料库的命名规范的不同,您或许要亲自编写针对于db的`create_{db}_meta()`函数,
 
-### 语料库文件在项目中的组织
+## 语料库文件在项目中的组织与划分
 
 - 将EMODB语料库放在单独的目录`data/emodb`
 - 将RAVDESS语料库
@@ -339,6 +339,7 @@ The initial letter(s) of the file name represents the emotion class, and the fol
 - 各个子目录的文件统计
 
 - `ls  |%{$_;(ls $_| measure)|select count}`可以统计子目录的文件数
+
 
 ### desc_files(csv 元数据文件)🎈
 
@@ -389,7 +390,96 @@ The initial letter(s) of the file name represents the emotion class, and the fol
 - MEL Spectrogram Frequency (mel)
 - Tonnetz (tonal centroid features)
 
+### 特征预处理
 
+- 对于语音信号的情感识别任务，MFCC、MEL、Contrast 等特征通常是最常用的特征。在使用这些特征进行建模之前，可以考虑进行以下预处理：
+
+  1. 归一化：对于不同的特征，可能具有不同的取值范围，例如 MFCC 和 MEL 系数具有不同的幅度范围。因此，可以对所有特征进行归一化或标准化，以确保它们具有相同的尺度。
+  2. 帧级别的能量归一化：语音信号在录制过程中可能会存在噪声或音量变化等问题，这可能会导致特征的幅度变化。因此，可以对每个帧的能量进行归一化，以确保在不同的录音条件下，特征的幅度保持一致。
+  3. 去除静音部分：对于包含静音的语音信号，可以通过阈值或其他语音活动检测算法来去除静音部分，以减少噪声的影响。
+  4. 数据增强：可以通过变换语音信号的速度、音量、音调等方式，生成更多的训练数据，以提高模型的鲁棒性和泛化能力。
+  5. 特征选择：可以使用特征选择算法，如相关系数或基于模型的方法，来选择最相关的特征，以减少特征的数量和计算成本。
+
+  总之，在使用 MFCC、MEL、Contrast 等特征进行语音情感识别任务之前，可以对数据进行归一化、能量归一化、去除静音部分、数据增强和特征选择等预处理，以获得更好的模型性能。
+
+  1. 归一化
+
+  可以使用 sklearn 中的 StandardScaler 对特征进行归一化，代码如下：
+
+  ```python
+  from sklearn.preprocessing import StandardScaler
+  
+  # X为特征矩阵，axis=0对每列进行归一化
+  scaler = StandardScaler()
+  X = scaler.fit_transform(X)
+  ```
+
+  1. 帧级别的能量归一化
+
+  可以使用 librosa 中的 power_to_db 函数计算每个帧的能量，然后使用 sklearn 中的 MinMaxScaler 对能量进行归一化，代码如下：
+
+  ```python
+  from sklearn.preprocessing import MinMaxScaler
+  import librosa
+  
+  # y为语音信号，sr为采样率
+  S = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=128, fmax=8000)
+  log_S = librosa.power_to_db(S, ref=np.max)
+  
+  # 计算每个帧的能量
+  frame_energy = np.sum(np.exp(log_S), axis=0)
+  
+  # 对帧级别的能量进行归一化
+  scaler = MinMaxScaler()
+  frame_energy = scaler.fit_transform(frame_energy.reshape(-1, 1)).reshape(-1)
+  ```
+
+  1. 去除静音部分
+
+  可以使用 librosa 中的 amplitude_to_db 函数将语音信号转换为分贝表示，然后使用 librosa 中的 onset_detect 函数检测语音活动部分，代码如下：
+
+  ```python
+  import librosa
+  
+  # y为语音信号，sr为采样率
+  S = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=128, fmax=8000)
+  log_S = librosa.power_to_db(S, ref=np.max)
+  
+  # 将语音信号转换为分贝表示
+  db_S = librosa.amplitude_to_db(S, ref=np.max)
+  
+  # 检测语音活动部分
+  onset_frames = librosa.onset.onset_detect(y=y, sr=sr)
+  onset_times = librosa.frames_to_time(onset_frames, sr=sr)
+  ```
+
+  1. 数据增强
+
+  可以使用 librosa.effects 中的 time_stretch、pitch_shift 和 dynamic_range_compression 函数，对语音信号进行时间拉伸、音高变换和动态范围压缩，代码如下：
+
+  ```python
+  import librosa
+  
+  # y为语音信号，sr为采样率
+  y_stretch = librosa.effects.time_stretch(y, rate=0.8)
+  y_pitch = librosa.effects.pitch_shift(y, sr=sr, n_steps=-3)
+  y_drc = librosa.effects.dynamic_range_compression(y, threshold=1.0, ratio=4.0)
+  ```
+
+  1. 特征选择
+
+  可以使用 sklearn 中的 SelectKBest 和 mutual_info_classif 函数，选择与情感识别任务最相关的 k 个特征，代码如下：
+
+  ```python
+  from sklearn.feature_selection import SelectKBest
+  from sklearn.feature_selection import mutual_info_classif
+  
+  # X为特征矩阵，y为情感标签
+  selector = SelectKBest(mutual_info_classif, k=10)
+  X_new = selector.fit_transform(X, y)
+  ```
+
+  以上是一些在使用 MFCC、MEL、Contrast 等特征进行语音情感识别任务时的代码建议，希望能对你有所帮助。
 
 ### 补充
 
@@ -809,6 +899,16 @@ SVR（Support Vector Regression）是一种基于支持向量机（SVM）的回�
 
 另一种常见的方法是使用逻辑函数（如sigmoid函数）将回归输出映射到[0,1]区间上，并将映射后的输出视为正类概率。
 
+## scikit-learn 加速
+
+    Windows 64-bit packages of scikit-learn can be accelerated using scikit-learn-intelex.
+    More details are available here: https://intel.github.io/scikit-learn-intelex
+    
+    For example:
+    
+        $ conda install scikit-learn-intelex
+        $ python -m sklearnex my_application.py
+
 ## DeepLearning method
 
 ### Tensorflow.Keras
@@ -1029,7 +1129,52 @@ SVR（Support Vector Regression）是一种基于支持向量机（SVM）的回�
     test_score=0.6744186046511628
     ```
 
-    
+
+### HNS
+
+```bash
+@{model}
+partition='train'
+D:\repos\CCSER\SER\meta_files\train_emodb_HNS.csv @🎈{meta_file}
+[I] Loading audio file paths and its corresponding labels...
+meta_file存在D:\repos\CCSER\SER\meta_files\train_emodb_HNS.csv文件!
+检查特征文件D:\repos\CCSER\SER\features\emodb_chroma-mel-mfcc_HNS_169_@std_scaler=False.npy是否存在...
+self.e_config=['happy', 'neutral', 'sad']
+use StandardScaler to transform features
+特征矩阵文件(.npy)已经存在,直接导入:loading...
+(169, 180) @{feature.shape}
+[Info] Adding  train samples
+partition='test'
+D:\repos\CCSER\SER\meta_files\test_ravdess_HNS.csv @🎈{meta_file}
+[I] Loading audio file paths and its corresponding labels...
+meta_file存在D:\repos\CCSER\SER\meta_files\test_ravdess_HNS.csv文件!
+检查特征文件D:\repos\CCSER\SER\features\ravdess_chroma-mel-mfcc_HNS_552_@std_scaler=False.npy是否存在...
+self.e_config=['happy', 'neutral', 'sad']
+use StandardScaler to transform features
+npy文件不存在,尝试创建...
+Extracting features for : 100%|██████████| 552/552 [00:23<00:00, 23.56it/s]
+(552, 180) @{feature.shape}
+[Info] Adding  test samples
+[I] Data loaded
+
+@{self.model}:
+SVC(C=0.001, gamma=0.001, kernel='poly', probability=True)
+train_score=1.0
+verbose=0               precision    recall  f1-score   support
+
+       happy       0.97      0.29      0.44       215
+     neutral       0.00      0.00      0.00       145
+         sad       0.39      1.00      0.56       192
+
+    accuracy                           0.46       552
+   macro avg       0.45      0.43      0.34       552
+weighted avg       0.51      0.46      0.37       552
+ SVC
+test_score=0.4601449275362319
+(169, 180) (169,) 🎈
+n_splits=5
+cv_score=0.9
+```
 
 
 

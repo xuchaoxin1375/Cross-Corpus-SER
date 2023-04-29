@@ -1,5 +1,6 @@
 ##
 import collections
+import json
 from pathlib import Path
 from typing import List
 from glob import glob
@@ -53,13 +54,14 @@ ava_dbs: list[str] = [emodb, ravdess, savee]
 # !模型超参数路径
 bclf1 = "bclf.joblib"
 brgr1 = "brgr.joblib"
-bclf2 = "bclf_u1.joblib"
-brgr2 = "bclf_u1.joblib"
+bclf2 = "bclf_v2.joblib"
+brgr2 = "bclf_v2.joblib"
 # bclf = bclf1
 # brgr = brgr1
 # 通过字典选取超参数版本(组合)
 cuple_dict = dict(c1=(bclf1, brgr1), c2=(bclf2, brgr2))
-bclf, brgr = cuple_dict["c1"]
+bclf, brgr = cuple_dict["c2"]
+
 # 补齐具体路径
 bclf, brgr = [grid_dir / item for item in (bclf, brgr)]
 
@@ -145,12 +147,35 @@ def get_first_letters(emotions) -> str:
 
     需要注意的是，如果emotions参数为空列表，则该函数将返回一个空字符串。此外，由于该函数只考虑每个标签的首字母，因此如果存在两个标签具有相同的首字母，则它们将在结果字符串中出现在一起。
     """
+    # if validate_emotions(emotions):
     res = ""
-    if validate_emotions(emotions):
+    if emotions is not None:
         res = "".join(sorted([e[0].upper() for e in emotions]))
     return res
 
+def dict_to_filetag(d):
+    # Convert dictionary to JSON string
+    json_str = json.dumps(d)
+    remove_chars=['"',' ']
+    for c in remove_chars:
+        json_str=json_str.replace(c,'')
+    # Replace invalid characters with hyphen
+    rep_dict={
+        ":":"=",
+        # '"':'',
+        # "'":""
+    }
+    for char in json_str:
+        if rep_dict.get(char):
+            json_str = json_str.replace(char, rep_dict[char])
+    # Truncate string if too long
+    # max_len = 260
+    # if len(json_str) > max_len:
+    #     json_str = json_str[:max_len]
 
+    # json_str=json_str.
+    return json_str
+##
 def create_tag_name(
     db="",
     partition="",
@@ -180,8 +205,14 @@ def create_tag_name(
     >>> MCM=['chroma', 'mel', 'mfcc']
     >>> create_tag_name(emodb,f_config=MCM,n_samples=7,ext="npy")
     >>> 'emodb_chroma-mel-mfcc_7_npy'
-
-    Returns
+    - 
+    >>> MCM=['chroma', 'mel', 'mfcc']
+    >>> create_tag_name(emodb,f_config=MCM,n_samples=7,ext="npy",std_scaler=True,pca={"n_components":3,"svd_solver":"full"})
+    
+    >>> 'emodb_chroma-mel-mfcc_7_@std_scaler=True_@pca={n_components=3,svd_solver=full}.npy'
+    - 
+    >>> create_tag_name(emodb,f_config=MCM,n_samples=7,ext="npy",std_scaler=False,pca={"n_components":4})
+    >>> 'emodb_chroma-mel-mfcc_7_@pca={n_components=4}.npy'
     -------
     str
         构造好的文件名
@@ -191,23 +222,31 @@ def create_tag_name(
 
     emotions = get_first_letters(e_config)
 
-    # partition = tag_field(partition)
-    # emotions = tag_field(emotions)
-    # features = tag_field(features)
-    # n_samples=tag_field(str(n_samples))
-    # bool("")#False
-    # bool(None)#False
-    # res = f"{partition}{emotions}{features}{db}{n_samples}.{ext}"
-    # str(None)#'None'
+
     n_samples = str(n_samples) if n_samples else ""
     # 如果是用来生成特征提取的文件名,可能需要加上额外的信息:
     balance = "balanced" if balance else ""
     shuffle = "shuffled" if shuffle else ""
+    # other_tags=[f"@{key}={value}" for key,value in kwargs.items()]
+    other_tags=[]
+    for key,value in kwargs.items():
+        # print(key,value)
+        # 这里将开关为False的参数不显示
+        #但这个方案并不完美,有些参数默认是True,反而False才更应该显示
+        # 但目前本项目当开关为True是才显示
+        if isinstance(value,bool) :
+            if value==False:
+                continue
+        if isinstance(value,dict):
+            # print('value: ', value)
+            if value=={}:
+                # print("value is empty")
+                continue
+            value=dict_to_filetag(value)
+        other_tags.append(f"@{key}={value}")
 
-    fields = [partition, db, features, emotions, n_samples]
-    # print("{fields:}")
-    # print(fields)
-    # return
+    fields = [partition, db, features, emotions, n_samples]+other_tags
+
     true_fields = [f for f in fields if f]  # 标识非空的值
     # print(true_fields,"@{true_fields}")
     res = "_".join(true_fields) + f".{ext}"

@@ -17,7 +17,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC, SVR
 
-from utils import dump_pickle_by_name, load_pickle_by_name
+from utils import dump_pickle_by_name, load_pickle_by_name,now_utc_field_str
 
 
 
@@ -50,11 +50,20 @@ rf_best=(RandomForestClassifier(max_depth=7, max_features=0.5, n_estimators=40),
 
 gb_best=(GradientBoostingClassifier(learning_rate=0.3, loss='log_loss', max_depth=7,
                            subsample=0.7), {'learning_rate': 0.3, 'max_depth': 7, 'max_features': None, 'min_samples_leaf': 1, 'min_samples_split': 2, 'n_estimators': 100, 'subsample': 0.7}, 0.9476937708036139)
-# bclf[1]=rf_best
-# bclf[2]=gb_best
+
 ##
+
+bclf=load("bclf.joblib")
+
+
+
+
+
+
+
+
 # bclf[-1] = bag_best
-##
+
 bclf_res=load("bclf.joblib")
 for item in bclf_res:
     print(item)

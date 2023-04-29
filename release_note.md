@@ -36,5 +36,6 @@
   - support the `n_splits` as a slider element for use to adjust th
   - update the `confusion matrix table`show button 
 
-
-
+- 2023-04-28@11:27:17
+  - "update the make_window function in the ccser_client main file with more clear modular extraction"
+- 2023

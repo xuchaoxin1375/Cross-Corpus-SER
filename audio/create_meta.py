@@ -27,6 +27,22 @@ emodb_files_glob, ravdess_files_glob, savee_files_glob = [
 
 
 def check_meta_names(e_config, train_name=None, test_name=None, db=""):
+    """
+    Check and retrieve the names of the metadata files for a given database.
+
+    Args:
+        e_config (dict): A dictionary containing the configuration parameters for the experiment.
+        train_name (str, optional): The name of the training metadata file. Defaults to None.
+        test_name (str, optional): The name of the testing metadata file. Defaults to None.
+        db (str, optional): The name of the database. Defaults to "".
+
+    Raises:
+        ValueError: If db is an empty string.
+
+    Returns:
+        A tuple (train_name, test_name) with the names of the metadata files for the given database.
+        If train_name or test_name are not provided, they are obtained from the metadata paths of the database.
+    """
     if train_name is None or test_name is None:
         train_name, test_name = meta_paths_of_db(db, e_config=e_config)
     if db == "":
@@ -261,8 +277,9 @@ def create_ravdess_meta(
     """
     db = ravdess
 
-    # 这个数据库文件比较多,为了敏捷性,控制只处理特定情感的文件而不是全部情感文件
-    print(f"{db} files meta extacting...")
+    print(f"{db} @files meta extracting!...")
+    train_name, test_name = check_meta_names(e_config, train_name, test_name, db)
+
     if e_config is None:
         raise ValueError(f"{db}e_config is None")
     # 对特定情感文件的过滤(这里直接通过遍历指定的情感种类,配合glob来直接过滤掉不需要的情感)
@@ -271,6 +288,7 @@ def create_ravdess_meta(
     emos = []
     paths = []
     audios = glob(ravdess_files_glob)
+
     # total = len(audios)
     # audios = audios[: int(total * subset_size)]
     for audio in audios:
@@ -284,7 +302,7 @@ def create_ravdess_meta(
         # 打印出所有匹配项的值
         emo = m.group(1)
 
-        print(emo,"@{emo}")
+        # print(emo,"@{emo}")
         
         paths.append(audio)
         emos.append(emo)
@@ -301,7 +319,7 @@ def create_ravdess_meta(
         p_e_df = p_e_df[emo_bool_mask]
 
     if verbose:
-        print(f"{p_e_df.shape=}")
+        print(f"{p_e_df.shape=}🎈")
         n_samples = len(p_e_df)
         print("[ravdess] Total files to write:", n_samples)
         # dividing training/testing sets
@@ -321,7 +339,7 @@ def create_ravdess_meta(
     if verbose:
         print(train_name, "@{train_name}")
         print(test_name, "@{test_name}")
-        print("文件创建完毕!")
+        print("file created!")
     return spl
 
     # meta_df = DataFrame(meta_dict)
@@ -340,7 +358,7 @@ def create_ravdess_meta(
     #     print(f"the train/test size rate is:{train_size}:{(1-train_size)}")
 
 
-def from_df_write_to_csv(train_name="", test_name="", sort=True, Xy_train=None, Xy_test=None):
+def from_df_write_to_csv(train_name="", test_name="", sort=True, Xy_train=None, Xy_test=None,verbose=1):
     train_df = DataFrame(Xy_train)
     test_df = DataFrame(Xy_test)
     if sort:
@@ -348,6 +366,8 @@ def from_df_write_to_csv(train_name="", test_name="", sort=True, Xy_train=None, 
         sorted_test_df = test_df.sort_values(by="emotion")
     sorted_train_df.to_csv(train_name)
     sorted_test_df.to_csv(test_name)
+    if verbose:
+        print(f"{train_name}&{train_name} created!")
 
 
 # 不可以挪到顶部,因为下面的selector的定义需要用到上面定义的函数
@@ -358,7 +378,7 @@ selector = {
 }
 
 
-def create_csv_by_metaname(meta_file, shuffle=True):
+def create_csv_by_metaname(meta_file, shuffle=True,verbose=1):
     """根据给定的符合本项目的文件名构造规范的文件名,生成对应的train/test dataset metadata files
 
     Parameters
@@ -373,6 +393,10 @@ def create_csv_by_metaname(meta_file, shuffle=True):
     # 直接解析成三个字符串
     # print(name,"@{name}")
     _partitoin, db, emotion_first_letters = name.split("_")
+    if verbose:
+        print(db, "@{db}")
+        print(emotion_first_letters, "@{emotion_first_letters}")
+
     e_config = extend_emotion_names(emotion_first_letters)
     if 'others' in e_config:
         use_others=True
@@ -403,7 +427,9 @@ if __name__ == "__main__":
     # create_csv_by_metaname(name1)
     name2 = "train_savee_AS.csv"
     name3 = "test_savee_HNS.csv"
-    # create_csv_by_metaname(name3, shuffle=True)
+    name4="test_ravdess_AS.csv"
+    create_csv_by_metaname(name4, shuffle=True)
+
     ##
     # create_emodb_meta(e_config=e_config_def+["others"],train_name="tr_emodb.csv",test_name='te_emodb.csv',use_others=True)
     # create_ravdess_meta(e_config=e_config_def+["others"],train_name="tr_ravdess.csv",test_name='te_ravdess.csv',use_others=True)
