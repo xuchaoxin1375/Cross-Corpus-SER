@@ -49,7 +49,8 @@ meta_dir,recognize_result_dir, grid_dir, emodb_files_glob, ravdess_files_glob,sa
 # 语料库配置
 ravdess, emodb, savee = ["ravdess", "emodb", "savee"]
 ava_dbs: list[str] = [emodb, ravdess, savee]
-
+#额外的可用预处理参数(feature_transforms)
+ava_fts_params=['std_scaler','pca_params']
 ##
 # !模型超参数路径
 bclf1 = "bclf.joblib"

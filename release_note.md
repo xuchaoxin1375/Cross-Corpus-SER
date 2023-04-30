@@ -38,4 +38,7 @@
 
 - 2023-04-28@11:27:17
   - "update the make_window function in the ccser_client main file with more clear modular extraction"
-- 2023
+- 2023-04-30@00:02:03
+  - "update PCA transformer to the SER system"
+  - "there are some problems with recognize the single audio with pca preprocessing,the idea is to save the pca transformer when it was first fited,and then try to load corresponding file(joblib or pickle) when you need to recognize several audios that need extract the required dimension feature"
+- 

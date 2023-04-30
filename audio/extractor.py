@@ -2,6 +2,7 @@ import os
 from collections import defaultdict
 import sys
 import ipdb
+from joblib import load
 
 import numpy as np
 import pandas as pd
@@ -9,6 +10,7 @@ import tqdm
 
 from audio.create_meta import create_csv_by_metaname
 from config.EF import AHNPS, HNS, AHNPS_dict, HNS_dict, e_config_def, f_config_def
+import config.MetaPath as mp
 from config.MetaPath import (
     create_tag_name,
     features_dir,
@@ -16,6 +18,7 @@ from config.MetaPath import (
     train_emodb_csv,
     validate_partition,
     ava_dbs,
+    ava_fts_params
 )
 from audio.core import extract_feature_of_audio
 
@@ -76,11 +79,8 @@ class AudioExtractor:
         self.verbose = verbose
         self.features_dir = features_dir  # 默认为features目录
         self.classification_task = classification_task
-        self.feature_transforms = (
-            feature_transforms_dict
-            if feature_transforms_dict
-            else dict(std_scaler=True)
-        )
+        self.feature_transforms = feature_transforms_dict
+        
         self.balance = balance
         self.shuffle = shuffle
         # input dimension
@@ -332,29 +332,16 @@ class AudioExtractor:
 
         n_samples = len(audio_paths)  # 计算要处理的音频文件数
 
-        features_file_name = create_tag_name(
-            db=db,
-            partition=partition,  # 建议保存特征文件时,这个字段置空即可
-            e_config=self.e_config,
-            f_config=self.f_config,
-            n_samples=n_samples,
-            ext="npy",
-            **(self.feature_transforms),
-        )
-
-        # 构造保存特征矩阵npy文件的路径
-        features_file_path = os.path.join(
-            self.features_dir,
-            features_file_name,
-        )
+        features_file_path = self.get_features_file_path(partition, db, n_samples,ext="npy")
+        fts_file_path=self.get_features_file_path(partition, db, n_samples,ext="fts")
         if verbose:
             print(f"检查特征文件{features_file_path}是否存在...")
             print(f"{self.e_config=}")
             print(f"{self.f_config=}")
 
         ffp = os.path.isfile(features_file_path)
-        if self.feature_transforms.get("std_scaler"):
-            print("use StandardScaler to transform features🎈")
+        # ftfp=os.path.isfile(fts_file_path)
+
 
         if ffp:
             # if file already exists, just load
@@ -368,11 +355,46 @@ class AudioExtractor:
             if self.verbose:
                 print("npy文件不存在,尝试创建...")
             # 如果尚未提取过特征,则在此处进行提取,同时保存提取结果,以便下次直接使用
+            # todo :目前对于特征标准化std_scaler和pca降维等操作,在将音频文件提取初始特征并执行transform的时候依赖于
+            # 之前拟合号的transformer,如果要保留这类处理后的特征,
+            # 为了能够在导入后能够提取新的音频做同样的降维操作就需要之前的transformer
+            # 由于时间仓促,暂时不保存这类特征,而仅保存(缓存)初始特征
+            save_obj = not self.feature_transforms
+            print(self.feature_transforms,"@{self.feature_transforms}🎈")
+            print(save_obj,"@{save_obj}")
             features = self.features_extract_save(
-                partition, audio_paths, features_file_path
+                partition, audio_paths, features_file_path,save_obj
             )
+        # if ftfp:
+        #     if self.verbose:
+        #         print("fts文件(.fts)存在,直接导入...")
+        #         # 导入到对象属性
+        #         self.fts=load(fts_file_path)
+        # else:
+        #     if self.verbose:
+        #         print("fts文件不存在,尝试创建...")
+        #     print(f"请删除相关缓存文件{features_file_path}后重试...")
 
         return features, audio_paths, emotions
+
+    def get_features_file_path(self, partition, db, n_samples,ext=""):
+        features_file_name = create_tag_name(
+            db=db,
+            partition=partition,  # 建议保存特征文件时,这个字段置空即可
+            e_config=self.e_config,
+            f_config=self.f_config,
+            n_samples=n_samples,
+            ext=ext,
+            **(self.feature_transforms),
+        )
+
+        # 构造保存特征矩阵npy文件的路径
+        features_file_path = os.path.join(
+            self.features_dir,
+            features_file_name,
+        )
+        
+        return features_file_path
 
     def fields_parse(self, meta_path):
         # 计算语料库字段名
@@ -404,7 +426,7 @@ class AudioExtractor:
             )
 
     def features_extract_save(
-        self, partition, audio_paths, features_file_path, verbose=1
+        self, partition, audio_paths, features_file_path,save_obj=True
     ):
         """将提取的特征(ndarray)保存持久化保存(为npy文件)
         利用qtmd提供可视化特征抽取进度
@@ -425,7 +447,8 @@ class AudioExtractor:
         """
         features = self.extract_features(partition, audio_paths)
         # 保存数据
-        np.save(features_file_path, features)
+        if save_obj:
+            np.save(features_file_path, features)
 
         return features
 
@@ -451,9 +474,21 @@ class AudioExtractor:
         # 考虑特征预处理
         from sklearn.preprocessing import StandardScaler
 
-        # X为特征矩阵，axis=0对每列进行归一化
-        # if kwargs.get("std_scaler"):
+        
+
+        # X为特征矩阵,y为标签
+
         fts = self.feature_transforms
+        fts_keys=fts.keys()
+
+        # if set(fts_keys) <= set(ava_fts_params):
+        #     print("fts参数key合法")
+        # else:
+        #     print("fts参数不合法")
+        for param in fts_keys:
+            if param not in ava_fts_params:
+                raise ValueError(f"fts参数{param}不合法,请参考可用的配置:{ava_fts_params}")
+        print("fts参数key合法")
 
         if fts.get("std_scaler"):
             print("use StandardScaler to transform features")
@@ -461,8 +496,10 @@ class AudioExtractor:
             features = std_scaler.fit_transform(features)
         # 小心字典关键字名字pca和pca_params,否则后面代码无法执行!
         pca_params_dict = fts.get("pca_params")
+        
         if not pca_params_dict:
-            print("the pca params may be invalid!")
+            pass
+            # print("the pca params may be invalid!")
         print("🎈🎈🎈特征提取")
         if pca_params_dict:
             from sklearn.decomposition import PCA
@@ -474,6 +511,8 @@ class AudioExtractor:
             if n_components == "None":
                 # pca_params_dict["n_components"] = None
                 n_components=None
+            elif n_components=='mle':
+                pass
             else:
                 # if n_components.isdigit():
                 # int()函数自带类型错误检测,有非法输入会自动抛出错误,所以这里直接使用,而不去手动检测输入的合法性
@@ -486,6 +525,7 @@ class AudioExtractor:
             if self.pca is None:
                 pca = self.pca = PCA(**pca_params_dict)
                 pca.fit(features)
+
             else:
                 pca = self.pca
             print(pca_params_dict, "@{pca_params_dict}😂")
@@ -909,7 +949,7 @@ def load_data_from_meta(
 
 
 if __name__ == "__main__":
-    ftd = dict(std_scaler=False, pca=dict(n_components=39))
+    ftd = dict(std_scaler=False, pca_params=dict(n_components=39))
     ae = AudioExtractor(
         e_config=e_config_def,
         f_config=f_config_def, shuffle=True, feature_transforms_dict=ftd

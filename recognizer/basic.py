@@ -122,9 +122,7 @@ class EmotionRecognizer:
         )
 
         # print(self.train_meta_files, self.test_meta_files)
-        self.feature_transforms = (
-            feature_transforms if feature_transforms else {"std_scaler": False}
-        )
+        self.feature_transforms = feature_transforms
 
         # 可以使用python 默认参数来改造写法
         # 默认执行分类任务
@@ -740,7 +738,10 @@ def main():
         e_config=e_config,
         f_config=f_config,
         verbose=1,
-        std_scaler=False, pca=dict(n_components=39)
+
+        std_scaler=False, 
+        pca_params=dict(n_components=39)
+
         # std_scaler=False,
         # pca={"n_components":"mle"}
         # pca={'n_components': 60}

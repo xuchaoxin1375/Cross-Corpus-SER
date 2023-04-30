@@ -995,21 +995,7 @@ def start_train_model(
     print(train_db, test_db, e_config, f_config, algorithm, model, audio_selected)
 
     # 设置特征预处理(transform)参数
-    pca_enable = values[pca_enable_key]
-    pca_params = None
-    if pca_enable:
-        pca_params = dict(
-            n_components=values[pca_components_key],
-            svd_solver=values[pca_svd_solver_key],
-        )
-    fts = dict(
-        std_scaler=values[std_scaler_key],
-        pca_params=pca_params,
-    )
-
-    if verbose:
-        print(fts, "@{fts}🎈")
-    fts_non_None = {key: value for key, value in fts.items() if value is not None}
+    fts_preserved = fts_params_process(values, verbose)
 
     # 正式开始拟合/训练模型
     if algorithm == "RNN":
@@ -1027,12 +1013,31 @@ def start_train_model(
             e_config=e_config,
             f_config=f_config,
             verbose=1,
-            **fts_non_None,
+            **fts_preserved,
         )
     # 对数据进行训练(train方法自动导入数据)
     er.train()
     # model_res(er,verbose=verbose)
     return er
+
+def fts_params_process(values, verbose):
+    pca_enable = values[pca_enable_key]
+    pca_params = None
+    if pca_enable:
+        pca_params = dict(
+            n_components=values[pca_components_key],
+            svd_solver=values[pca_svd_solver_key],
+        )
+    fts = dict(
+        std_scaler=values[std_scaler_key],
+        pca_params=pca_params,
+    )
+
+    if verbose:
+        print(fts, "@{fts}🎈")
+    fts_res = {key: value for key, value in fts.items() if value is not None and value != False}
+    print(fts_res,"@{fts_res}")
+    return fts_res
 
 
 def model_res(er, verbose=1):
