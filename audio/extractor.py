@@ -1,26 +1,24 @@
-import os
-from collections import defaultdict
-import sys
-import ipdb
-from joblib import load
+##
 
+import os
+import sys
+from collections import defaultdict
+from pathlib import Path
+
+import ipdb
 import numpy as np
 import pandas as pd
 import tqdm
+from joblib import load
 
-from audio.create_meta import create_csv_by_metaname
-from config.EF import AHNPS, HNS, AHNPS_dict, HNS_dict, e_config_def, f_config_def
 import config.MetaPath as mp
-from config.MetaPath import (
-    create_tag_name,
-    features_dir,
-    get_first_letters,
-    train_emodb_csv,
-    validate_partition,
-    ava_dbs,
-    ava_fts_params
-)
 from audio.core import extract_feature_of_audio
+from audio.create_meta import create_csv_by_metaname
+from config.EF import (AHNPS, HNS, AHNPS_dict, HNS_dict, e_config_def,
+                       f_config_def)
+from config.MetaPath import (ava_dbs, ava_fts_params, create_tag_name, emodb,
+                             features_dir, get_first_letters, meta_dir,
+                             project_dir, train_emodb_csv, validate_partition)
 
 # from pathlib import Path
 Series = pd.Series
@@ -100,6 +98,11 @@ class AudioExtractor:
         self.test_features = []
         # 使用字典打包
         self.pca = None
+    def pathlike_to_list(self, meta_paths):
+        if isinstance(meta_paths, str) or isinstance(meta_paths,Path):
+            # print(f"cast the '{meta_paths}' to [str]")
+            meta_paths = [meta_paths]
+        return meta_paths
 
     def get_partition_features(self, partition) -> np.ndarray:
         """将包含若干个二维ndarray的列表vstack成1个二维ndarray
@@ -134,14 +137,19 @@ class AudioExtractor:
 
     def load_metadata(self, meta_files):
         """
-        从meta_files(文件)中读取语料库各条语音的信息;
+        从给定meta_files(文件)路径中读取语料库各条语音的信息;
+        如果需要读取的meta_files不存在,那么尝试解析meta_files(如果meta_files参数是一个符合可解析规范的字符串)
+        这种情况下会调用create_meta模块中的create_csv_by_metaname函数进行meta文件构造
 
-        Read metadata from a  file & Extract and loads features of audio files
+        Read metadata from a  file & Extract meta if according meta_files and loads features of audio files
 
         Parameters
         ----------
         meta_files : list[str]|str
             需要读取的meta文件
+        Return
+        -
+        从meta中读取的信息:包括各语音文件的路径和情感标签
 
         """
         # empty dataframe
@@ -157,12 +165,13 @@ class AudioExtractor:
         # print("meta_files:", meta_files)
 
         # print("type(meta_files)", type(meta_files))
-        if isinstance(meta_files, str):
-            meta_files = [meta_files]
+
+        meta_files = self.pathlike_to_list(meta_files)
         for meta_file in meta_files:
             if not os.path.exists(meta_file):
                 # create_csv_by_meta_name
                 print(f"{meta_file} does not exist,creating...😂")
+
                 create_csv_by_metaname(meta_file, shuffle=self.shuffle)
             else:
                 print(f"meta_file存在{meta_file}文件!")
@@ -326,7 +335,7 @@ class AudioExtractor:
 
         # 尝试计算语料库的名字和情感配置名字
         db = self.fields_parse(meta_path)
-
+        # 特征保存的目录检查(不存在则创建之)
         if not os.path.isdir(self.features_dir):
             os.mkdir(self.features_dir)
 
@@ -378,6 +387,10 @@ class AudioExtractor:
         return features, audio_paths, emotions
 
     def get_features_file_path(self, partition, db, n_samples,ext=""):
+        fts=self.feature_transforms
+
+        if fts is None:
+            self.feature_transforms = {}
         features_file_name = create_tag_name(
             db=db,
             partition=partition,  # 建议保存特征文件时,这个字段置空即可
@@ -474,8 +487,6 @@ class AudioExtractor:
         # 考虑特征预处理
         from sklearn.preprocessing import StandardScaler
 
-        
-
         # X为特征矩阵,y为标签
 
         fts = self.feature_transforms
@@ -508,16 +519,20 @@ class AudioExtractor:
 
             n_components = pca_params_dict.get("n_components")
 
-            if n_components == "None":
-                # pca_params_dict["n_components"] = None
-                n_components=None
-            elif n_components=='mle':
+      
+            if n_components=='mle':
                 pass
-            else:
+            elif isinstance(n_components, int):
+                pass
+            elif n_components and n_components.isdigit():
                 # if n_components.isdigit():
                 # int()函数自带类型错误检测,有非法输入会自动抛出错误,所以这里直接使用,而不去手动检测输入的合法性
                 # pca_params_dict['n_components'] = int(n_components)
                 n_components=int(n_components)
+            # elif n_components == "None":
+            else:
+                # pca_params_dict["n_components"] = None
+                n_components=None
 
             # 将检验&处理后的n_components写入到pca字典中
             pca_params_dict['n_components']=n_components
@@ -573,21 +588,23 @@ class AudioExtractor:
         return features
 
     def extract_update(self, partition="", meta_paths="", verbose=1):
-        """特征提取和self属性更新维护
+        """
+        根据meta_paths进行特征提取任务
+        提取完特征后对相关self属性更新维护
+
         多次调用将执行增量提取,根据partition的取值,将每次的提取结果增量更新self的相应属性集
+
         Parameters
         ----------
         partition : str
             "train"|"test"
-        meta_files : list[str]|str
-            _description_
+        meta_paths : list[str]|str
+            需要提取特征的meta文件路径
         """
         if not meta_paths:
             raise ValueError("meta_files cannot be empty")
             # return meta_files
-        if isinstance(meta_paths, str):
-            # print(f"cast the '{meta_paths}' to [str]")
-            meta_paths = [meta_paths]
+        meta_paths = self.pathlike_to_list(meta_paths)
 
         # 执行特征提取
         for meta_file in meta_paths:
@@ -613,6 +630,7 @@ class AudioExtractor:
                 emotions=emotions,
                 features=features,
             )
+
 
     def load_data_preprocessing(self, meta_files=None, partition="", shuffle=False):
         """将特征提取和属性设置以及打乱和平衡操作打包处理
@@ -883,21 +901,22 @@ def load_data_from_meta(
     balance=False,
     feature_transforms=None,
 ) -> dict:
-    """导入语音数据,并返回numpy打包train/test dataset相关属性的ndarray类型
-    如果只想提取train/test dataset中的一方,那么另一方就传None(或者不传对应参数)
+    """
+    根据meta文件,提取/导入语音数据(numpy特征),并返回numpy打包train/test dataset相关属性的ndarray类型
+    如果只想提取train/test dataset中的一方,那么另一方就传None(或者不传对应参数)即,前两个参数中允许其中一个为None
 
     Parameters
     ----------
     train_desc_files : list
-        train_meta_files
+        需要提取特征的语音文件列表信息,作为训练集
     test_desc_files : list
-        test_meta_files
-    f_config : dict, optional
-        需要提取的特征, by default None
-    e_config : list, optional
-        需要使用的情感类别字符串构成的列表, by default ['sad', 'neutral', 'happy']
+        需要提取特征的语音文件列表信息,作为测试集
+    f_config : list[str], optional
+        需要提取的特征组合, by default None
+    e_config : list[str], optional
+        需要使用的情感组合,类别字符串构成的列表, by default ['sad', 'neutral', 'happy']
     classification_task : bool, optional
-        是否采用分类器(否则使用回归模型), by default True
+        是否采用分类模型(否则使用回归模型), by default True
     shuffle : bool, optional
         是否打乱顺序, by default True
     balance : bool, optional
@@ -948,15 +967,27 @@ def load_data_from_meta(
     }
 
 
-if __name__ == "__main__":
-    ftd = dict(std_scaler=False, pca_params=dict(n_components=39))
-    ae = AudioExtractor(
-        e_config=e_config_def,
-        f_config=f_config_def, shuffle=True, feature_transforms_dict=ftd
-    )
-    print(ae)
-    ae._extract_feature_in_meta(meta_path=train_emodb_csv)
 
+def load_data_from_meta_demo():
+    meta_dict=dict(
+        train_meta_files=meta_dir/'train_emodb_HNS.csv',
+        test_meta_files=meta_dir/'test_emodb_HNS.csv',
+    )
+    res=load_data_from_meta(**meta_dict,f_config=f_config_def)
+
+    return res
+
+if __name__ == "__main__":
+
+    load_data_from_meta_demo()
+
+    # ftd = dict(std_scaler=False, pca_params=dict(n_components=3))
+    # ae = AudioExtractor(
+    #     e_config=e_config_def,
+    #     f_config=f_config_def, shuffle=True, feature_transforms_dict=ftd
+    # )
+    # print(ae)
+    # ae._extract_feature_in_meta(meta_path=train_emodb_csv)
     # data = load_data_from_meta(
     #     # train_meta_files=train_emodb_csv,
     #     test_meta_files=test_emodb_csv,
@@ -964,3 +995,4 @@ if __name__ == "__main__":
     #     # balance=False,
     #     balance=True,
     # )
+    

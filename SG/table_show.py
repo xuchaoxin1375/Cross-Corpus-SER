@@ -32,7 +32,7 @@ class TableShow():
                     # background_color="lightblue",
                     auto_size_columns=True,
                     justification="center",
-                    num_rows=min(25, len(self.data_rows)),
+                    num_rows=min(15, len(self.data_rows)),#每次最多显示15条数据
                     expand_x=True,
                     expand_y=True,
                 )
@@ -43,7 +43,7 @@ class TableShow():
 
         ]
     def run(self):
-        window = sg.Window("result table", self.layout,resizable=True,size=(500,400))
+        window = sg.Window("result table", self.layout,resizable=True,size=(500,500))
         # 事件循环
         while True:
             event, values = window.read()

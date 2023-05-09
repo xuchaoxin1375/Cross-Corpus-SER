@@ -82,7 +82,7 @@
 
 - 我猜测可能时机器太久没有关机了(平时我都是休眠),导致系统出现了一些错误
 
-  - 机器发生错误是很有可能的,就比如学校图书馆的刷脸系统,验证通过平时屏幕显示绿色,然而最近通过显示的也是红色
+  - 机器发生错误是很有可能的,就比如学校图书馆的刷脸系统,`验证成功`平时的话屏幕显示绿色提醒,然而最近`验证成功`显示的也是红色
   - 而在早期的windows7上,有时候从休眠中回复直接会失败
 
 - 然后我重启机器,发现任务栏多出了个搜索框,系统更新了没有重启可能也造成了一些影响
@@ -831,6 +831,43 @@ print("Accuracy:", clf.score(X_test, y_test))
 
   在使用MLPRegressor时，需要根据具体的数据集和任务需求，选择合适的参数来构建模型。同时，还可以通过交叉验证等技术来评估模型的性能和调整参数，以获得更好的预测结果。需要注意的是，MLPRegressor算法对于数据集的特征缩放和标准化非常敏感，因此在使用MLPRegressor时需要对数据进行预处理。
 
+#### BaggingClassifier
+
+A Bagging classifier.
+
+A Bagging classifier is an ensemble meta-estimator that fits base classifiers each on random subsets of the original dataset and then aggregate their individual predictions (either by voting or by averaging) to form a final prediction. Such a meta-estimator can typically be used as a way to reduce the variance of a black-box estimator (e.g., a decision tree), by introducing randomization into its construction procedure and then making an ensemble out of it.
+
+This algorithm encompasses several works from the literature. When random subsets of the dataset are drawn as random subsets of the samples, then this algorithm is known as Pasting [[1\]](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.BaggingClassifier.html#rb1846455d0e5-1). If samples are drawn with replacement, then the method is known as Bagging [[2\]](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.BaggingClassifier.html#rb1846455d0e5-2). When random subsets of the dataset are drawn as random subsets of the features, then the method is known as Random Subspaces [[3\]](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.BaggingClassifier.html#rb1846455d0e5-3). Finally, when base estimators are built on subsets of both samples and features, then the method is known as Random Patches [[4\]](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.BaggingClassifier.html#rb1846455d0e5-4).
+
+Bagging分类器是一种元估计器集成方法，它在原始数据集的随机子集上分别拟合基分类器，然后聚合它们的个体预测结果（通过投票或平均）以形成最终预测。这种元估计器通常可以用作一种降低黑盒估计器（例如决策树）方差的方法，通过将随机化引入其构建过程，然后将其组合起来。
+
+此算法包括文献中的几项工作。当随机抽取数据集的子集作为样本的随机子集时，此算法称为Pasting [1]。如果使用放回抽样，则该方法称为Bagging [2]。当随机抽取数据集的子集作为特征的随机子集时，该方法称为随机子空间方法[3]。最后，当基估计器基于样本和特征的子集构建时，该方法称为Random Patches [4]。
+
+In ensemble algorithms, bagging methods form a class of algorithms which build several instances of a black-box estimator on random subsets of the original training set and then aggregate their individual predictions to form a final prediction. These methods are used as a way to reduce the variance of a base estimator (e.g., a decision tree), by introducing randomization into its construction procedure and then making an ensemble out of it. In many cases, bagging methods constitute a very simple way to improve with respect to a single model, without making it necessary to adapt the underlying base algorithm. As they provide a way to reduce overfitting, bagging methods work best with strong and complex models (e.g., fully developed decision trees), in contrast with boosting methods which usually work best with weak models (e.g., shallow decision trees).
+
+Bagging methods come in many flavours but mostly differ from each other by the way they draw random subsets of the training set:
+
+> - When random subsets of the dataset are drawn as random subsets of the samples, then this algorithm is known as Pasting [[B1999\]](https://scikit-learn.org/stable/modules/ensemble.html#b1999).
+> - When samples are drawn with replacement, then the method is known as Bagging [[B1996\]](https://scikit-learn.org/stable/modules/ensemble.html#b1996).
+> - When random subsets of the dataset are drawn as random subsets of the features, then the method is known as Random Subspaces [[H1998\]](https://scikit-learn.org/stable/modules/ensemble.html#h1998).
+> - Finally, when base estimators are built on subsets of both samples and features, then the method is known as Random Patches [[LG2012\]](https://scikit-learn.org/stable/modules/ensemble.html#lg2012).
+
+In scikit-learn, bagging methods are offered as a unified [`BaggingClassifier`](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.BaggingClassifier.html#sklearn.ensemble.BaggingClassifier) meta-estimator (resp. [`BaggingRegressor`](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.BaggingRegressor.html#sklearn.ensemble.BaggingRegressor)), taking as input a user-specified estimator along with parameters specifying the strategy to draw random subsets. In particular, `max_samples` and `max_features` control the size of the subsets (in terms of samples and features), while `bootstrap` and `bootstrap_features` control whether samples and features are drawn with or without replacement. When using a subset of the available samples the generalization accuracy can be estimated with the out-of-bag samples by setting `oob_score=True`. As an example, the snippet below illustrates how to instantiate a bagging ensemble of `KNeighborsClassifier` estimators, each built on random subsets of 50% of the samples and 50% of the features.
+
+在集成算法中，bagging方法是一类算法，它在原始训练集的随机子集上构建多个黑盒估计器实例，然后聚合它们的个体预测结果以形成最终预测。这些方法通过将随机化引入其构建过程，并将其组合起来，以降低基本估计器（例如决策树）的方差。在许多情况下，bagging方法是一种非常简单的改进单个模型的方法，而无需调整底层基础算法。由于它们提供了一种减少过拟合的方法，因此bagging方法适用于强大而复杂的模型（例如完全发展的决策树），而提升方法通常适用于弱模型（例如浅层决策树）。
+
+Bagging方法有许多变种，但它们主要通过绘制训练集的随机子集的方式而不同：
+
+当随机抽取数据集的子集作为样本的随机子集时，此算法称为Pasting [B1999]。
+
+如果使用放回抽样，则该方法称为Bagging [B1996]。
+
+当随机抽取数据集的子集作为特征的随机子集时，该方法称为随机子空间方法[ H1998]。
+
+最后，当基估计器基于样本和特征的子集构建时，该方法称为Random Patches [LG2012]。
+
+在scikit-learn中，Bagging方法提供了一个统一的BaggingClassifier元估计器（resp. BaggingRegressor），以用户指定的估计器为输入，并指定绘制随机子集的策略的参数。特别地，max_samples和max_features控制子集的大小（以样本和特征为单位），而bootstrap和bootstrap_features控制是否使用有放回或无放回的方式来抽取样本和特征。当使用可用样本的子集时，可以通过设置oob_score=True来估计外部样本的泛化精度。例如，下面的代码段说明如何实例化一个KNeighborsClassifier估计器的bagging集合，每个估计器都是在50％的样本和50％的特征的随机子集上构建的。
+
 #### BaggingRegressor
 
 BaggingRegressor是一种基于袋装法（Bagging）的回归模型，常用于机器学习中。
@@ -995,11 +1032,13 @@ SVR（Support Vector Regression）是一种基于支持向量机（SVM）的回�
   - 使用大纲阅读一个大文件是好办法
   - 对于没有封装在函数或者类中的代码,可以设置`fold level`折叠至level 2来快速把握代码结构
 
-## 部分实验结果
+# 部分实验结果
 
-### 跨库识别
+## 跨库识别
 
-#### angry&sad
+#### 
+
+### angry&sad@emodb-ravdess
 
 - `train_emodb_AS.csv+test_ravdess_AS.csv`
 
@@ -1052,6 +1091,62 @@ SVR（Support Vector Regression）是一种基于支持向量机（SVM）的回�
     [+] Best model : RandomForestClassifier with 77.094% test accuracy
     test_score=0.770935960591133
     ```
+
+### ravdess-emodb
+
+```bash
+(d:\condaPythonEnvs\tf2.10) PS D:\repos\CCSER\SER> py "d:\repos\CCSER\SER\recognizer\basic.py"
+@{model}
+partition='train'
+D:\repos\CCSER\SER\meta_files\train_ravdess_AS.csv @🎈{meta_file}
+[I] Loading audio file paths and its corresponding labels...
+meta_file存在D:\repos\CCSER\SER\meta_files\train_ravdess_AS.csv文件!
+检查特征文件D:\repos\CCSER\SER\features\ravdess_mfcc_AS_1216.npy是否存在...
+self.e_config=['angry', 'sad']
+self.f_config=['mfcc']
+npy文件不存在,尝试创建...
+{} @{self.feature_transforms}🎈
+True @{save_obj}
+Extracting features for partition:: 100%|███████████████████████████████████████████████████████████| 1216/1216 [00:19<00:00, 63.43it/s] 
+fts参数key合法
+🎈🎈🎈特征提取
+(1216, 40) @{feature.shape}
+[Info] Adding  train samples
+partition='test'
+D:\repos\CCSER\SER\meta_files\test_emodb_AS.csv @🎈{meta_file}
+[I] Loading audio file paths and its corresponding labels...
+meta_file存在D:\repos\CCSER\SER\meta_files\test_emodb_AS.csv文件!
+检查特征文件D:\repos\CCSER\SER\features\emodb_mfcc_AS_38.npy是否存在...
+self.e_config=['angry', 'sad']
+self.f_config=['mfcc']
+特征矩阵文件(.npy)已经存在,直接导入:loading...
+(38, 40) @{feature.shape}
+[Info] Adding  test samples
+[I] Data loaded
+
+self.ae=<audio.extractor.AudioExtractor object at 0x0000028D91CE85E0>
+self.ae.pca=None🎈
+Evaluating <SVC>:   0%|                                                                                           | 0/5 [00:00<?, ?it/s]@{model}
+
+[I] SVC with 0.7105263157894737 test accuracy
+Evaluating <RandomForestClassifier>:  20%|████████████▊                                                   | 1/5 [00:05<00:23,  5.80s/it]@{model}
+Evaluating <BaggingClassifier>: 100%|█████████████████████████████████████████████████████████████████████| 5/5 [00:14<00:00,  2.99s/it] 
+[🎈] Best model : RandomForestClassifier with 97.368% test accuracy
+train_score=0.9868421052631579verbose=0               precision    recall  f1-score   support
+
+       angry       1.00      0.92      0.96        24
+         sad       0.88      1.00      0.93        14
+
+    accuracy                           0.95        38
+   macro avg       0.94      0.96      0.94        38
+weighted avg       0.95      0.95      0.95        38 RandomForestClassifier
+test_score=0.9473684210526315
+(1216, 40) (1216,) 🎈
+n_splits=5
+cv_score=0.9508196721311475
+(d:\condaPythonEnvs\tf2.10) PS D:\repos\CCSER\SER>
+```
+
 
 
 #### angry&happy&sad

@@ -59,24 +59,32 @@ def showMelFreqGraph(audio_path=audio_file):
     y, sr = librosa.load(audio_path)
 
     # 计算Mel频谱
-    S = librosa.feature.melspectrogram(y, sr=sr, n_mels=128)
+    S = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=128)
+    #另一种等效写法:(使用S参数)
+    # D=np.abs(librosa.stft(y))**2
+    # S=librosa.feature.melspectrogram(S=D, sr=sr, n_mels=128) 
 
     # 将Mel频谱转换为分贝表示
     S_db = librosa.power_to_db(S, ref=np.max)
 
-    # 绘制Mel频谱图
+    # 绘制Mel频谱(系数)图
+    fig,ax=plt.subplots()
     # plt.figure(figsize=(10, 4))
-    librosa.display.specshow(S_db, x_axis='time', y_axis='mel', sr=sr, fmax=8000)
-    plt.colorbar(format='%+2.0f dB')
+    img=librosa.display.specshow(S_db, x_axis='time', y_axis='mel', sr=sr, fmax=8000,ax=ax)
+
+    fig.colorbar(img,ax=ax,format='%+2.0f dB')
+    ax.set(title='Mel-frequencey spectrogram')
 
     # plt.title('Mel频谱图')
     # plt.xlabel('时间')
     # plt.ylabel('频率（Mel刻度）')
-    # plt.show()
-
+    plt.show()
+def showMFCCGraph(audio_path=audio_file):
+    pass
 
 if __name__=="__main__":
+    pass
     # showWaveForm()
-    showFreqGraph()
-    # showMelFreqForm()
-    
+    # showFreqGraph()
+    showMelFreqGraph()
+##

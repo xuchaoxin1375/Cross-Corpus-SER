@@ -134,7 +134,8 @@ class UserAuthenticatorGUI:
                     key="confirm_password", password_char="*", enable_events=True
                 ),
             ],
-            [sg.Submit(button_text="Register"), sg.Cancel(button_text="Cancel")],
+            # sg.Submit默认绑定了enter快捷键,为了避免误操作,需要谨慎使用
+            [sg.Submit(button_text="Register",bind_return_key=False), sg.Cancel(button_text="Cancel")],
         ]
 
         # 定义登录Tab页布局
@@ -152,7 +153,7 @@ class UserAuthenticatorGUI:
                     key=passowrd_login_key, password_char="*", enable_events=True
                 ),
             ],
-            [sg.Submit(button_text="Login"), sg.Cancel(button_text="Cancel")],
+            [sg.Submit(button_text="Login",bind_return_key=False), sg.Cancel(button_text="Cancel")],
         ]
 
         return register_layout, login_layout

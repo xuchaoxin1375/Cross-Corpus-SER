@@ -3,3 +3,4 @@
 *.nyc
 *.csv
 *.fts
+*.h5

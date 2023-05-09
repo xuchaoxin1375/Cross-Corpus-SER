@@ -14,7 +14,7 @@ emotion_counts = df["emotion"].value_counts()
 
 # 创建窗口布局
 layout = [
-    [sg.Text("情感成分分析图表")],
+    [sg.Text("Emotional Component Analysis")],
     [sg.Canvas(key="-CANVAS-")],
     [sg.Button("generate pie graph")],
 ]

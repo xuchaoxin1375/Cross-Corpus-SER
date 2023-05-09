@@ -21,7 +21,16 @@
 
 ### versions with time
 
+- **<u>input version under this line:</u>**
+  - new notes:"Sort update records in descending order of time".That would be convenient to update new version notes in the future.
+- 
+- 2023-05-09@19:10:05
+  - fix some bugs.
+  - certain adjustments to the project code.
 
+### old notes
+
+- old notes:"Sort update records in ascending order of time".
 
 - 2023-04-25@21:35:50
   - new:
@@ -42,3 +51,4 @@
   - "update PCA transformer to the SER system"
   - "there are some problems with recognize the single audio with pca preprocessing,the idea is to save the pca transformer when it was first fited,and then try to load corresponding file(joblib or pickle) when you need to recognize several audios that need extract the required dimension feature"
 - 
+

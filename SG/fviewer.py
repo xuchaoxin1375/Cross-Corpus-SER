@@ -106,7 +106,10 @@ def get_audios_regex(
         else:
             path = path.absolute()
         # 对路径进行正则过滤
+        #todo 对括号的识别有问题(得益于模块化,可以直接在这个模块内启动图形界面进行调试)
         if filter_regex:
+            if verbose:
+                print('filter_regex:> ', filter_regex)
             s = re.search(filter_regex, str(path), re.IGNORECASE)
             if s:
                 filtered_audios.append(path)
@@ -226,7 +229,7 @@ audio_viewer_layout = [
     ],
     [
         sg.B(filter_audios_key, tooltip="click to manual refresh the files listbox"),
-        sg.Button(ufg.close),
+        # sg.Button(ufg.close),
     ],
     [sg.Text(f"{len_default_folder_file_list} files", key="num_files_text")],
     [

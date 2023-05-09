@@ -118,7 +118,7 @@ def get_algos_elements_list(ava_algorithms=ava_algorithms):
                 algo.title(),
                 "algorithm",
                 key=f"{algo}",
-                default=(i == 1),
+                default=(i == 0),
                 enable_events=True,
             )
         )
@@ -360,7 +360,7 @@ def get_file_choose_layout():
             # ],
             # [
             sg.B(
-                "recognize it",
+                "Recognize it",
                 key="recognize it",
                 tooltip=lang["recognize_the_audio_emotion"],
             ),
@@ -482,8 +482,7 @@ def get_logging_viewer_layout():
 
 
 def get_analyzer_layout():
-    analyzer_layout = (
-        [
+    analyzer_log_printer_layout = [
             [bt.h2("Anything printed will display here!")],
             [
                 sg.Multiline(
@@ -499,9 +498,17 @@ def get_analyzer_layout():
                 )
             ],
         ]
-        + dv.layout
-        + q.query_layout
-    )
+    
+    # analyzer_layout = (
+    #     analyzer_log_printer
+    #     + dv.layout
+    #     + q.query_layout
+    # )
+    analyzer_layout = [
+        *analyzer_log_printer_layout,
+        *dv.layout,
+        *q.query_layout,
+    ]
 
     return analyzer_layout
 
@@ -663,12 +670,12 @@ def get_algo_layout():
 def get_e_config_layout():
     emotion_config_checboxes_layout = [
         [
-            sg.Checkbox("angry", key="angry", default=True, enable_events=True),
-            sg.Checkbox("happy", key="happy", enable_events=True),
+            sg.Checkbox("angry", key="angry", default=False, enable_events=True),
+            sg.Checkbox("happy", key="happy", default=True, enable_events=True),
             sg.Checkbox("neutral", key="neutral", default=True, enable_events=True),
             sg.Checkbox("ps", key="ps", enable_events=True),
             sg.Checkbox("sad", key="sad", default=True, enable_events=True),
-            sg.Checkbox("others", key="others", default=True, enable_events=True),
+            sg.Checkbox("others", key="others", default=False, enable_events=True),
         ]
     ]
 
@@ -692,34 +699,6 @@ def get_e_config_layout():
     return e_config_layout
 
 
-tooltip_pca_components = """
-PCA components
-Number of components to keep. if n_components is not set all components are kept:
-
-n_components == min(n_samples, n_features)
-If n_components == 'mle' and svd_solver == 'full', Minka’s MLE is used to guess the dimension. Use of n_components == 'mle' will interpret svd_solver == 'auto' as svd_solver == 'full'.
-
-If 0 < n_components < 1 and svd_solver == 'full', select the number of components such that the amount of variance that needs to be explained is greater than the percentage specified by n_components.
-
-If svd_solver == 'arpack', the number of components must be strictly less than the minimum of n_features and n_samples.
-
-Hence, the None case results in:
-
-n_components == min(n_samples, n_features) - 1
-"""
-tooltip_pca_svd_solver = """
-If auto :
-The solver is selected by a default policy based on X.shape and n_components: if the input data is larger than 500x500 and the number of components to extract is lower than 80% of the smallest dimension of the data, then the more efficient ‘randomized’ method is enabled. Otherwise the exact full SVD is computed and optionally truncated afterwards.
-
-If full :
-run exact full SVD calling the standard LAPACK solver via scipy.linalg.svd and select the components by postprocessing
-
-If arpack :
-run SVD truncated to n_components calling ARPACK solver via scipy.sparse.linalg.svds. It requires strictly 0 < n_components < min(X.shape)
-
-If randomized :
-run randomized SVD by the method of Halko et al.
-"""
 
 
 def get_f_config_layout():
@@ -760,16 +739,17 @@ def get_f_transform_layout():
                 ),
             ],
             [
+                sg.T('n_components:',tooltip="input the number of components to keep."),
                 sg.Input(
                     key=pca_components_key,
-                    default_text="35",
-                    tooltip=tooltip_pca_components,
+                    default_text="None",
+                    tooltip=bt.pca_components_tooltip,
                     enable_events=True,
                 ),
                 sg.Combo(
                     values=ava_svd_solver,
                     default_value="auto",
-                    tooltip=tooltip_pca_svd_solver,
+                    tooltip=bt.pca_svd_solver_tooltip,
                     enable_events=True,
                     key=pca_svd_solver_key,
                 ),
@@ -791,7 +771,7 @@ def get_f_transform_layout():
         ],
     )
     f_transform_layout = [
-        [bt.h2(lang["feature_transfomr_config"])],
+        [bt.h2(lang["feature_transform_config"])],
         [f_transform_frame_layout],
     ]
     return f_transform_layout

@@ -1,28 +1,30 @@
 import os
+
 # disable keras loggings
 import sys
 
-from config.EF import e_config_def
+from config.EF import e_config_def, f_config_def
 
 stderr = sys.stderr
 sys.stderr = open(os.devnull, "w")
 import random
-
+from config.MetaPath import savee, emodb, ravdess
 import numpy as np
 import pandas as pd
-from sklearn.metrics import (accuracy_score, confusion_matrix,
-                             mean_absolute_error)
+from sklearn.metrics import accuracy_score, confusion_matrix, mean_absolute_error
+
 # import tensorflow as tf
 from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard
-from tensorflow.keras.layers import (LSTM, Dense, Dropout)
+from tensorflow.keras.layers import LSTM, Dense, Dropout
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.utils import to_categorical
 
+from audio.core import extract_feature_of_audio, get_dropout_str
 from config.EF import validate_emotions
-from recognizer.basic import EmotionRecognizer
+
 # from ER import EmotionRecognizer
 from config.MetaPath import get_first_letters
-from audio.core import extract_feature_of_audio, get_dropout_str
+from recognizer.basic import EmotionRecognizer
 
 
 class DeepEmotionRecognizer(EmotionRecognizer):
@@ -128,7 +130,6 @@ class DeepEmotionRecognizer(EmotionRecognizer):
         )
         # number of classes ( emotions )
         self.output_dim = len(self.e_config)
-  
 
         # optimization attributes
         self.optimizer = optimizer if optimizer else "adam"
@@ -276,7 +277,7 @@ class DeepEmotionRecognizer(EmotionRecognizer):
             )
 
         # reshape labels
-        if(self.y_train is  None or self.y_test is  None): 
+        if self.y_train is None or self.y_test is None:
             raise ValueError("y_train and y_test must be array_like ")
         y_train_shape = self.y_train.shape
         y_test_shape = self.y_test.shape
@@ -349,9 +350,9 @@ class DeepEmotionRecognizer(EmotionRecognizer):
 
     def predict_proba(self, audio_path):
         if self.classification_task:
-            feature = extract_feature_of_audio(audio_path, **self._f_config_dict).reshape(
-                (1, 1, self.input_length)
-            )
+            feature = extract_feature_of_audio(
+                audio_path, **self._f_config_dict
+            ).reshape((1, 1, self.input_length))
             proba = self.model.predict(feature)[0][0]
             result = {}
             for prob, emotion in zip(proba, self.e_config):
@@ -418,7 +419,7 @@ class DeepEmotionRecognizer(EmotionRecognizer):
         if partition == "test":
             if self.classification_task:
                 # np.squeeze去除数组中所有维度大小为 1 的维度，从而将数组的维度降低。如果数组没有大小为 1 的维度，则不会有任何变化。
-                #这里的y_test可能采用oneHotEncoder,因此可以如下计算
+                # 这里的y_test可能采用oneHotEncoder,因此可以如下计算
                 y_test = np.array(
                     [
                         np.argmax(y, axis=None, out=None) + 1
@@ -449,8 +450,12 @@ class DeepEmotionRecognizer(EmotionRecognizer):
         test_samples = []
         total = []
         for emotion in self.e_config:
-            n_train = self.count_samples_in_partition(self.emotions2int[emotion] + 1, "train")
-            n_test = self.count_samples_in_partition(self.emotions2int[emotion] + 1, "test")
+            n_train = self.count_samples_in_partition(
+                self.emotions2int[emotion] + 1, "train"
+            )
+            n_test = self.count_samples_in_partition(
+                self.emotions2int[emotion] + 1, "test"
+            )
             train_samples.append(n_train)
             test_samples.append(n_test)
             total.append(n_train + n_test)
@@ -463,7 +468,7 @@ class DeepEmotionRecognizer(EmotionRecognizer):
             data={"train": train_samples, "test": test_samples, "total": total},
             index=self.e_config + ["total"],
         )
-    
+
     def get_training_and_testing_samples_per_emotion(self):
         """
         Returns a dataframe with the number of training and testing samples
@@ -473,8 +478,12 @@ class DeepEmotionRecognizer(EmotionRecognizer):
         test_samples_per_emotion = []
         total_samples_per_emotion = []
         for emotion in self.e_config:
-            n_train = self.count_samples_in_partition(self.emotions2int[emotion] + 1, "train")
-            n_test = self.count_samples_in_partition(self.emotions2int[emotion] + 1, "test")
+            n_train = self.count_samples_in_partition(
+                self.emotions2int[emotion] + 1, "train"
+            )
+            n_test = self.count_samples_in_partition(
+                self.emotions2int[emotion] + 1, "test"
+            )
             train_samples_per_emotion.append(n_train)
             test_samples_per_emotion.append(n_test)
             total_samples_per_emotion.append(n_train + n_test)
@@ -491,7 +500,6 @@ class DeepEmotionRecognizer(EmotionRecognizer):
             },
             index=self.e_config + ["Total"],
         )
-
 
     def get_random_emotion_index(self, emotion, partition="train"):
         """
@@ -517,21 +525,21 @@ class DeepEmotionRecognizer(EmotionRecognizer):
         return index
 
 
-
 ##
 if __name__ == "__main__":
     from config.MetaPath import ravdess
-    meta_dict = {
-        "train_dbs":ravdess,
-        "test_dbs":ravdess
-    }
+
+    meta_dict = {"train_dbs": savee, "test_dbs": emodb}
     print(meta_dict)
-    
-    der = DeepEmotionRecognizer(**meta_dict, emotions=e_config_def, verbose=0)
+
+    der = DeepEmotionRecognizer(
+        **meta_dict, e_config=e_config_def, f_config=f_config_def, epochs=400, verbose=0
+    )
     # #train
     der.train()
-    print("train_score",der.train_score())
-    print("test_score",der.test_score())
+    print("train_score", der.train_score())
+    print("test_score", der.test_score())
+
     # print(der.train_meta_files,der.test_meta_files)
     # der.train(override=False)
     # print("Test accuracy score:", der.test_score() * 100, "%")

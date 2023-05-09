@@ -32,7 +32,7 @@ from sklearn.svm import SVC
 from tqdm import tqdm
 
 from audio.extractor import AudioExtractor, load_data_from_meta
-from config.EF import e_config_def, f_config_def, validate_emotions
+from config.EF import AHNPS, e_config_def, f_config_def, validate_emotions
 from config.MetaPath import (
     emodb,
     meta_paths_of_db,
@@ -713,24 +713,24 @@ def main():
     passive_emo_others = passive_emo + ["others"]
     typical_emo = ["happy", "neutral", "sad"]
     AHSO = ["angry", "neutral", "sad", "others"]
-    e_config = passive_emo
+    e_config = AHNPS
     f_config = ["mfcc"]
 
     # my_model = RandomForestClassifier(max_depth=3, max_features=0.2)
     my_model = SVC(C=0.001, gamma=0.001, kernel="poly", probability=True)
     # my_model=KNeighborsClassifier(n_neighbors=3, p=1, weights='distance')
-    # my_model = None
+    my_model = None
 
     # rec = EmotionRecognizer(model=my_model,e_config=AHNPS,f_config=f_config_def,test_dbs=[ravdess],train_dbs=[ravdess], verbose=1)
     # rec = EmotionRecognizer(model=my_model,e_config=AHNPS,f_config=f_config_def,test_dbs=emodb,train_dbs=emodb, verbose=1)
 
-    single_db = emodb
-    meta_dict = {"train_dbs": single_db, "test_dbs": single_db}
+    # single_db = emodb
+    # meta_dict = {"train_dbs": single_db, "test_dbs": single_db}
 
-    # meta_dict=dict(
-    #     train_dbs=emodb,
-    #     test_dbs=ravdess
-    # )
+    meta_dict=dict(
+        train_dbs=emodb,
+        test_dbs=emodb
+    )
 
     er = EmotionRecognizer(
         model=my_model,
@@ -739,8 +739,8 @@ def main():
         f_config=f_config,
         verbose=1,
 
-        std_scaler=False, 
-        pca_params=dict(n_components=39)
+        # std_scaler=False, 
+        # pca_params=dict(n_components=39)
 
         # std_scaler=False,
         # pca={"n_components":"mle"}
@@ -755,7 +755,7 @@ def main():
 
     cv_score = er.model_cv_score()
     print(f"{cv_score=}")
-
+    print(er.confusion_matrix())
     return er
 
 

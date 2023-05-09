@@ -33,6 +33,52 @@ logo = """
 """
 
 
+pca_components_tooltip = """
+PCA components
+Number of components to keep. if n_components is not set all 
+components are kept:
+
+n_components == min(n_samples, n_features)
+If n_components == 'mle' and svd_solver == 'full', Minka’s MLE 
+is used to guess the dimension. Use of n_components == 'mle' will 
+interpret svd_solver == 'auto' as svd_solver == 'full'.
+
+If 0 < n_components < 1 and svd_solver == 'full', select 
+the number of components such that the amount of variance that 
+needs to be explained is greater than the percentage specified 
+by n_components.
+
+If svd_solver == 'arpack', the number of components must
+ be strictly less than the minimum of n_features and n_samples.
+
+Hence, the None case results in:
+
+n_components == min(n_samples, n_features) - 1
+"""
+pca_svd_solver_tooltip = """
+If auto :
+The solver is selected by a default policy based on X.shape and 
+n_components:
+ if the input data is larger than 500x500 and the number of components
+   to extract is lower than 80% of the smallest dimension of the data, 
+   then the more efficient ‘randomized’ method is enabled. Otherwise 
+   the exact full SVD is computed and optionally truncated afterwards.
+
+If full :
+run exact full SVD calling the standard LAPACK solver via scipy.
+linalg.svd and select the components by postprocessing
+
+If arpack :
+run SVD truncated to n_components calling ARPACK solver via 
+scipy.sparse.linalg.svds. It requires strictly
+ 0 < n_components < min(X.shape)
+
+If randomized :
+run randomized SVD by the method of Halko et al.
+"""
+
+
+
 db_introduction = """
 ## SpeechDatabases
 
