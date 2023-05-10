@@ -37,8 +37,7 @@ class TablePandas():
         layout = self.create_table_window(df)
         window = sg.Window("Pandas Table Viewer", layout)
         return window
-    # def show_confution_matrix_window(df):
-    #     window=get_confution_matrix_window(df)
+
         
 
     def show_confution_matrix_window(self,df=None):

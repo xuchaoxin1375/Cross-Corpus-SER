@@ -1,15 +1,16 @@
 import PySimpleGUI as sg
 
 # import constants.uiconfig as ufg
-from SG.multilanguage import get_your_language_translator
+from SG.multilanguage import get_language_translator,lang
 
-lang = get_your_language_translator("English")
 import sys
 
 frame_size = (600, 50)
 # frame_size=600#给定一个整形数的时候,仅指定宽度,高度被自动设置为1
 # frame_size=None
+#listbox_size
 lb_size = (60, 10)
+lb_narrow_size=(20,10)
 ml_size = (60, 20)
 seperator_color = "blue"
 score_ndigits=4
@@ -22,60 +23,9 @@ tips_bgc='lightyellow'
 result_font = ("Arial", 20, "bold underline")
 normal_font=("Arial", 10,"italic")
 
-logo = """
-░█████╗░░█████╗░░██████╗███████╗██████╗░░░░░░░░█████╗░██╗░░░░░██╗███████╗███╗░░██╗████████╗𝓫𝔂 𝓬𝔁𝔁𝓾
-██╔══██╗██╔══██╗██╔════╝██╔════╝██╔══██╗░░░░░░██╔══██╗██║░░░░░██║██╔════╝████╗░██║╚══██╔══╝
-██║░░╚═╝██║░░╚═╝╚█████╗░█████╗░░██████╔╝█████╗██║░░╚═╝██║░░░░░██║█████╗░░██╔██╗██║░░░██║░░░
-██║░░██╗██║░░██╗░╚═══██╗██╔══╝░░██╔══██╗╚════╝██║░░██╗██║░░░░░██║██╔══╝░░██║╚████║░░░██║░░░
-╚█████╔╝╚█████╔╝██████╔╝███████╗██║░░██║░░░░░░╚█████╔╝███████╗██║███████╗██║░╚███║░░░██║░░░
-░╚════╝░░╚════╝░╚═════╝░╚══════╝╚═╝░░╚═╝░░░░░░░╚════╝░╚══════╝╚═╝╚══════╝╚═╝░░╚══╝░░░╚═╝░░░
-
-"""
 
 
-pca_components_tooltip = """
-PCA components
-Number of components to keep. if n_components is not set all 
-components are kept:
 
-n_components == min(n_samples, n_features)
-If n_components == 'mle' and svd_solver == 'full', Minka’s MLE 
-is used to guess the dimension. Use of n_components == 'mle' will 
-interpret svd_solver == 'auto' as svd_solver == 'full'.
-
-If 0 < n_components < 1 and svd_solver == 'full', select 
-the number of components such that the amount of variance that 
-needs to be explained is greater than the percentage specified 
-by n_components.
-
-If svd_solver == 'arpack', the number of components must
- be strictly less than the minimum of n_features and n_samples.
-
-Hence, the None case results in:
-
-n_components == min(n_samples, n_features) - 1
-"""
-pca_svd_solver_tooltip = """
-If auto :
-The solver is selected by a default policy based on X.shape and 
-n_components:
- if the input data is larger than 500x500 and the number of components
-   to extract is lower than 80% of the smallest dimension of the data, 
-   then the more efficient ‘randomized’ method is enabled. Otherwise 
-   the exact full SVD is computed and optionally truncated afterwards.
-
-If full :
-run exact full SVD calling the standard LAPACK solver via scipy.
-linalg.svd and select the components by postprocessing
-
-If arpack :
-run SVD truncated to n_components calling ARPACK solver via 
-scipy.sparse.linalg.svds. It requires strictly
- 0 < n_components < min(X.shape)
-
-If randomized :
-run randomized SVD by the method of Halko et al.
-"""
 
 
 
@@ -256,7 +206,7 @@ def option_frame(
 
 
 def result_frame(
-    title=lang["result_frame"],
+    title=lang.result_frame_prompt,
     # result="inputYourContentToHighligt",
     layout=None,
     title_color=title_color,

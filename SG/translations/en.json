@@ -2,15 +2,15 @@
     "welcome_message": "Welcome to My App!",
     "choose_emotion_config": "Please select an emotional combination for testing: recommended combinations are AS, HNS, AHNS, AHNPS. \nNote that there is a difference between 'surprise' and 'pleasantSurprise' in the SAVEE dataset, \nso the AHNPS combination is not recommended for use on SAVEE.",
     "choose_feature_config": "Please choose one or more features",
-    "feature_transform_config":"feature transformer config",
+    "feature_transform_config": "feature transformer config",
     "choose_algorithm": "Choose an algorithm for testing",
     "choose_audio": "Please select an audio sample file to recognize its emotion.",
     "recognize_the_audio_emotion": "Recognize the emotion of the selected audio file.",
-    "draw_diagram":"choose one diagram to draw",
+    "draw_diagram": "choose one diagram to draw",
     "draw_diagram_detail": "Draw the [waveform|spectrogram|Mel spectrogram] of the selected file:",
     "welcome_title": "𝒲ℯ𝓁𝒸ℴ𝓂ℯ 𝓉ℴ ℯ𝓍𝓅ℯ𝓇𝒾ℯ𝓃𝒸ℯ 𝒞𝒞𝒮ℰℛ 𝒞𝓁𝒾ℯ𝓃𝓉!",
-    "result_training":"result of model training:",
-    "train_result_title":"Train Result",
-    "result_frame":"Emotion Of Select File(Predict Result)",
-    "recognize_it":"Recognize it"
+    "result_training": "result of model training:",
+    "train_result_title": "Train Result",
+    "result_frame": "Emotion Of Select File(Predict Result)",
+    "recognize_it": "Recognize it"
 }

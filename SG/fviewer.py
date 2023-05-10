@@ -8,19 +8,24 @@ from config.MetaPath import speech_dbs_dir, savee
 import constants.uiconfig as ufg
 import table_show as ts
 import constants.beauty as bt
+from SG.multilanguage import get_language_translator
 
 # from recognizer.basic import EmotionRecognizer
 import data_visualization as dv
+
+# from SG.translations import en,zh
+language = "en"
+lang = get_language_translator(language)
 
 # 主题设置说明:当主题设置语句防止在程序的末尾时可能是无效的
 # 猜测sg.theme()设置完主题后,后续在调用sg的元素创建方法才会有相应主题的配色
 # 如果控件都已经创建好了才开始调用sg.theme()修改配色,那来不及起作用了
 sg.theme(bt.ccser_theme)
 # 常量
-listbox_default_value_tip = "hover your mouse in this listbox area to check tooltips!"
+
 audio_listbox_values = [
-    "click filter or input regex to scan audio file!",
-    listbox_default_value_tip,
+    lang.click_filter_prompt,
+    lang.listbox_default_value_prompt,
 ]
 
 # 将变量设置在事件循环中可能会反复被初始化,这里我们应该放在事件循环的外部
@@ -34,25 +39,11 @@ selected_files = []
 # er: EmotionRecognizer = None
 er = None
 t: ts.TableShow = None
-filter_tooltip = """
-    the listbox of files allow you to choose one or more files \n using left button of your mouse, 
-you can use `Ctrl+Click` to select multiple files(jump to the selected file is allowed too!)
 
-    you can right click after you choose one or more files to do something like these: 
-    1.file size
-    2.file path(absolute path)
-    3.recognize emotion
-    4.play file(audio) you choosed
-    *.all of above could work in multiple files one by one automatically
-"""
-selected_files_tooltip = """
-you can observe the files your choosed in last listBox
-Whether it is a continuous selection or a skip selection, 
-these selected files will be tightly arranged and 
-the number of files will be displayed at the top
-"""
+selected_files_tooltip = lang.selected_files_tooltip
+filter_tooltip = lang.filter_tooltip
+
 filter_input_key = "filter_input"
-
 files_browsed_key = "files browsed"
 selected_files_listbox_key = "selected_files_list"
 num_selected_files_key = "num_selected_files"
@@ -64,6 +55,8 @@ audio_file_list_key = "audio_files_list"
 confirm_files_selected_key = "confirm files selected"
 confirm_folder_selected_key = "confirm folder selected"
 filter_audios_key = "filter audios"
+speech_folder_path_input_key = "speech_folder_path_input"
+speech_folder_path_chooser_key = "speech_folder_path_chooser"
 
 
 ##
@@ -96,6 +89,15 @@ def get_audios_regex(
         )
     # 调试模式,切片出一小部分来试验算法
     # audios=audios[:50]
+
+    # 正则表达式模式
+    if filter_regex:
+        if verbose:
+            print("filter_regex:> ", filter_regex)
+        # 由于这里需要反复使用正则匹配,因此采用编译的方式来提高性能
+        p = re.compile(filter_regex, re.IGNORECASE)
+        # s = re.search(filter_regex, str(path), re.IGNORECASE)
+
     filtered_audios = []
     for path in audios:
         # print(path)
@@ -106,11 +108,9 @@ def get_audios_regex(
         else:
             path = path.absolute()
         # 对路径进行正则过滤
-        #todo 对括号的识别有问题(得益于模块化,可以直接在这个模块内启动图形界面进行调试)
+        # todo 对括号的识别有问题(得益于模块化,可以直接在这个模块内启动图形界面进行调试)
         if filter_regex:
-            if verbose:
-                print('filter_regex:> ', filter_regex)
-            s = re.search(filter_regex, str(path), re.IGNORECASE)
+            s = p.search(str(path))
             if s:
                 filtered_audios.append(path)
         else:
@@ -154,8 +154,7 @@ def get_audios(folder, exts, pattern="*", recursive=False, flatten=True, verbose
 ##
 # 创建GUI窗口
 folder_browse_init_dir = speech_dbs_dir / savee  # 作为一个初始值
-speech_folder_path_input_key = "speech_folder_path_input"
-speech_folder_path_chooser_key = "speech_folder_path_chooser"
+
 default_folder_file_list = get_audios_regex(
     recursive=True, speech_folder_root=speech_dbs_dir, short=True
 )
@@ -166,102 +165,131 @@ len_default_folder_file_list = len(default_folder_file_list)
 
 right_click_menu = [
     "",
-    ["Show File Path", "Show File Size", "Play Audio", "Emotion Recognize"],
+    [lang.show_file_path, lang.show_file_size, lang.play_audio, lang.emotion_recognize],
 ]
 
-audio_viewer_layout = [
-    [sg.Text("Select a directory:")],
-    [
-        sg.InputText(
-            default_text=speech_folder,
-            key=speech_folder_path_input_key,
-            tooltip="you can paste or type a dir path!\n or use the right side Browse button to choose a dir",
-        ),
-        sg.FolderBrowse(
-            initial_folder=folder_browse_init_dir,
-            button_text="folder browse",
-            change_submits=True,
-            key=speech_folder_path_chooser_key,
-            target=speech_folder_path_input_key,
-            # enable_events=True,
-            tooltip=f"choose a folder you want to do SER,\nthe default folder is {speech_folder}",
-        ),
-    ],
-    [sg.B(confirm_folder_selected_key)],
-    [
-        sg.Input(
-            default_text="select multiple files,which will be shown here ",
-            key=files_browsed_key,
-        ),
-        # sg.Text(text="files selected by filesBrowse will be shown \n in the listbox below"),
-        sg.FilesBrowse(
-            target=files_browsed_key,
-            key="FilesBrowse",
-            enable_events=True,
-            change_submits=True,
-        ),
-        sg.OK(key="confirm files selected"),
-    ],
-    [
-        sg.Text("current directory:"),
-        sg.Text(f"{speech_folder}", key="current_dir"),
-    ],
-    [
-        sg.Checkbox(
-            text="Recursively scan subdirectories",
-            default=True,
-            key=recursive_checkbox_key,
-            enable_events=True,
-        ),
-        sg.Checkbox(
-            text="auto refresh",
-            default=False,
-            key=auto_refresh_checkbox_key,
-            enable_events=True,
-        ),
-        sg.Checkbox(
-            text="short path", default=True, key=short_path_checkbox_key, enable_events=True
-        ),
-    ],
-    [
-        sg.Text("Filter by regex:"),
-        sg.InputText(key="filter_input", default_text="", enable_events=True),
-    ],
-    [
-        sg.B(filter_audios_key, tooltip="click to manual refresh the files listbox"),
-        # sg.Button(ufg.close),
-    ],
-    [sg.Text(f"{len_default_folder_file_list} files", key="num_files_text")],
-    [
-        sg.Listbox(
-            values=default_folder_file_list,
-            # size=(50, 10),
-            size=bt.lb_size,
-            key=audio_file_list_key,
-            enable_events=True,
-            bind_return_key=True,
-            tooltip=filter_tooltip,
-            # 定义位于列表中条目的右键菜单内容
-            right_click_menu=right_click_menu,
-            select_mode=sg.LISTBOX_SELECT_MODE_EXTENDED,
-            no_scrollbar=True,
-        )
-    ],
-    [
-        sg.Text("Selected audio files:"),
-        sg.Text(f"0 files", key=num_selected_files_key),
-    ],
-    [
-        sg.Listbox(
-            values=audio_listbox_values,
-            size=bt.lb_size,
-            key=selected_files_listbox_key,
-            tooltip=selected_files_tooltip,
-            right_click_menu=right_click_menu,
-            select_mode=sg.LISTBOX_SELECT_MODE_EXTENDED,
-        )
-    ],
-]
+
+files_selected_prompt = lang.files_selected_prompt
+
+
+def audio_viewer_layout(theme=""):
+    if theme:
+        sg.theme(theme)
+    audio_viewer_layout = [
+        
+        [sg.Text(lang.select_dir_prompt),
+        #  change the visible to True to try the language and theme switch!
+          sg.Button("restart", visible=False)],
+        [
+            sg.InputText(
+                default_text=speech_folder,
+                key=speech_folder_path_input_key,
+                tooltip=lang.path_input_tooltip,
+            ),
+            sg.FolderBrowse(
+                initial_folder=folder_browse_init_dir,
+                button_text=lang.folder_browse,
+                change_submits=True,
+                key=speech_folder_path_chooser_key,
+                target=speech_folder_path_input_key,
+                # enable_events=True,
+                tooltip=f"{lang.choose_folder_tooltip}{speech_folder}",
+            ),
+        ],
+        [sg.Button(lang.confirm_folder_selected, key=confirm_folder_selected_key)],
+        [
+            sg.Input(
+                default_text=files_selected_prompt,
+                key=files_browsed_key,
+            ),
+            # sg.Text(text="files selected by filesBrowse will be shown \n in the listbox below"),
+            sg.FilesBrowse(
+                button_text=lang.files_browse,
+                target=files_browsed_key,
+                key="FilesBrowse",
+                enable_events=True,
+                change_submits=True,
+            ),
+        ],
+        [
+            sg.OK(
+                button_text=lang.confirm_files_selected_button,
+                key=confirm_files_selected_key,
+            ),
+        ],
+        [
+            sg.Text(lang.current_directory_prompt),
+            sg.Text(f"{speech_folder}", key="current_dir"),
+        ],
+        [
+            sg.Checkbox(
+                text=lang.recursively_scan_subdir,
+                default=True,
+                key=recursive_checkbox_key,
+                enable_events=True,
+            ),
+            sg.Checkbox(
+                text=lang.auto_refresh,
+                default=False,
+                key=auto_refresh_checkbox_key,
+                enable_events=True,
+            ),
+            sg.Checkbox(
+                text=lang.short_path,
+                default=True,
+                key=short_path_checkbox_key,
+                enable_events=True,
+            ),
+        ],
+        [
+            sg.Text(lang.filter_by_regex_prompt),
+            sg.InputText(key="filter_input", default_text="", enable_events=True),
+        ],
+        [
+            sg.Button(
+                button_text=lang.filter_audios,
+                key=filter_audios_key,
+                tooltip=lang.auto_refresh_tooltip,
+            ),
+            # sg.Button(ufg.close),
+        ],
+        [sg.Text(f"{len_default_folder_file_list} files", key="num_files_text")],
+        [
+            sg.Listbox(
+                values=default_folder_file_list,
+                # size=(50, 10),
+                size=bt.lb_size,
+                key=audio_file_list_key,
+                enable_events=True,
+                bind_return_key=True,
+                tooltip=filter_tooltip,
+                # 定义位于列表中条目的右键菜单内容
+                right_click_menu=right_click_menu,
+                select_mode=sg.LISTBOX_SELECT_MODE_EXTENDED,
+                no_scrollbar=True,
+            )
+        ],
+        [
+            sg.Text(lang.selected_audios_prompt),
+            sg.Text(lang.no_files, key=num_selected_files_key),
+        ],
+        [
+            sg.Listbox(
+                values=audio_listbox_values,
+                size=bt.lb_size,
+                key=selected_files_listbox_key,
+                tooltip=selected_files_tooltip,
+                right_click_menu=right_click_menu,
+                select_mode=sg.LISTBOX_SELECT_MODE_EXTENDED,
+            )
+        ],
+    ]
+    return audio_viewer_layout
+
+
+def make_window(theme):
+    window = sg.Window("Audio Viewer", audio_viewer_layout(theme), resizable=True)
+    return window
 
 
 # 定义文件大小计算函数
@@ -319,14 +347,19 @@ def get_abs_selected_pathes(speech_folder_path, selected_files):
 
 
 def main():
-    layout = audio_viewer_layout
-
-    window = sg.Window("Audio File Filter", layout, resizable=True)
+    layout = audio_viewer_layout()
+    global lang
+    window = sg.Window(lang.audios_filter, layout, resizable=True)
     while True:
         event, values = window.read()
         print(event, "@{event} main")
         if event in (sg.WINDOW_CLOSED, ufg.close):
             break
+        elif event == "restart":
+            window.close()
+            print("closed successfully!")
+            lang = get_language_translator("zh")
+            window = make_window(theme="Reds")
         else:
             # 处理事件(小心,如果下面的函数编写不当,可能使得某些控件不能够正常工作)
             # 例如,FolderBrowser生成的按钮点击无法呼出系统的资源管理器(或者需要反复点击)
@@ -355,7 +388,7 @@ def fviewer_events(window, event=None, values=None, verbose=1):
         # 判断手动输入的路径是否合法
         if event == confirm_folder_selected_key:
             path = values[speech_folder_path_input_key]
-            print(path, "was confirmed")
+            print(path, "was confirmed!")
             if Path(path).exists():
                 speech_folder = path
                 # 更新当前speech_path控件
@@ -363,7 +396,7 @@ def fviewer_events(window, event=None, values=None, verbose=1):
                 # 更新文件列表视图
                 refresh_viewer(window, speech_folder=path, values=values)
             else:
-                sg.popup_error(f"{path} not exist!")
+                sg.popup_error(f"{path} {lang.not_exist}")
         # 刷新文件列表
         elif event == filter_input_key and not values[auto_refresh_checkbox_key]:
             return
@@ -387,7 +420,7 @@ def fviewer_events(window, event=None, values=None, verbose=1):
         refresh_selected_view(window, num_selected_files)
 
     # 处理 "Show File Path" 事件
-    elif event == "Show File Path":
+    elif event == lang.show_file_path:
         res = []
         for file in selected_files:
             res.append(get_absolute_path(speech_folder, file))
@@ -395,7 +428,7 @@ def fviewer_events(window, event=None, values=None, verbose=1):
         sg.popup(selected_file_pathes, title="File Path")
 
         # 处理 "Show File Size" 事件
-    elif event == "Show File Size":
+    elif event == lang.show_file_size:
         # selected_file = get_abs_selected_pathes(speech_folder_path, selected_files)
         res = []
         for selected_file in selected_files:
@@ -407,7 +440,7 @@ def fviewer_events(window, event=None, values=None, verbose=1):
         res = "\n".join(res)
         sg.popup(f"{res}", title="File Size")
         # 处理 "Play Audio" 事件
-    elif event == "Play Audio":
+    elif event == lang.play_audio:
         pathes = get_abs_selected_pathes(speech_folder, selected_files)
         print(pathes, selected_files)
 
@@ -421,7 +454,7 @@ def fviewer_events(window, event=None, values=None, verbose=1):
             # 播放音频
             audio_file = AudioSegment.from_file(audio_path, format=ext)
             play(audio_file)
-    elif event == "Emotion Recognize":
+    elif event == lang.emotion_recognize:
         # print()
         # 为了完成多选文件(成批识别),经过brainstorm,提出以下idea:
         # 委托给ccser_gui模块来处理,通过共享变量来简单通信/创建一个媒介模块来解决相互导入的问题(对于这种简单的场景够用的)
@@ -431,7 +464,7 @@ def fviewer_events(window, event=None, values=None, verbose=1):
         # 这里的识别应该在训练阶段完成之后才调用的,否则程序应该组织这样跨阶段的行为,提高robustness
         if er == None:
             print("请先完成识别器训练,然后再执行识别操作")
-            sg.popup("please train the SER model and then try angin!")
+            sg.popup(lang.train_model_warning, text_color="red")
         else:
             print(f"the emotion recognizer is {er}!")
             res_content: list[str] = []
@@ -448,7 +481,9 @@ def fviewer_events(window, event=None, values=None, verbose=1):
             print(emo_res, "@{emo_res}")
             print(abs_pathes, "@{abs_pathes}")
 
-            t = ts.TableShow(header=["emotion", "path"], data_lists=[emo_res, abs_pathes])
+            t = ts.TableShow(
+                header=["emotion", "path"], data_lists=[emo_res, abs_pathes]
+            )
             print(t.lists, "@{t.lists}")
             t.run()
 
@@ -460,9 +495,7 @@ def fviewer_events(window, event=None, values=None, verbose=1):
 
 def refresh_selected_view(window, num_selected_files):
     # 数量
-    window[num_selected_files_key].Update(
-        f"Selected audio files: ({num_selected_files} files)"
-    )
+    window[num_selected_files_key].Update(f"({num_selected_files}{lang.files_count})")
     # 内容
     window[selected_files_listbox_key].Update(values=selected_files)
 
@@ -479,7 +512,7 @@ def refresh_viewer(window, speech_folder=None, values=None, delay=1, verbose=1):
     recursive = values[recursive_checkbox_key]
     short = values[short_path_checkbox_key]
     filter_regex = values[filter_input_key]
-    auto_refresh=values[auto_refresh_checkbox_key]
+    auto_refresh = values[auto_refresh_checkbox_key]
 
     # print(short, "@{short}🎈")
 
@@ -496,7 +529,9 @@ def refresh_viewer(window, speech_folder=None, values=None, delay=1, verbose=1):
     num_files = len(audio_files)
     # 将扫描到的文件更新到窗口对应组件中,在下一次read方法调用时,画面就会显示新的内容
     window[audio_file_list_key].update(values=audio_files)
-    window[num_files_key].update(f"Filtered audio files: ({num_files} files)")
+    window[num_files_key].update(
+        f"{lang.filterd_audios}({num_files} {lang.files_count})"
+    )
 
 
 if __name__ == "__main__":

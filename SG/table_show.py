@@ -1,6 +1,8 @@
 import PySimpleGUI as sg
 import pandas as pd
 from config.MetaPath import recognize_result_dir
+from SG.multilanguage import get_language_translator,lang
+
 class TableShow():
     def __init__(self,header=None,data_lists=None):
         """将二维列表作为表格数据显示
@@ -22,7 +24,7 @@ class TableShow():
 
         self.data_df=pd.DataFrame(self.data_rows,columns=self.header)
         # 创建表格布局
-        warning="the save operation will comsume  some time to complete!Be patient!"
+        save_patient_warning=lang.save_patient_warning
         self.layout = [
             [
                 sg.Table(
@@ -37,9 +39,9 @@ class TableShow():
                     expand_y=True,
                 )
             ],
-            [sg.Text("if you want to recognize the next batch files,please close the window first!\n in the future,the client may be support multiple threads to improve the user experience")],
-            [sg.Text("save result to a csv file")],
-            [sg.Button(f"save to file",tooltip=f"click to save to a csv file!\n{warning}")],
+            [sg.Text(lang.close_table_prompt)],
+            [sg.Text(lang.save_to_csv_prompt)],
+            [sg.Button(f"save to file",tooltip=f"{save_patient_warning}")],
 
         ]
     def run(self):

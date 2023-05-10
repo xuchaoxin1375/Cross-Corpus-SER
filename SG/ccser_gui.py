@@ -1,7 +1,11 @@
 ##
+from multilanguage import get_language_translator
+
+lang = get_language_translator("English")
+lang = get_language_translator("Chinese")
+
 import inspect
 import os
-
 import constants.beauty as bt
 import constants.uiconfig as ufg
 import data_visualization as dv
@@ -14,20 +18,21 @@ from constants.beauty import (
     ccser_theme,
     db_introduction,
     h2,
-    logo,
     option_frame,
     result_frame,
 )
+import constants.logo as logo
+
+logo = logo.ASCII_Art_logo
 from constants.uiconfig import ML_KEY, __version__
 from demo_programs.Demo_Nice_Buttons import image_file_to_bytes, red_pill64, wcolor
 from fviewer import audio_viewer_layout, fviewer_events, selected_files
 from joblib import load
-from multilanguage import get_your_language_translator
 from user import UserAuthenticatorGUI
 
 from config.algoparams import ava_cv_modes
 
-lang = get_your_language_translator("English")
+
 import sys
 
 # from psgdemos import *
@@ -67,7 +72,7 @@ algorithm = ""
 audio_selected = ""
 speech_folder = speech_dbs_dir
 start_train_key = "start train"
-no_result_yet = f"No Result Yet"
+
 predict_res_key = "emotion_predict_res"
 std_scaler_key = "std_scaler"
 pca_key = "pca_params"
@@ -88,13 +93,16 @@ current_model_key = "current_model"
 current_model_tip_key = "current_model_tip"
 predict_proba_tips_key = "predict_proba"
 cv_splits_slider_key = "cv_splits_slider"
-
+language_switch_key = "language_switch"
+set_theme_key="set theme"
 train_cv_result_table_key = "train_cv_result_table"
 # test_score&train_score view
 train_result_table_key = "train_result_table"
 predict_proba_table_key = "predict_proba_table"
 predict_proba_frame_key = "predict_proba_frame"
 predict_proba_table_frame_key = "predict_proba_table_frame"
+browsw_file_with_history = "broswe file with history"
+language_select_key = "language_select"
 userUI = UserAuthenticatorGUI()
 # ---辅助信息---
 
@@ -130,7 +138,7 @@ def get_train_fit_start_layout():
         [
             # sg.Button('start train'),
             sg.RButton(
-                "start train",
+                lang.start_train,
                 image_data=image_file_to_bytes(red_pill64, (100, 50)),
                 button_color=("white", "white"),
                 # button_color=wcolor,
@@ -138,7 +146,11 @@ def get_train_fit_start_layout():
                 pad=(0, 0),
                 key="start train",
             ),
-            sg.pin(sg.T("current model:", key=current_model_tip_key, visible=False)),
+            sg.pin(
+                sg.T(
+                    lang.current_model_prompt, key=current_model_tip_key, visible=False
+                )
+            ),
             sg.T("", key=current_model_key),
         ]
     ]
@@ -152,7 +164,10 @@ def make_window(theme=None, size=None):
     if theme:
         # print(theme)
         sg.theme(theme)
-    menu_def = [["&Application", ["E&xit"]], ["Help", ["Introduction"]]]
+    menu_def = [
+        [lang.application_menu, [lang.exit_menu]],
+        [lang.help_menu, [lang.introduction_menu]],
+    ]
     # ---user register and login---
     user_layout = get_user_layout()
     # ---choose theme---
@@ -172,7 +187,7 @@ def make_window(theme=None, size=None):
     train_result_frame_layout = train_res_frame_layout(train_result_tables_layout)
 
     confution_matrix_button_layout = [
-        [sg.B("show confusion matrix", key=show_confusion_matrix_key)],
+        [sg.B(lang.show_confusion_matrix, key=show_confusion_matrix_key)],
     ]
 
     file_choose_layout = get_file_choose_layout()
@@ -212,9 +227,7 @@ def make_window(theme=None, size=None):
     # output tab
     analyzer_layout = get_analyzer_layout()
 
-    settings_layout = [
-        [sg.Text("Settings")],
-    ] + theme_layout
+    settings_layout = get_settings_layout()
     about_layout = info_layout
     # ---column right---
     right_column_layout = audio_viewer_layout
@@ -256,11 +269,11 @@ def make_window(theme=None, size=None):
             sg.TabGroup(
                 [
                     [
-                        sg.Tab("WelcomeUser", user_layout),
-                        sg.Tab("MainPage", main_tab_layout),
-                        sg.Tab("Analyzer", analyzer_layout),
-                        sg.Tab("Settings", settings_layout),
-                        sg.Tab("about", about_layout),
+                        sg.Tab(lang.welcome, user_layout),
+                        sg.Tab(lang.main_page, main_tab_layout),
+                        sg.Tab(lang.analyzer, analyzer_layout),
+                        sg.Tab(lang.settings, settings_layout),
+                        sg.Tab(lang.about, about_layout),
                     ]
                 ],
                 key="-TAB GROUP-",
@@ -283,6 +296,25 @@ def make_window(theme=None, size=None):
     return window
 
 
+def get_settings_layout():
+    theme_layout = get_theme_layout()
+
+    language_frame = [
+        [
+            sg.Listbox(
+                values=["English", "中文"],
+                key=language_select_key,
+                enable_events=True,
+                size=bt.lb_narrow_size,
+            ),
+        ],
+        [sg.Button(lang.language_switch, key=language_switch_key)],
+    ]
+    settings_layout = [[sg.Text(lang.settings)], *theme_layout, *language_frame]
+
+    return settings_layout
+
+
 def get_user_layout():
     global userUI
     userUI = UserAuthenticatorGUI()
@@ -299,7 +331,7 @@ def train_res_frame_layout(train_result_tables_layout):
     train_result_frame_layout = [
         [
             bt.result_frame(
-                title=lang["train_result_title"],
+                title=lang.train_result_title,
                 layout=train_result_tables_layout,
                 frame_key="train_result_frame",
             ),
@@ -311,9 +343,9 @@ def train_res_frame_layout(train_result_tables_layout):
 
 def get_db_choose_layout():
     db_choose_layout = [
-        [bt.h2("Select the training database")],
+        [bt.h2(lang.select_training_db)],
         [sg.Combo(ava_dbs, key="train_db", default_value=emodb, enable_events=True)],
-        [bt.h2("Select the testing database")],
+        [bt.h2(lang.select_testing_db)],
         [sg.Combo(ava_dbs, key="test_db", default_value=emodb, enable_events=True)],
     ]
 
@@ -322,20 +354,16 @@ def get_db_choose_layout():
 
 def get_theme_layout():
     theme_layout = [
-        [
-            sg.Text(
-                "See how elements look under different themes by choosing a different theme here!"
-            )
-        ],
+        [sg.Text(lang.theme_prompt)],
         [
             sg.Listbox(
                 values=sg.theme_list(),
-                size=bt.lb_size,
+                size=bt.lb_narrow_size,
                 key="-THEME LISTBOX-",
                 enable_events=True,
             )
         ],
-        [sg.Button("Set Theme")],
+        [sg.Button(lang.set_theme,key=set_theme_key)],
     ]
 
     return theme_layout
@@ -343,7 +371,7 @@ def get_theme_layout():
 
 def get_file_choose_layout():
     file_choose_layout = [
-        [bt.h2(lang["choose_audio"])],
+        [bt.h2(lang.choose_audio)],
         [
             sg.Combo(
                 sorted(sg.user_settings_get_entry("-filenames-", [])),
@@ -351,18 +379,20 @@ def get_file_choose_layout():
                 size=(50, 1),
                 key="-FILENAME-",
             ),
-            sg.FileBrowse(),
-            sg.B("Clear History"),
+            sg.FileBrowse(
+                button_text=lang.file_browse, key=browsw_file_with_history
+            ),  # target参数可用
+            sg.B(lang.clear_history),
         ],
         [
-            sg.Button("OK", bind_return_key=True, key="file_choose_ok"),
+            sg.Button(lang.OK, bind_return_key=True, key="file_choose_ok"),
             # sg.Button("Cancel"),
             # ],
             # [
             sg.B(
-                "Recognize it",
+                lang.recognize_it,
                 key="recognize it",
-                tooltip=lang["recognize_the_audio_emotion"],
+                tooltip=lang.recognize_the_audio_emotion,
             ),
         ],
     ]
@@ -375,7 +405,7 @@ def get_train_res_tables_layout():
         [
             sg.Table(
                 values=[["pending"] * 2],
-                headings=["train_score", "test_score"],
+                headings=[lang.train_score, lang.test_score],
                 justification="center",
                 font="Arial 16",
                 expand_x=True,
@@ -387,7 +417,7 @@ def get_train_res_tables_layout():
         [
             sg.Table(
                 values=[["pending"] * 2],
-                headings=["fold", "accu_score"],
+                headings=[lang.fold_field, lang.accu_score_field],
                 justification="center",
                 font="Arial 16",
                 expand_x=True,
@@ -407,7 +437,7 @@ def get_title_layout():
         [
             sg.Text(
                 # "Welcome to experience CCSER Client!",
-                lang["welcome_title"],
+                lang.welcome_title,
                 size=bt.welcom_title_size,
                 justification="center",
                 font=("Comic", 50),
@@ -421,16 +451,22 @@ def get_title_layout():
 
 
 def get_draw_layout():
+    WaveForm = lang.WaveForm
+    FreqGraph = lang.FreqGraph
+    MelFreqGraph = lang.MelFreqGraph
     draw_layout = [
-        [bt.h2(lang["draw_diagram"], tooltip=lang["draw_diagram_detail"])],
+        [bt.h2(lang.draw_diagram, tooltip=lang.draw_diagram_detail)],
         # [sg.Input(), sg.FileBrowse()],
         [
-            sg.Checkbox("waveForm", key="wave_form"),
-            sg.Checkbox("FreqGraph", key="freq_graph"),
-            sg.Checkbox("MelFreqGraph", key="mel_freq_graph"),
+            sg.Checkbox(WaveForm, key="wave_form", default=False),
+            sg.Checkbox(FreqGraph, key="freq_graph", default=False),
+            sg.Checkbox(MelFreqGraph, key="mel_freq_graph", default=False),
         ],
         # todo reset
-        [sg.Button("draw_graph"), sg.Button("Reset", key="reset graph Checkbox")],
+        [
+            sg.Button(lang.draw_diagram, key="draw diagram"),
+            sg.Button("Reset", key="reset graph Checkbox"),
+        ],
     ]
 
     return draw_layout
@@ -483,22 +519,22 @@ def get_logging_viewer_layout():
 
 def get_analyzer_layout():
     analyzer_log_printer_layout = [
-            [bt.h2("Anything printed will display here!")],
-            [
-                sg.Multiline(
-                    size=bt.ml_size,
-                    # expand_x=True,
-                    # expand_y=True,
-                    write_only=True,
-                    reroute_stdout=True,
-                    reroute_stderr=True,
-                    echo_stdout_stderr=True,
-                    autoscroll=True,
-                    auto_refresh=True,
-                )
-            ],
-        ]
-    
+        [bt.h2("Anything printed will display here!")],
+        [
+            sg.Multiline(
+                size=bt.ml_size,
+                # expand_x=True,
+                # expand_y=True,
+                write_only=True,
+                reroute_stdout=True,
+                reroute_stderr=True,
+                echo_stdout_stderr=True,
+                autoscroll=True,
+                auto_refresh=True,
+            )
+        ],
+    ]
+
     # analyzer_layout = (
     #     analyzer_log_printer
     #     + dv.layout
@@ -541,7 +577,7 @@ def get_info_layout():
 
 def get_predict_res_layout():
     predict_res_layout = bt.res_content_layout(
-        text=no_result_yet, justification="c", key=predict_res_key
+        text=lang.no_result_yet, justification="c", key=predict_res_key
     )
 
     # 默认不显示predict_proba的不可用说明
@@ -553,7 +589,7 @@ def get_predict_res_layout():
         [
             sg.Table(
                 values=[["pending"] * 2],
-                headings=["emotino", "proba"],
+                headings=[lang.emotion_field, lang.proba_field],
                 justification="c",
                 font="Arial 16",
                 expand_x=True,
@@ -567,22 +603,15 @@ def get_predict_res_layout():
     ]
     predict_prob_layout = [*predict_proba_tips_layout, *predict_proba_table_layout]
     predict_res_frames_layout = [
-        [result_frame(layout=predict_res_layout)],
+        [result_frame(title=lang.result_frame_prompt, layout=predict_res_layout)],
         [
             result_frame(
-                title="predict_proba_tips",
+                title=lang.predict_proba_legend,
                 layout=predict_prob_layout,
                 frame_key=predict_proba_frame_key,
                 # visible=False,
             )
         ],
-        # [
-        #     result_frame(
-        #         title="predict_proba_table",
-        #         layout=predict_proba_table_layout,
-        #         frame_key=predict_proba_table_frame_key,
-        #     ),
-        # ],
     ]
 
     return predict_res_frames_layout
@@ -639,7 +668,7 @@ def get_other_settings_layout():
     other_settings_frame_layout = [
         [
             bt.option_frame(
-                title="Other Parameter Settings", layout=cv_param_settings_layout
+                title=lang.other_parameter_legend, layout=cv_param_settings_layout
             ),
         ],
     ]
@@ -652,7 +681,7 @@ def get_algo_layout():
     len_of_algos = len(algos)
 
     algo_frame = option_frame(
-        title="Algorithms chooser",
+        title=lang.algorithmes_chooser_title,
         layout=[
             algos[: len_of_algos // 2],
             algos[len_of_algos // 2 :],
@@ -660,7 +689,7 @@ def get_algo_layout():
         frame_key="algo_border_frame",
     )
     algos_layout = [
-        [bt.h2(lang["choose_algorithm"])],
+        [bt.h2(lang.choose_algorithm)],
         [algo_frame],
     ]
 
@@ -682,16 +711,16 @@ def get_e_config_layout():
     e_config_layout = [
         [
             bt.h2(
-                text="choose the emotion config",
+                text=lang.choose_emotion_config_title,
                 # relief=sg.RELIEF_SOLID,
                 # style_add='underline',
                 style_add="italic",
-                tooltip=lang["choose_emotion_config"],
+                tooltip=lang.choose_emotion_config,
             ),
         ],
         [
             bt.option_frame(
-                title="Emotion Config chooser", layout=emotion_config_checboxes_layout
+                title=lang.emotion_config_legend, layout=emotion_config_checboxes_layout
             )
         ],
     ]
@@ -699,11 +728,9 @@ def get_e_config_layout():
     return e_config_layout
 
 
-
-
 def get_f_config_layout():
     f_config_option_frame = option_frame(
-        title="Feature Config chooser",
+        title=lang.feature_config_legend,
         layout=[
             [
                 sg.Checkbox("MFCC", key="mfcc", default=True, enable_events=True),
@@ -716,7 +743,7 @@ def get_f_config_layout():
         frame_key="f_config_layout",
     )
     f_config_layout = [
-        [bt.h2(lang["choose_feature_config"])],
+        [bt.h2(lang.choose_feature_config)],
         [f_config_option_frame],
     ]
 
@@ -725,7 +752,7 @@ def get_f_config_layout():
 
 def get_f_transform_layout():
     f_transform_frame_layout = option_frame(
-        title="Feature Transform chooser",
+        title=lang.feature_transform_legend,
         layout=[
             [
                 sg.Checkbox(
@@ -739,23 +766,23 @@ def get_f_transform_layout():
                 ),
             ],
             [
-                sg.T('n_components:',tooltip="input the number of components to keep."),
+                sg.T(lang.n_components_prompt, tooltip=lang.n_components_tooltip),
                 sg.Input(
                     key=pca_components_key,
                     default_text="None",
-                    tooltip=bt.pca_components_tooltip,
+                    tooltip=lang.pca_components_tooltip,
                     enable_events=True,
                 ),
                 sg.Combo(
                     values=ava_svd_solver,
                     default_value="auto",
-                    tooltip=bt.pca_svd_solver_tooltip,
+                    tooltip=lang.pca_svd_solver_tooltip,
                     enable_events=True,
                     key=pca_svd_solver_key,
                 ),
             ],
             [
-                sg.Text(text="feature_dimension:"),
+                sg.Text(text=lang.demension_prompt),
                 sg.pin(sg.Text("pending", key=feature_dimension_key)),
             ],
             [
@@ -766,12 +793,14 @@ def get_f_transform_layout():
                         visible=False,
                     )
                 ),
-                sg.Text("pending", key=feature_dimension_pca_key, visible=False),
+                sg.Text(
+                    lang.pending_prompt, key=feature_dimension_pca_key, visible=False
+                ),
             ],
         ],
     )
     f_transform_layout = [
-        [bt.h2(lang["feature_transform_config"])],
+        [bt.h2(lang.feature_transform_config)],
         [f_transform_frame_layout],
     ]
     return f_transform_layout
@@ -1000,6 +1029,7 @@ def start_train_model(
     # model_res(er,verbose=verbose)
     return er
 
+
 def fts_params_process(values, verbose):
     pca_enable = values[pca_enable_key]
     pca_params = None
@@ -1015,8 +1045,10 @@ def fts_params_process(values, verbose):
 
     if verbose:
         print(fts, "@{fts}🎈")
-    fts_res = {key: value for key, value in fts.items() if value is not None and value != False}
-    print(fts_res,"@{fts_res}")
+    fts_res = {
+        key: value for key, value in fts.items() if value is not None and value != False
+    }
+    print(fts_res, "@{fts_res}")
     return fts_res
 
 
@@ -1043,6 +1075,9 @@ def model_res(er, verbose=1):
 
 ##
 def main(verbose=1):
+    # lang=lang
+    global theme
+    global lang
     theme = ccser_theme
     window = make_window(theme=theme, size=size)
     # Initialize the selected databases list
@@ -1141,32 +1176,50 @@ def main(verbose=1):
                 audio_selected=audio_selected,
             )
 
-        elif event == "draw_graph":
+        elif event == "draw diagram":
             wave_form = values["wave_form"]
             freq_graph = values["freq_graph"]
             mel_freq_graph = values["mel_freq_graph"]
-            # print(f"{event=}in draw tasks..(开始绘制.)")
-            if wave_form:
-                showWaveForm(audio_selected)
-            if freq_graph:
-                showFreqGraph(audio_selected)
-            if mel_freq_graph:
-                showMelFreqGraph(audio_selected)
+            if verbose:
+                print(f"{event=}in draw tasks..(开始绘制.)")
+                print(
+                    f"tasks:",
+                    f"{[wave_form,freq_graph,mel_freq_graph]},@{[wave_form,freq_graph,mel_freq_graph]}",
+                )
+            if audio_selected:
+                if wave_form:
+                    showWaveForm(audio_selected)
+                if freq_graph:
+                    showFreqGraph(audio_selected)
+                if mel_freq_graph:
+                    showMelFreqGraph(audio_selected)
+            else:
+                sg.popup(f"{audio_selected}" + lang.not_exist)
             # print("完成图形绘制.")
 
-        elif event == "Set Theme":
+        elif event == set_theme_key:
             # print("[LOG] Clicked Set Theme!")
             select_items_list = values["-THEME LISTBOX-"]
             theme_chosen = values["-THEME LISTBOX-"][0]
             if verbose:
                 print(select_items_list, "@{select_item}")
                 print("[LOG] User Chose Theme: " + str(theme_chosen))
+            #TODO why the call of window.close cause the GUI broken?
             window.close()
             print("the window was closed!")
             # window = make_window(theme=theme_chosen)
             # if(window):
             #     print("restart successful!")
             # window = make_window()
+        elif event == language_select_key:
+            language = values[language_select_key][0]
+            lang=get_language_translator(language=language)
+            if verbose:
+                print("language: ", language)
+                print('lang: ', lang)
+            
+            window.Refresh()
+
         elif event == "Introduction":
             content = [logo, db_introduction]
             res = "\n".join(content)
@@ -1218,9 +1271,7 @@ def refresh_trained_view(verbose, window, er, values):
     ae = er.ae
     window[feature_dimension_key].update(value=ae.feature_dimension)
     window[feature_dimension_pca_tip_key].update(visible=True)
-    window[feature_dimension_pca_key].update(
-        value=ae.get_dimensions(), visible=True
-    )
+    window[feature_dimension_pca_key].update(value=ae.get_dimensions(), visible=True)
 
     n_splits = values[cv_splits_slider_key]
     # cv_mode=values[kfold_radio_key]

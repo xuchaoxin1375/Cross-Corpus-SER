@@ -37,8 +37,10 @@ ravdess_files_glob_old = "data/ravdess/Actor_*"
 ravdess_files_glob="data/ravdess/Actor_*/*.wav"
 savee_files_glob = "data/savee/AudioData/*/*.wav"
 translations_dir=project_dir/"SG/translations"
-trans_zh=translations_dir/"zh.json"
-trans_en=translations_dir/"en.json"
+trans_zh_json=translations_dir/"zh.json"
+trans_en_json=translations_dir/"en.json"
+trans_zh=translations_dir/"zh.py"
+trans_en=translations_dir/"en.py"
 # print(trans_en.exists())
 
 #计算绝对路径

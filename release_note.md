@@ -23,7 +23,17 @@
 
 - **<u>input version under this line:</u>**
   - new notes:"Sort update records in descending order of time".That would be convenient to update new version notes in the future.
-- 
+- *<u>current modifing:</u>*
+  - ...
+
+- 2023-05-10@20:06:02
+  - initially support the interface language switch:between Chinese and English
+    - the approch to achieve the multilanguage support depending on language string resource py file:
+      - `zh.py` for Chinese
+      - `en.py` for english
+    - for convenience,these module was managed by the `multilanguage.py`module.
+    - unfortunately,these features was test in `fviewer.py`,the main gui was still unable to work normally because the `windows.close` caused the program broken!
+  - improve the regex_filter performance by using `re.compile` instead `re.<function>`
 - 2023-05-09@19:10:05
   - fix some bugs.
   - certain adjustments to the project code.
