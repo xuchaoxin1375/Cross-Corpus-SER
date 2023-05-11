@@ -1,8 +1,8 @@
 ##
 from multilanguage import get_language_translator
 
-lang = get_language_translator("English")
-lang = get_language_translator("Chinese")
+lang = get_language_translator("en")
+lang = get_language_translator("cn")
 
 import inspect
 import os
@@ -29,12 +29,13 @@ from demo_programs.Demo_Nice_Buttons import image_file_to_bytes, red_pill64, wco
 from fviewer import audio_viewer_layout, fviewer_events, selected_files
 from joblib import load
 from user import UserAuthenticatorGUI
-
 from config.algoparams import ava_cv_modes
-
-
 import sys
-
+from SG.pandas_table import TablePandas
+fviewer.lang=lang
+q.lang=lang
+import SG.pandas_table as ptable
+ptable.lang=lang
 # from psgdemos import *
 # from SG.psgdemos import find_in_file, get_editor, get_explorer, get_file_list, filter_tooltip, find_re_tooltip, find_tooltip, get_file_list_dict, settings_window, using_local_editor, window_choose_line_to_edit
 from audio.core import get_used_keys
@@ -230,7 +231,7 @@ def make_window(theme=None, size=None):
     settings_layout = get_settings_layout()
     about_layout = info_layout
     # ---column right---
-    right_column_layout = audio_viewer_layout
+    right_column_layout = audio_viewer_layout()
     # + get_logging_viewer_layout()
 
     right_column = sg.Column(
@@ -519,7 +520,7 @@ def get_logging_viewer_layout():
 
 def get_analyzer_layout():
     analyzer_log_printer_layout = [
-        [bt.h2("Anything printed will display here!")],
+        [bt.h2(lang.print_display_prompt)],
         [
             sg.Multiline(
                 size=bt.ml_size,
@@ -534,16 +535,10 @@ def get_analyzer_layout():
             )
         ],
     ]
-
-    # analyzer_layout = (
-    #     analyzer_log_printer
-    #     + dv.layout
-    #     + q.query_layout
-    # )
     analyzer_layout = [
         *analyzer_log_printer_layout,
-        *dv.layout,
-        *q.query_layout,
+        *dv.get_dv_layout(),
+        *q.get_query_layout(),
     ]
 
     return analyzer_layout
@@ -1105,6 +1100,7 @@ def main(verbose=1):
         elif event == "train_db":
             train_db = values["train_db"]
             if verbose > 1:
+            
                 print(train_db, "@{trian_db}")
         elif event == "test_db":
             test_db = values["test_db"]
@@ -1225,7 +1221,6 @@ def main(verbose=1):
             res = "\n".join(content)
             sg.popup_scrolled(res, size=(150, 100), title="Introduction")
         elif event == show_confusion_matrix_key:
-            from SG.demo_pandas_table import TablePandas
 
             cm = er.confusion_matrix()
             tp = TablePandas(df=cm)

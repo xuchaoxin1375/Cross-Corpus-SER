@@ -14,19 +14,16 @@ from SG.multilanguage import get_language_translator
 import data_visualization as dv
 
 # from SG.translations import en,zh
-language = "en"
+language = "zh"
 lang = get_language_translator(language)
-
+dv.lang=lang
+ts.lang=lang
 # 主题设置说明:当主题设置语句防止在程序的末尾时可能是无效的
 # 猜测sg.theme()设置完主题后,后续在调用sg的元素创建方法才会有相应主题的配色
 # 如果控件都已经创建好了才开始调用sg.theme()修改配色,那来不及起作用了
 sg.theme(bt.ccser_theme)
 # 常量
 
-audio_listbox_values = [
-    lang.click_filter_prompt,
-    lang.listbox_default_value_prompt,
-]
 
 # 将变量设置在事件循环中可能会反复被初始化,这里我们应该放在事件循环的外部
 # speech_folder_path=Path("./")
@@ -38,10 +35,11 @@ savee_dir = speech_dbs_dir / "savee/AudioData"
 selected_files = []
 # er: EmotionRecognizer = None
 er = None
-t: ts.TableShow = None
+emotion_count_ts: ts.TableShow = None
 
 selected_files_tooltip = lang.selected_files_tooltip
-filter_tooltip = lang.filter_tooltip
+
+# filter_tooltip =
 
 filter_input_key = "filter_input"
 files_browsed_key = "files browsed"
@@ -175,11 +173,17 @@ files_selected_prompt = lang.files_selected_prompt
 def audio_viewer_layout(theme=""):
     if theme:
         sg.theme(theme)
+    audio_listbox_values = [
+        lang.click_filter_prompt,
+        lang.listbox_default_value_prompt,
+    ]
+
     audio_viewer_layout = [
-        
-        [sg.Text(lang.select_dir_prompt),
-        #  change the visible to True to try the language and theme switch!
-          sg.Button("restart", visible=False)],
+        [
+            sg.Text(lang.select_dir_prompt),
+            #  change the visible to True to try the language and theme switch!
+            sg.Button("restart", visible=False),
+        ],
         [
             sg.InputText(
                 default_text=speech_folder,
@@ -253,7 +257,7 @@ def audio_viewer_layout(theme=""):
             ),
             # sg.Button(ufg.close),
         ],
-        [sg.Text(f"{len_default_folder_file_list} files", key="num_files_text")],
+        [sg.Text(f"{len_default_folder_file_list} {lang.files_count_unit}", key="num_files_text")],
         [
             sg.Listbox(
                 values=default_folder_file_list,
@@ -262,7 +266,7 @@ def audio_viewer_layout(theme=""):
                 key=audio_file_list_key,
                 enable_events=True,
                 bind_return_key=True,
-                tooltip=filter_tooltip,
+                tooltip=lang.filter_tooltip,
                 # 定义位于列表中条目的右键菜单内容
                 right_click_menu=right_click_menu,
                 select_mode=sg.LISTBOX_SELECT_MODE_EXTENDED,
@@ -288,7 +292,7 @@ def audio_viewer_layout(theme=""):
 
 
 def make_window(theme):
-    window = sg.Window("Audio Viewer", audio_viewer_layout(theme), resizable=True)
+    window = sg.Window(lang.audio_viewer, audio_viewer_layout(theme), resizable=True)
     return window
 
 
@@ -372,7 +376,7 @@ def main():
 def fviewer_events(window, event=None, values=None, verbose=1):
     global selected_files
     global speech_folder
-    global t
+    global emotion_count_ts
     # 处理 "filter_input" 事件
     if verbose:
         print("[Ev]", event, "@{event}", __file__)
@@ -438,7 +442,7 @@ def fviewer_events(window, event=None, values=None, verbose=1):
             sentence = f"The file <{selected_file}>size is {size_str}."
             res.append(sentence)
         res = "\n".join(res)
-        sg.popup(f"{res}", title="File Size")
+        sg.popup(f"{res}", title=lang.file_size)
         # 处理 "Play Audio" 事件
     elif event == lang.play_audio:
         pathes = get_abs_selected_pathes(speech_folder, selected_files)
@@ -481,21 +485,21 @@ def fviewer_events(window, event=None, values=None, verbose=1):
             print(emo_res, "@{emo_res}")
             print(abs_pathes, "@{abs_pathes}")
 
-            t = ts.TableShow(
+            emotion_count_ts = ts.TableShow(
                 header=["emotion", "path"], data_lists=[emo_res, abs_pathes]
             )
-            print(t.lists, "@{t.lists}")
-            t.run()
+            print(emotion_count_ts.lists, "@{t.lists}")
+            emotion_count_ts.run()
 
     # 询问是否绘制分析图(以下调用可能会影响FolderBrowse控件的响应)
     if verbose >= 2:
         print("询问绘图环节...")
-    dv.data_visualize_events(t, window=window, event=event)
+    dv.data_visualize_events(emotion_count_ts, window=window, event=event)
 
 
 def refresh_selected_view(window, num_selected_files):
     # 数量
-    window[num_selected_files_key].Update(f"({num_selected_files}{lang.files_count})")
+    window[num_selected_files_key].Update(f"({num_selected_files}{lang.files_count_unit})")
     # 内容
     window[selected_files_listbox_key].Update(values=selected_files)
 
@@ -530,7 +534,7 @@ def refresh_viewer(window, speech_folder=None, values=None, delay=1, verbose=1):
     # 将扫描到的文件更新到窗口对应组件中,在下一次read方法调用时,画面就会显示新的内容
     window[audio_file_list_key].update(values=audio_files)
     window[num_files_key].update(
-        f"{lang.filterd_audios}({num_files} {lang.files_count})"
+        f"{lang.filterd_audios}({num_files} {lang.files_count_unit})"
     )
 
 

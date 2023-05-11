@@ -563,9 +563,11 @@ class AudioExtractor:
 
         # 特征提取是一个比较耗时的过程,特征种类越多越耗时,这里采用tqdm显示特征提取进度条(已处理文件/文件总数)
         cnt = 0
-        for audio_file in tqdm.tqdm(
-            audio_paths, f"Extracting features for partition:{partition}"
-        ):
+        # iter = tqdm.tqdm(
+        #     audio_paths, f"Extracting features for partition:{partition}"
+        # )
+        iter= audio_paths
+        for audio_file in iter:
 
             if self.verbose > 1:
                 cnt += 1

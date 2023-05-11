@@ -2,7 +2,7 @@ import PySimpleGUI as sg
 import pandas as pd
 from config.MetaPath import recognize_result_dir
 from SG.multilanguage import get_language_translator,lang
-
+lang=get_language_translator("zh")
 class TableShow():
     def __init__(self,header=None,data_lists=None):
         """将二维列表作为表格数据显示
@@ -22,7 +22,7 @@ class TableShow():
         # header = ["c1","c2"]
         self.header=header#columns
 
-        self.data_df=pd.DataFrame(self.data_rows,columns=self.header)
+        self.data_df=pd.DataFrame(data=self.data_rows,columns=self.header)
         # 创建表格布局
         save_patient_warning=lang.save_patient_warning
         self.layout = [
@@ -41,7 +41,7 @@ class TableShow():
             ],
             [sg.Text(lang.close_table_prompt)],
             [sg.Text(lang.save_to_csv_prompt)],
-            [sg.Button(f"save to file",tooltip=f"{save_patient_warning}")],
+            [sg.Button(lang.save_to_file,tooltip=f"{save_patient_warning}")],
 
         ]
     def run(self):

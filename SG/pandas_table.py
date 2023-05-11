@@ -1,7 +1,8 @@
 import PySimpleGUI as sg
 import pandas as pd
 import SG.constants.beauty as bt
-
+from SG.multilanguage import get_language_translator
+lang=get_language_translator('zh')
 sg.theme(bt.ccser_theme)
 class TablePandas():
     def __init__(self,df=None) -> None:
@@ -35,7 +36,7 @@ class TablePandas():
         return layout
     def get_confution_matrix_window(self,df=None):
         layout = self.create_table_window(df)
-        window = sg.Window("Pandas Table Viewer", layout)
+        window = sg.Window(lang.table_viewer_title, layout)
         return window
 
         
