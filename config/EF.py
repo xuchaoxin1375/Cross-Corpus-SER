@@ -128,17 +128,6 @@ categories_savee = {
 f_config_def = MCM
 e_config_def = HNS
 
-ava_algorithms = [
-    "BEST_ML_MODEL",
-    "SVC",
-    "RandomForestClassifier",
-    "MLPClassifier",
-    "KNeighborsClassifier",
-    "BaggingClassifier",
-    "GradientBoostingClassifier",
-    "RNN",
-]
-ava_svd_solver = ["auto", "full", "arpack", "randomized"]
 
 
 #

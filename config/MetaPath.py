@@ -3,8 +3,8 @@ import collections
 import json
 from pathlib import Path
 from typing import List
-from glob import glob
 
+from glob import glob
 from sklearn.utils import deprecated
 
 from config.EF import (
@@ -51,6 +51,14 @@ meta_dir,recognize_result_dir, grid_dir, emodb_files_glob, ravdess_files_glob,sa
 # 语料库配置
 ravdess, emodb, savee = ["ravdess", "emodb", "savee"]
 ava_dbs: list[str] = [emodb, ravdess, savee]
+# 跨库语料库组合
+##推荐使用mp.compair的方式访问
+emodb_savee=dict(train_dbs=emodb,test_dbs=savee)
+savee_emodb=dict(train_dbs=savee,test_dbs=emodb)
+savee_ravdess= dict(train_dbs=savee, test_dbs=ravdess)
+ravdess_savee=dict(train_dbs=ravdess,test_dbs=savee)
+emodb_ravdess=dict(train_dbs=emodb,test_dbs=ravdess)
+ravdess_emodb=dict(train_dbs=ravdess,test_dbs=emodb)
 #额外的可用预处理参数(feature_transforms)
 ava_fts_params=['std_scaler','pca_params']
 ##
@@ -63,7 +71,7 @@ brgr2 = "bclf_v2.joblib"
 # brgr = brgr1
 # 通过字典选取超参数版本(组合)
 cuple_dict = dict(c1=(bclf1, brgr1), c2=(bclf2, brgr2))
-bclf, brgr = cuple_dict["c2"]
+bclf, brgr = cuple_dict["c1"]
 
 # 补齐具体路径
 bclf, brgr = [grid_dir / item for item in (bclf, brgr)]
@@ -78,7 +86,25 @@ def get_example_audio_file(db=savee):
     g=glob(db_glob)
     return g[0]
 ##
+def get_single_db_pair_dict(db):
+    """获取同库实验的训练/测试语料库组合,以字典的形式返回,作为base.
+    EmotionRecognizer的关键字参数,以**meta_dict方式解包
+    
+    形如:meta_dict = {"train_dbs": db, "test_dbs": db}
 
+    Parameters
+    ----------
+    db : "str"
+        speech database name
+
+    Returns
+    -------
+    dict[str,str]
+        单库语料库字典
+    """
+    single_db = db
+    meta_dict = {"train_dbs": single_db, "test_dbs": single_db}
+    return meta_dict
 
 def get_features_tag(f_config):
     """Returns label corresponding to which features are to be extracted
@@ -560,18 +586,18 @@ def select_meta_dict(pair=pair1):
     return meta_dict
 
 
+
+# def get_ML_bclf_names():
 ##
 
 
 ##
 if __name__ == "__main__":
+    pass
     # print(train_emodb_csv, train_emodb_csv.absolute())
     # test1()
     # test2()
     # res = meta_paths(ravdess)
     # print(partition_meta_files)
     # create_meta_paths_dbs()
-    meta_paths_of_db(db=emodb, e_config=AHNPS)
-
-
-##
+    # meta_paths_of_db(db=emodb, e_config=AHNPS)

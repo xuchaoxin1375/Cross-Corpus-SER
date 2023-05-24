@@ -1,6 +1,10 @@
 ##
 # from typing_extensions import deprecated
+import warnings
+from sklearn.tree import DecisionTreeClassifier
+import config.MetaPath as mp
 from config.MetaPath import test_emodb_csv
+from config.algoparams import ava_ML_algorithms
 import random
 from time import time
 from config.algoparams import ava_cv_modes
@@ -32,6 +36,7 @@ from sklearn.svm import SVC
 from tqdm import tqdm
 
 from audio.extractor import AudioExtractor, load_data_from_meta
+import config.EF as ef
 from config.EF import AHNPS, e_config_def, f_config_def, validate_emotions
 from config.MetaPath import (
     emodb,
@@ -43,12 +48,20 @@ from config.MetaPath import (
 )
 import config.MetaPath as meta
 from audio.core import best_estimators, extract_feature_of_audio
+from config.algoparams import random_state
 
 
 ##
 class EmotionRecognizer:
-    """A class for training, testing and predicting emotions based on
-    speech's features that are extracted and fed into `sklearn` or `keras` model"""
+    """A class for training, testing ,predicting,anaylzing emotions based on
+    speech's features that are extracted and fed into `sklearn` model
+
+    examples
+    -
+    rec = EmotionRecognizer(model=my_model,e_config=AHNPS,f_config=f_config_def,test_dbs=[ravdess],train_dbs=[ravdess], verbose=1)
+
+    rec = EmotionRecognizer(model=my_model,e_config=AHNPS,f_config=f_config_def,test_dbs=emodb,train_dbs=emodb, verbose=1)
+    """
 
     def __init__(
         self,
@@ -62,7 +75,8 @@ class EmotionRecognizer:
         balance=False,
         shuffle=True,
         override_csv=True,
-        verbose=1,
+        cross=False,  # 表示跨库(这回让其读取train_db_econfig.csv作为测试集,样例更丰富,更合理,当然还可以进一步改进,读取all_db_econfg.csv,但是这里暂不执行)
+        verbose=0,
         **feature_transforms,
         # **kwargs,
     ):
@@ -100,26 +114,11 @@ class EmotionRecognizer:
         # make sure that there are only available emotions
         validate_emotions(self.e_config)
         self.f_config = f_config if f_config else f_config_def
-
         # 转换为字典格式(待优化)
         # @deprecated(version='1.0', reason='请使用 new_function() 代替')
         # self._f_config_dict: dict[str, bool] = get_f_config_dict(self.f_config)
         self.train_dbs = train_dbs
         self.test_dbs = test_dbs
-
-        self.train_meta_files = meta_paths_of_db(
-            db=self.train_dbs,
-            e_config=self.e_config,
-            change_type="str",
-            partition="train",
-        )
-
-        self.test_meta_files = meta_paths_of_db(
-            db=self.test_dbs,
-            e_config=self.e_config,
-            change_type="str",
-            partition="test",
-        )
 
         # print(self.train_meta_files, self.test_meta_files)
         self.feature_transforms = feature_transforms
@@ -127,15 +126,16 @@ class EmotionRecognizer:
         # 可以使用python 默认参数来改造写法
         # 默认执行分类任务
         self.classification_task = classification_task
-        self.balance = balance
-        self.shuffle = shuffle
-        self.override_csv = override_csv
         self.verbose = verbose
         # boolean attributes
-        self.balance = False
+        self.override_csv = override_csv
+        self.shuffle = shuffle
+        self.balance = balance
+        self.cross = cross
+        # 非构造器初始化变量
         self.data_loaded = False
         self.model_trained = False
-        self.ae=None
+        self.ae = None
         self.dbs = dbs if dbs else [ravdess]
         # 鉴于数据集(特征和标签)在评估方法时将反复用到,因此这里将设置相应的属性来保存它们
         # 另一方面,如果模仿sklearn中的编写风格,其实是将数据和模型计算分布在不同的模块(类)中,比如
@@ -154,12 +154,29 @@ class EmotionRecognizer:
         # 开始填充数据(最先开始的步骤,放在init中随着初始化实例的时候执行)
         # self.load_data()
         # 属性的先后位置会影响程序的运行
-        print("@{model}")
+        # print("@{model}")
         # print(model,"\ncomparing and choosing the best model...")
         # !RandomForestClassifier实例不能直接用bool()来判断,会提示estimators_不存在
         self.model = model
         # if self.model is None:
         # 依赖于boolean attributes
+
+        self.train_meta_files = meta_paths_of_db(
+            db=self.train_dbs,
+            e_config=self.e_config,
+            change_type="str",
+            partition="train",
+        )
+        # 判断跨库任务
+        test_meta_partition = "test"
+        if self.cross:
+            test_meta_partition = "train"
+        self.test_meta_files = meta_paths_of_db(
+            db=self.test_dbs,
+            e_config=self.e_config,
+            change_type="str",
+            partition=test_meta_partition,
+        )
 
     # def prepare():
 
@@ -181,10 +198,11 @@ class EmotionRecognizer:
                 balance=self.balance,
                 shuffle=self.shuffle,
                 feature_transforms=self.feature_transforms,
+                verbose=self.verbose,
             )
             # 设置实例的各个属性
             # 事实上,也可以直接用load_data_from_meta返回的结果中的ae对象,赋值ER对象(self.ae=data["ae"])
-            self.ae=data["ae"]
+            self.ae = data["ae"]
             self.X_train = data["X_train"]
             self.X_test = data["X_test"]
             self.y_train = data["y_train"]
@@ -207,24 +225,25 @@ class EmotionRecognizer:
 
     def train(self, choosing=False, verbose=1):
         """
-
-        Train the model, if data isn't loaded, it 'll be loaded automatically
+        载入数据并训练模型(sklearn.estimator.fit)
+        Train the model, if data isn't loaded, it will be loaded automatically
 
         X_train=None, y_train=None
         """
         if not self.data_loaded:
             # if data isn't loaded yet, load it then
             self.load_data()
-        if verbose > 1:
+        if self.verbose > 1:
             print("@{self.model}:")
             print(self.model)
         model = self.model if self.model is not None else self.best_model()
         if not self.model_trained or choosing:
             X_train = self.X_train
             y_train = self.y_train
+            # estimator训练(fit)模型
             model.fit(X=X_train, y=y_train)
             self.model_trained = True
-        if verbose:
+        if self.verbose > 1:
             if choosing == True:
                 print(
                     f"[I] Model trained with{choosing=},choosing the best model,override the trained model.."
@@ -236,7 +255,7 @@ class EmotionRecognizer:
         由于是单个音频的情感预测,因此不需要考虑shuffle和balance这些操作,只需要提取语音特征,然后进行调用模型预测即可
         given an `audio_path`, this method extracts the features
         and predicts the emotion
-        
+
         以下语句不再适合具有pca降维操作下的情形
         feature_audio = extract_feature_of_audio(audio_path, self.f_config)
         print(feature1.shape)
@@ -247,7 +266,6 @@ class EmotionRecognizer:
         """
         feature_audio = self.extract_feature_single_audio(audio_path)
 
-
         feature = feature_audio.reshape(1, -1)
         model = self.model if self.model else self.best_model()
         res = model.predict(feature)
@@ -256,14 +274,25 @@ class EmotionRecognizer:
         return res[0]
 
     def extract_feature_single_audio(self, audio_path):
+        """extract a single audio file feature
 
-        ae:AudioExtractor=self.ae
+        Parameters
+        ----------
+        audio_path : path
+            audio path
+
+        Returns
+        -------
+        ndarray
+            audio feature
+        """
+        ae: AudioExtractor = self.ae
         pca = ae.pca
-        print(pca,"@{pca} in 'predict' method")
+        print(pca, "@{pca} in 'predict' method")
         # if pca:
         #     feature_audio=pca.transform(feature_audio)
         #     print(feature_audio.shape, "@{feature_audio.shape}")
-        feature_audio=ae.extract_features(partition="test",audio_paths=[audio_path])
+        feature_audio = ae.extract_features(partition="test", audio_paths=[audio_path])
         return feature_audio
         # return self.model.predict(feature2)[0]
 
@@ -282,7 +311,7 @@ class EmotionRecognizer:
         """
         if self.classification_task:
             # feature = extract_feature_of_audio(audio_path, self.f_config).reshape(1, -1)
-            feature=self.extract_feature_single_audio(audio_path)
+            feature = self.extract_feature_single_audio(audio_path)
             proba = self.model.predict_proba(feature)[0]
             result = {}
             for emotion, prob in zip(self.model.classes_, proba):
@@ -362,7 +391,7 @@ class EmotionRecognizer:
                 # 此时可以通过set_description方法来修改进度条的描述信息
                 # 比如,estimators.set_description(f"Evaluating {estimator.__class__.__name__}")
                 estimators.set_description(f"Evaluating <{ecn}>")
-
+            # 为例避免相互干扰,每测试模型就创建一个ER对象(er)
             er = EmotionRecognizer(
                 model=estimator,
                 emotions=self.e_config,
@@ -385,23 +414,21 @@ class EmotionRecognizer:
             # append to result
             result.append((er.model, accuracy))
 
+            # 方法2:(小心使用)
             # 使用本对象self而不是在创建一个ER对象
             # self.model = estimator
             # er = self
             # 以下的计算是用来选出model的,而不是直接作为self对象的属性,这里将self赋值给er,以示区别
-
             # train(fit) the model
             # 如果设置verbose=1,则会逐个打印当前计算的模型(进度不是同一条)
-            er.train(choosing=True, verbose=0)
-
+            # er.train(choosing=True, verbose=0)
             # train(fit) the model
             # self.train(verbose=1)
-
-            accuracy = er.test_score(choosing=True)
-            print(f"\n[I] {ecn} with {accuracy} test accuracy")
-
+            # accuracy = er.test_score(choosing=True)
             # append to result
-            result.append((estimator, accuracy))
+            # result.append((estimator, accuracy))
+
+            print(f"\n[I] {ecn} with {accuracy} test accuracy")
 
         # sort the result
         # regression: best is the lower, not the higher
@@ -425,34 +452,60 @@ class EmotionRecognizer:
                 )
         return best_estimator
 
-    def test_score(self, choosing=False, verbose=0):
+    def test_score(self, choosing=False, verbose=0, report=False):
         """
         Calculates score on testing data
+        Please call the `train` method before call this method.
+
+        just like sklearn convention:call estimator.call `fit` at first,then call `predict` or `score` method
+
         if `self.classification` is True, the metric used is accuracy,
         Mean-Squared-Error is used otherwise (regression)
+
+        1.调用训练好的模型进行预测
+
+        2.如果model是None,那么调用best_model获取最优模型(这个过程会遍历一个可用模型列表,是通过调用ER实例的test_score()方法来计算,不过这里不会遇到None的情况,因此间接递归调用不超过2层)
+
+        3.如果是best_model方法返回的model作为最终的model,那么本方法会对选出的模型再次训练并预测(对于带有随机性的算法,best_model的分数可能和本方法重新计算的分数不一致,但通常不会差太多(10%以内))
         """
         X_test = self.X_test
         y_test = self.y_test
-        # 调用训练好的模型进行预测
+
         model = self.model if self.model is not None else self.best_model()
         self.validate_empty_array(X_test=X_test, y_test=y_test)
 
         # 预测计算
-        if verbose:
+        if verbose > 1:
             print(X_test.shape, y_test.shape, "🎈")
+        # 根据当前模型进行预测(直接调用estimator的predict方法)
         y_pred = model.predict(X_test)  # type: ignore
+        # 如果处于best_model的过程中调用本方法(choosing=True),则上述预测内容作为临时结果不写入对象属性保存;否则作为最终结果写入属性保存
+        # 默认choosing=False,也就是将结果保存到对象属性中
         if choosing == False:
             self.y_pred = np.array(y_pred)
 
         if self.classification_task:
             res = accuracy_score(y_true=y_test, y_pred=y_pred)
+            # 结果和:er.model.score(er.X_test,er.y_test)一样,但是这种做法回独立将X_test预测一遍,而不保存预测结果,只给出得分
         else:
             res = mean_squared_error(y_true=y_test, y_pred=y_pred)
-        if self.verbose >= 1:
-            report = classification_report(y_true=y_test, y_pred=y_pred)
-
-            print(f"{verbose=}", report, self.model.__class__.__name__)
+        if report:
+            self.check_report(y_test, y_pred)
         return res
+
+    def check_report(self):
+        """输出模型当前结果的多个指标报告
+        对于分类任务,包括precision(查准率),recall(回召或查全率),f1-score以及各类别的样本数量
+        对于多分类,还有一些综合的指标(macro,weighted),每个单元格结合两个维度的表头进行理解和阅读
+
+        由于跨库实验比较困难,有的样本类别无法被正确分类(所有该类别都被错误分类),此时classification_report方法会提出警告,除非使用zero_division参数替换掉默认的warn.
+        """
+        y_test = self.y_test
+        y_pred = self.y_pred
+
+        report = classification_report(y_true=y_test, y_pred=y_pred, zero_division=0)
+        # print(report, self.model.__class__.__name__)
+        return report
 
     def model_cv_score(
         self,
@@ -474,7 +527,7 @@ class EmotionRecognizer:
         self.validate_empty_array(X_train, y_train)
 
         # 预测计算
-        if verbose:
+        if verbose > 1:
             print(X_train.shape, y_train.shape, "🎈")
             print(f"{n_splits=}")
         n_splits = int(n_splits)
@@ -494,14 +547,21 @@ class EmotionRecognizer:
         cv_mode_selected = cv_mode_dict[cv_mode]
         if verbose > 1:
             print(f"{cv_mode=}🎈")
+        res = [0]
         if self.classification_task:
             # res = accuracy_score(y_true=y_test, y_pred=y_pred)
-            res = cross_val_score(model, X_train, y_train, cv=cv_mode_selected)
-            if mean_only:
-                res = res.mean()
+            # 将交叉验证器cv传递给cross_val_score函数执行评估操作
+            # 而非自己使用来完成k折交叉验证
+            # 所有对象都有__class__属性以及__name__二级属性
+            if model.__class__.__name__ in ava_ML_algorithms:
+                res = cross_val_score(model, X_train, y_train, cv=cv_mode_selected)
+                if mean_only:
+                    res = res.mean()
 
         else:
+            # 使用回归器的情况
             res = mean_squared_error(y_true=y_train, y_pred=y_pred)
+
         if self.verbose > 2:
             report = classification_report(
                 y_true=y_train, y_pred=y_pred
@@ -708,59 +768,353 @@ class EmotionRecognizer:
         return random.choice(indices)
 
 
-def main():
-    passive_emo = ["angry", "sad"]
-    passive_emo_others = passive_emo + ["others"]
-    typical_emo = ["happy", "neutral", "sad"]
-    AHSO = ["angry", "neutral", "sad", "others"]
-    e_config = AHNPS
-    f_config = ["mfcc"]
+from sklearn.datasets import load_iris, load_digits
+from sklearn.ensemble import (
+    AdaBoostClassifier,
+    GradientBoostingClassifier,
+    RandomForestClassifier,
+)
+from sklearn.naive_bayes import GaussianNB
+from sklearn.neural_network import MLPClassifier
+from sklearn.svm import SVC, LinearSVC
+from sklearn.linear_model import LogisticRegression, RidgeClassifierCV
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import make_pipeline
+from sklearn.ensemble import StackingClassifier
+from sklearn.tree import DecisionTreeClassifier
 
-    # my_model = RandomForestClassifier(max_depth=3, max_features=0.2)
-    my_model = SVC(C=0.001, gamma=0.001, kernel="poly", probability=True)
-    # my_model=KNeighborsClassifier(n_neighbors=3, p=1, weights='distance')
-    my_model = None
 
-    # rec = EmotionRecognizer(model=my_model,e_config=AHNPS,f_config=f_config_def,test_dbs=[ravdess],train_dbs=[ravdess], verbose=1)
-    # rec = EmotionRecognizer(model=my_model,e_config=AHNPS,f_config=f_config_def,test_dbs=emodb,train_dbs=emodb, verbose=1)
+# def get_stacking_clf():
+#     random_state = 42
+#     # 定义初级学习器
+#     estimators_basic_mix = estrs_basic_mix( )
+#     estimators_dt = estrs_esdt(random_state)
+#     estimators_basic_dt_mix = estrs_basic_dt_mix( )
+#     estimators_basic_dt_mpl_mix = estrs_basic_dt_mpl_mix(
+#         random_state, estimators_basic_dt_mix
+#     )
+#     estimators_basic_dmb_mix = estimators_basic_dt_mix + [("gnb", GaussianNB())]
+#     # 简单堆叠
+#     stack_dt_linear = StackingClassifier(
+#         estimators=estimators_dt, final_estimator=LogisticRegression()
+#     )
+#     stack_mix_linear = StackingClassifier(
+#         estimators=estimators_basic_mix, final_estimator=LogisticRegression()
+#     )
+#     # 收敛困难(效果不如mix_linear)
+#     stack_mix_svm = StackingClassifier(
+#         estimators=estimators_basic_mix,
+#         final_estimator=SVC(),
+#     )
+#     stack_basic_dt_mix = StackingClassifier(
+#         estimators=estimators_basic_dt_mix, final_estimator=LogisticRegression()
+#     )
+#     # 数据量太小
+#     stack_basic_dt_mlp_mix = StackingClassifier(
+#         estimators=estimators_basic_dt_mpl_mix, final_estimator=LogisticRegression()
+#     )
+#     stack_dmb_mix = StackingClassifier(
+#         estimators=estimators_basic_dmb_mix,
+#         final_estimator=LogisticRegression(),
+#     )
+#     # stack1 = StackingClassifier(
+#     #     estimators=[("gbc", GaussianNB())],
+#     #     final_estimator=LogisticRegression(),
+#     # )
+#     # 多层堆叠
+#     ##定义最后一层
+#     stack_final_layer = StackingClassifier(
+#         estimators=[("gbc", GradientBoostingClassifier()), ("svc", SVC())],
+#         final_estimator=LogisticRegression(),
+#     )
+#     ##堆叠二层(容易过拟合)
+#     stack_multilayer = StackingClassifier(
+#         estimators=estimators_dt, final_estimator=stack_final_layer
+#     )
+#     stack = StackingClassifier(estimators=estimators_dt, final_estimator=SVC())
 
-    # single_db = emodb
-    # meta_dict = {"train_dbs": single_db, "test_dbs": single_db}
+#     # return stack_dt_linear
+#     # return stack_mix_linear
+#     # return stack_mix_svm
+#     # return stack_basic_dt_mix
+#     return stack_dmb_mix
 
-    meta_dict=dict(
-        train_dbs=emodb,
-        test_dbs=emodb
+
+def estrs_basic_mlp_mix():
+    estimators_basic_dt_mpl_mix = estrs_basic_mix() + [
+        (
+            "mpl",
+            MLPClassifier(
+                alpha=0.01,
+                batch_size=512,
+                hidden_layer_sizes=(300,),
+                learning_rate="adaptive",
+                max_iter=400,
+                random_state=random_state,
+            ),
+        )
+    ]
+
+    return estimators_basic_dt_mpl_mix
+
+
+def estrs_esdt():
+    estimators_dt = [
+        (
+            "rf",
+            RandomForestClassifier(
+                n_estimators=10, max_depth=3, random_state=random_state
+            ),
+        ),
+        (
+            "adab",
+            AdaBoostClassifier(
+                n_estimators=10, learning_rate=0.1, random_state=random_state
+            ),
+        ),
+        ("gradb", GradientBoostingClassifier()),
+    ]
+
+    return estimators_dt
+
+
+def estrs_basic_esdt_mix():
+    res = estrs_basic_mix() + estrs_esdt()
+    return res
+
+
+def estrs_simple():
+    res = [
+        ("knc", KNeighborsClassifier(n_neighbors=3, p=1, weights="distance")),
+        ("gnb", GaussianNB()),
+    ]
+    return res
+
+
+def estrs_basic_mix():
+    """包含常用的个体学习器,可以作为Stacking的第一层
+    还可以作为更加复杂的第一层的基础部分,采用列表相加的方式进一步扩充
+    例如添加集成学习(随机森林,梯度提升等)
+
+    具体包括以下模型:
+
+    - 线性模型(lsvr,rdcv,logistic)
+    - k近邻(knc)
+    - 贝叶斯决策(gnb)
+    - 决策树(dt)
+
+    这些个体学习器较为多样,理论上有利于提高集成学习的泛化能力
+
+    Returns
+    -------
+    list[estimator]
+        基础个体学习器列表
+    """
+    estimators_basic_mix = [
+        # ("svc",(SVC(C=10, gamma=0.001,random_state=random_state))),
+        # ("lsvr", make_pipeline(StandardScaler(), LinearSVC(random_state=random_state))),
+        ("lsvr", (LinearSVC(max_iter=5000, random_state=random_state))),
+        ("rdcv", RidgeClassifierCV()),
+        ("logistic", LogisticRegression()),
+        ("knc", KNeighborsClassifier(n_neighbors=3, p=1, weights="distance")),
+        ("gnb", GaussianNB()),
+        (
+            "dtc",
+            DecisionTreeClassifier(
+                criterion="entropy", max_depth=7, max_features="sqrt"
+            ),
+        ),
+    ]
+
+    return estimators_basic_mix
+
+
+def get_clfs():
+    """需要评估和分析对比的估计器
+    svc = SVC(C=0.001, gamma=0.001, kernel="poly", probability=True)
+    knn=KNeighborsClassifier(n_neighbors=3, p=1, weights='distance')
+    Best for DecisionTreeClassifier: {'criterion': 'entropy', 'max_depth': 7, 'max_features': None, 'min_samples_leaf': 1, 'min_samples_split': 2}
+    dt = DecisionTreeClassifier(
+        criterion="entropy",
+        max_depth=7,
+        max_features=None,
+        min_samples_leaf=1,
+        min_samples_split=2
     )
 
+    Returns
+    -------
+    list[estimator]
+        sklearn.estimator估计器列表
+    """
+
+    rfc = RandomForestClassifier()
+    dt = DecisionTreeClassifier()
+    lsvc = LinearSVC(random_state=random_state)
+    svc = SVC()
+    mlp = MLPClassifier()
+    rdcv = RidgeClassifierCV()
+    gnb = GaussianNB()
+    plsvc = make_pipeline(StandardScaler(), LinearSVC(random_state=random_state))
+    adab = AdaBoostClassifier()
+    gbc = GradientBoostingClassifier()
+
+    # stack = get_stacking_clf()
+    stack_basic_svc = StackingClassifier(
+        estimators=estrs_basic_mix(), final_estimator=SVC()
+    )
+    stack_basic_rf = StackingClassifier(
+        estimators=estrs_basic_mix(), final_estimator=RandomForestClassifier()
+    )
+    stack_basic_mlp = StackingClassifier(
+        estimators=estrs_basic_mix(), final_estimator=MLPClassifier()
+    )
+    # estrs_basic_esdt_mix作为第一层
+    stack_basic_esdt_gnb = StackingClassifier(
+        estimators=estrs_basic_esdt_mix(), final_estimator=GaussianNB()
+    )
+    # estrs_basic_mlp_mix作为第一层
+
+    stack_basic_mlp_gnb = StackingClassifier(
+        estimators=estrs_basic_mlp_mix(), final_estimator=GaussianNB()
+    )
+    stack_basic_mlp_lr = StackingClassifier(
+        estimators=estrs_basic_mlp_mix(), final_estimator=LogisticRegression()
+    )
+    stack_simple = StackingClassifier(
+        estimators=estrs_simple(), final_estimator=LinearSVC()
+    )
+    stack_multilayer = StackingClassifier(
+        estimators=estrs_basic_esdt_mix(), final_estimator=stack_simple
+    )
+    # 配置待评估的分类器的列表
+    clfs = [
+        # 堆叠泛化
+        stack_basic_svc,
+        stack_basic_rf,
+        stack_basic_esdt_gnb,
+        stack_simple,
+        # 计算量大:
+        # stack_basic_mlp,
+        # stack_basic_mlp_gnb,
+        # stack_basic_mlp_lr,
+        # stack_multilayer,
+        # 基础分类器
+        # gnb,
+        # rfc,
+        # rdcv,
+        # dt,
+        # lsvc,
+        # svc,
+        # mlp,
+        # plsvc,
+        # adab,
+        # gbc,
+        None,  # None表示自动计算最优模型(但是范围限制在grid中有定义的那一部分.)
+    ]
+    return clfs
+
+
+def main():
+    clfs = get_clfs()
+
+    passive_emo = ["angry", "sad"]
+    passive_emo_others = passive_emo + ["others"]
+    typical_emo = [
+        "happy",
+        "neutral",
+        "sad",
+    ]
+    AHS = ["angry", "happy", "sad"]
+    AHSO = ["angry", "neutral", "sad", "others"]
+
+    AHNS = ["angry", "happy", "neutral", "sad"]
+    # e_config = typical_emo
+    f_config = ["mfcc"]
+    e_config = e_config_def
+    # f_config = f_config_def
+    # 配置语料库
+    ## 同库实验
+    meta_dict = mp.get_single_db_pair_dict(emodb)
+    ## 跨库实验
+    # meta_dict = mp.emodb_savee
+    # meta_dict = mp.ravdess_savee
+    meta_dict = mp.emodb_ravdess
+
+    res_list = []
+    # 评估定义在clfs中的模型的性能:
+    for i, clf in enumerate(clfs):
+        res_dict = assess_model(e_config, f_config, clf, meta_dict)
+        res_list.append(res_dict)
+        print(f"当前评估第{i+1}个模型")
+
+    res_list.sort(key=lambda res_dict: res_dict["test_score"], reverse=True)
+    for i, res_dict in enumerate(res_list):
+        print(i + 1, "--" * 30, "\n")
+        for key, value in res_dict.items():
+            if key == "er":
+                print(key, ":", value.model)
+            elif key in ["report", "confusion_matrix"]:
+                print(key, ":\n", value)
+            else:
+                print(key, ":", value)
+
+        # print(model, "@{model}")
+        # print(f"{train_score=}")
+        # print(f"{test_score=}")
+        # # 查看混淆矩阵
+        # print(confusion_matrix)
+        # # 查看辅助性能指标报告
+        # print(report)
+
+
+def assess_model(e_config, f_config, model, meta_dict):
     er = EmotionRecognizer(
-        model=my_model,
+        model=model,
         **meta_dict,
         e_config=e_config,
         f_config=f_config,
-        verbose=1,
-
-        # std_scaler=False, 
+        balance=True,
+        cross=True,  # 执行跨库任务,调整测试数据集读入
+        verbose=0,
+        # std_scaler=False,
         # pca_params=dict(n_components=39)
-
         # std_scaler=False,
         # pca={"n_components":"mle"}
         # pca={'n_components': 60}
     )
+    # 显示调用训练方法(相当于调用sklearn.estimator.fit)
     er.train()
-
+    # 评估模型的各项性能指标
     train_score = er.train_score()
-    print(f"{train_score=}")
     test_score = er.test_score()
-    print(f"{test_score=}")
+    confusion_matrix = er.confusion_matrix()
+    report = er.check_report()
+    # cv_score = er.model_cv_score()
 
-    cv_score = er.model_cv_score()
-    print(f"{cv_score=}")
-    print(er.confusion_matrix())
-    return er
+    # print(model, "@{model}")
+    # print(f"{train_score=}")
+    # print(f"{test_score=}")
+    # # 查看混淆矩阵
+    # print(confusion_matrix)
+    # # 查看辅助性能指标报告
+    # print(report)
+    # 交叉验证得分
+    # print(f"{cv_score=}")
+
+    return dict(
+        er=er,
+        train_score=train_score,
+        test_score=test_score,
+        confusion_matrix=confusion_matrix,
+        report=report,
+    )
 
 
 if __name__ == "__main__":
-    er = main()
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        er = main()
 ##
 
 # file=r'D:\repos\CCSER\SER\data\savee\AudioData\DC\h01.wav'
@@ -771,12 +1125,6 @@ if __name__ == "__main__":
 # print(f"{predict_proba=}")
 
 ##
-
-
-# rec.update_test_set_by_meta(r'D:\repos\CCSER\SER\meta_files\test_ravdess_AHNPS.csv')
-
-# rec.update_test_set_by_meta(r'D:\repos\CCSER\SER\meta_files\test_emodb_AHNPS.csv')
-
 
 # data=rec.load_data()
 

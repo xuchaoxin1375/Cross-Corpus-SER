@@ -1,5 +1,6 @@
 ##
 """
+本模块通过实例化EmotionRecognizer实例,利用该类提供的grid_search结合parameters模块种配置的参数进行搜索,然后将搜索结果保存为joblib文件
 A script to grid search all parameters provided in parameters.py
 including both classifiers and regressors.
 
@@ -10,7 +11,7 @@ faster search )
 """
 
 from joblib import dump, load
-from config.MetaPath import emodb, ravdess
+from config.MetaPath import emodb, ravdess,savee
 
 from config.EF import e_config_def
 from recognizer.basic import EmotionRecognizer
@@ -23,8 +24,8 @@ from config.MetaPath import bclf, brgr
 e_config = e_config_def
 # number of parallel jobs during the grid search
 n_jobs = 4
-
-meta_dict=dict(train_dbs=emodb,test_dbs=ravdess)
+#!配置超参数是基于什么训练集和测试集上进行搜索
+meta_dict=dict(train_dbs=emodb,test_dbs=savee)
 #1.分类预测
 # 构造用来保存各个模型最优超参数
 best_estimators = []
@@ -80,6 +81,7 @@ def search_brgr(e_config, n_jobs):
 
 ##
 if __name__=="__main__":
+    pass
     ##
     # search_bclf(e_config, n_jobs, best_estimators)
 

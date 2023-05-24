@@ -14,11 +14,19 @@ from joblib import load
 import config.MetaPath as mp
 from audio.core import extract_feature_of_audio
 from audio.create_meta import create_csv_by_metaname
-from config.EF import (AHNPS, HNS, AHNPS_dict, HNS_dict, e_config_def,
-                       f_config_def)
-from config.MetaPath import (ava_dbs, ava_fts_params, create_tag_name, emodb,
-                             features_dir, get_first_letters, meta_dir,
-                             project_dir, train_emodb_csv, validate_partition)
+from config.EF import AHNPS, HNS, AHNPS_dict, HNS_dict, e_config_def, f_config_def
+from config.MetaPath import (
+    ava_dbs,
+    ava_fts_params,
+    create_tag_name,
+    emodb,
+    features_dir,
+    get_first_letters,
+    meta_dir,
+    project_dir,
+    train_emodb_csv,
+    validate_partition,
+)
 
 # from pathlib import Path
 Series = pd.Series
@@ -78,7 +86,7 @@ class AudioExtractor:
         self.features_dir = features_dir  # 默认为features目录
         self.classification_task = classification_task
         self.feature_transforms = feature_transforms_dict
-        
+
         self.balance = balance
         self.shuffle = shuffle
         # input dimension
@@ -98,8 +106,9 @@ class AudioExtractor:
         self.test_features = []
         # 使用字典打包
         self.pca = None
+
     def pathlike_to_list(self, meta_paths):
-        if isinstance(meta_paths, str) or isinstance(meta_paths,Path):
+        if isinstance(meta_paths, str) or isinstance(meta_paths, Path):
             # print(f"cast the '{meta_paths}' to [str]")
             meta_paths = [meta_paths]
         return meta_paths
@@ -160,7 +169,7 @@ class AudioExtractor:
         #     df = pd.concat((df, pd.read_csv(meta_file)), sort=False)
         if isinstance(meta_files, str):
             meta_files = [meta_files]
-        if self.verbose:
+        if self.verbose > 1:
             print("[I] Loading audio file paths and its corresponding labels...")
         # print("meta_files:", meta_files)
 
@@ -170,11 +179,13 @@ class AudioExtractor:
         for meta_file in meta_files:
             if not os.path.exists(meta_file):
                 # create_csv_by_meta_name
-                print(f"{meta_file} does not exist,creating...😂")
+                if self.verbose > 1:
+                    print(f"{meta_file} does not exist,creating...😂")
 
                 create_csv_by_metaname(meta_file, shuffle=self.shuffle)
             else:
-                print(f"meta_file存在{meta_file}文件!")
+                if self.verbose > 1:
+                    print(f"meta_file存在{meta_file}文件!")
             df_meta = pd.read_csv(meta_file)
             df = pd.concat((df, df_meta), sort=False)
         # get columns
@@ -246,7 +257,7 @@ class AudioExtractor:
         # 设置训练集属性
         partition = validate_partition(partition)
         verbose = self.verbose
-        if verbose:
+        if verbose > 1:
             print(f"[Info] Adding  {partition} samples")
 
         # partition_attribute_set
@@ -341,9 +352,11 @@ class AudioExtractor:
 
         n_samples = len(audio_paths)  # 计算要处理的音频文件数
 
-        features_file_path = self.get_features_file_path(partition, db, n_samples,ext="npy")
-        fts_file_path=self.get_features_file_path(partition, db, n_samples,ext="fts")
-        if verbose:
+        features_file_path = self.get_features_file_path(
+            partition, db, n_samples, ext="npy"
+        )
+        fts_file_path = self.get_features_file_path(partition, db, n_samples, ext="fts")
+        if verbose > 1:
             print(f"检查特征文件{features_file_path}是否存在...")
             print(f"{self.e_config=}")
             print(f"{self.f_config=}")
@@ -351,10 +364,9 @@ class AudioExtractor:
         ffp = os.path.isfile(features_file_path)
         # ftfp=os.path.isfile(fts_file_path)
 
-
         if ffp:
             # if file already exists, just load
-            if self.verbose:
+            if self.verbose > 1:
                 print(f"特征矩阵文件(.npy)已经存在,直接导入:loading...")
             features = np.load(features_file_path)
             self.feature_dimension = features.shape[1]
@@ -369,10 +381,10 @@ class AudioExtractor:
             # 为了能够在导入后能够提取新的音频做同样的降维操作就需要之前的transformer
             # 由于时间仓促,暂时不保存这类特征,而仅保存(缓存)初始特征
             save_obj = not self.feature_transforms
-            print(self.feature_transforms,"@{self.feature_transforms}🎈")
-            print(save_obj,"@{save_obj}")
+            print(self.feature_transforms, "@{self.feature_transforms}🎈")
+            print(save_obj, "@{save_obj}")
             features = self.features_extract_save(
-                partition, audio_paths, features_file_path,save_obj
+                partition, audio_paths, features_file_path, save_obj
             )
         # if ftfp:
         #     if self.verbose:
@@ -386,8 +398,8 @@ class AudioExtractor:
 
         return features, audio_paths, emotions
 
-    def get_features_file_path(self, partition, db, n_samples,ext=""):
-        fts=self.feature_transforms
+    def get_features_file_path(self, partition, db, n_samples, ext=""):
+        fts = self.feature_transforms
 
         if fts is None:
             self.feature_transforms = {}
@@ -406,7 +418,7 @@ class AudioExtractor:
             self.features_dir,
             features_file_name,
         )
-        
+
         return features_file_path
 
     def fields_parse(self, meta_path):
@@ -439,7 +451,7 @@ class AudioExtractor:
             )
 
     def features_extract_save(
-        self, partition, audio_paths, features_file_path,save_obj=True
+        self, partition, audio_paths, features_file_path, save_obj=True
     ):
         """将提取的特征(ndarray)保存持久化保存(为npy文件)
         利用qtmd提供可视化特征抽取进度
@@ -479,10 +491,12 @@ class AudioExtractor:
         - verbose: bool, whether or not to print debugging info.
 
         Returns:
-        - 
+        -
         - features: np.ndarray, the extracted features as a numpy array.
         """
-        features = self.extract_raw_features(partition=partition, audio_paths=audio_paths)
+        features = self.extract_raw_features(
+            partition=partition, audio_paths=audio_paths
+        )
 
         # 考虑特征预处理
         from sklearn.preprocessing import StandardScaler
@@ -490,7 +504,7 @@ class AudioExtractor:
         # X为特征矩阵,y为标签
 
         fts = self.feature_transforms
-        fts_keys=fts.keys()
+        fts_keys = fts.keys()
 
         # if set(fts_keys) <= set(ava_fts_params):
         #     print("fts参数key合法")
@@ -507,7 +521,7 @@ class AudioExtractor:
             features = std_scaler.fit_transform(features)
         # 小心字典关键字名字pca和pca_params,否则后面代码无法执行!
         pca_params_dict = fts.get("pca_params")
-        
+
         if not pca_params_dict:
             pass
             # print("the pca params may be invalid!")
@@ -519,8 +533,7 @@ class AudioExtractor:
 
             n_components = pca_params_dict.get("n_components")
 
-      
-            if n_components=='mle':
+            if n_components == "mle":
                 pass
             elif isinstance(n_components, int):
                 pass
@@ -528,14 +541,14 @@ class AudioExtractor:
                 # if n_components.isdigit():
                 # int()函数自带类型错误检测,有非法输入会自动抛出错误,所以这里直接使用,而不去手动检测输入的合法性
                 # pca_params_dict['n_components'] = int(n_components)
-                n_components=int(n_components)
+                n_components = int(n_components)
             # elif n_components == "None":
             else:
                 # pca_params_dict["n_components"] = None
-                n_components=None
+                n_components = None
 
             # 将检验&处理后的n_components写入到pca字典中
-            pca_params_dict['n_components']=n_components
+            pca_params_dict["n_components"] = n_components
             # 根据当前ae对象中的pca属性以及参数情况决定构造pca对象
             if self.pca is None:
                 pca = self.pca = PCA(**pca_params_dict)
@@ -566,10 +579,9 @@ class AudioExtractor:
         # iter = tqdm.tqdm(
         #     audio_paths, f"Extracting features for partition:{partition}"
         # )
-        iter= audio_paths
+        iter = audio_paths
         for audio_file in iter:
-
-            if self.verbose > 1:
+            if self.verbose:
                 cnt += 1
                 if cnt % 20 == 0:
                     print(f"正在抽取第{cnt}个文件的特征..")
@@ -610,7 +622,8 @@ class AudioExtractor:
 
         # 执行特征提取
         for meta_file in meta_paths:
-            print(meta_file, "@🎈{meta_file}")
+            if self.verbose > 1:
+                print(meta_file, "@🎈{meta_file}")
             # sys.exit()
             # 根据meta文件进行批量地特征提取
             features, audio_paths, emotions = self._extract_feature_in_meta(
@@ -620,9 +633,9 @@ class AudioExtractor:
             # 而且在跨库试验中,我们会让一个train/test features 交换身份,
             # 只需要知道这个特征文件包含哪些情感特征,来自哪个语料库,以及有多少个文件即可
             # 如果要更细致一些,可以考虑加入balance或shuffle信息,但这不是必须的,而且会对调试造成不变
-            if verbose >= 1:
+            if verbose > 1:
                 print(features.shape, "@{feature.shape}")
-            if verbose >= 2:
+            if verbose > 2:
                 print(features, "@{features}")
 
             # 每根据一个meta_file提取一批特征,就更新到self的相关属性集中
@@ -632,7 +645,6 @@ class AudioExtractor:
                 emotions=emotions,
                 features=features,
             )
-
 
     def load_data_preprocessing(self, meta_files=None, partition="", shuffle=False):
         """将特征提取和属性设置以及打乱和平衡操作打包处理
@@ -647,10 +659,12 @@ class AudioExtractor:
         shuffle : bool, optional
             是否执行打乱数据顺序操作, by default False
         """
-        print(f"{partition=}")
+        if self.verbose > 1:
+            print(f"{partition=}")
         # print(meta_files,"@{meta_files}in load_data_preprossing")
         if not meta_files:
-            return
+            # meta_files为空(无效),直接返回None
+            return None
         self.extract_update(
             partition=partition,
             meta_paths=meta_files,
@@ -706,20 +720,30 @@ class AudioExtractor:
         """
         对训练集/测试集的数据做平衡处理
 
+        print(minimum,"@{minium}")
+        if minimum == 0:
+            print("the minimum class is 0,the balance operation will not be execute!")
+            return None
+
         """
         partition = validate_partition(partition=partition)
 
-        audio_paths, counter, emotions_tags, features = self.emotions_counter(partition)
+        audio_paths, counter, emotions_tags, features = self.dataset_counter(partition)
+        if self.verbose:
+            # print("features: ", features)
+            # print("emotions_tags: ", emotions_tags)
+            # print("audio_paths: ", audio_paths)
+            print("各情感列别的文件数counter: ", counter)
 
         # get the minimum data samples to balance to
         minimum = self.validate_balance_task(counter)
-        if minimum == 0:
-            return
 
         # 构造并初始化{情感:数量}字典
         counter = self.count_dict()
-
+        features=np.array(features).squeeze()
         dd = self.balanced_dict(audio_paths, counter, emotions_tags, features, minimum)
+        if self.verbose > 1:
+            print(dd, "@{dd}")
 
         # 将类别平衡处理好的元组形式重新解析回基本python类型对象
         audio_paths, emotions_tags, features = self.parse_balanced_data(dd)
@@ -740,21 +764,24 @@ class AudioExtractor:
         """构造平衡处理好数据集的字典
 
         实现说明:本方法主要借助defaultdict实现,简称dd
+
         它是 Python 中的一个字典子类，它在字典的基础上添加了一个默认工厂函数，
         使得在访问字典中不存在的键时，可以返回一个默认值而不是引发 KeyError 异常。
+
         defaultdict 的构造函数需要一个参数，即默认工厂函数。
         默认工厂函数可以是 Python 内置类型（如 int、list、set 等），也可以是用户自定义函数。
+
         当访问字典中不存在的键时，如果使用了默认工厂函数，则会自动创建一个新的键，
         并将其对应的值初始化为默认值（由默认工厂函数返回）。
 
-        在dd的帮助下,我们可以轻松的统计(情感)类别数未知的情况下,统计各个情感的文件数
+        #!在dd的帮助下,我们可以轻松的统计(情感)类别数未知的情况下,统计各个情感的文件数
 
         Parameters
         ----------
         audio_paths : list
             _description_
         counter :
-            _description_
+            起计数不同类别情感文件数量的作用
         emotions_tags : _type_
             _description_
         features : _type_
@@ -768,13 +795,30 @@ class AudioExtractor:
             _description_
         """
         dd = defaultdict(list)  #
+        # print(emotions_tags, features, audio_paths)
+        if self.verbose>1:
+            for x in (emotions_tags, features, audio_paths):
+                print(len(x))
+            # print(np.array(features).squeeze().shape,"@{features.shape}")
+        
+        # print(minimum,"@{minimum}")
+        # print(counter)
+
         for e, feature, audio_path in zip(emotions_tags, features, audio_paths):
             if counter[e] >= minimum:
                 # minimum value exceeded
                 continue
-            counter[e] += 1
+            # counter[e] += 1
+            # else :
+            #     print(e,"@{e}")
+            counter[e] = counter[e] + 1
             dd[e].append((feature, audio_path))
         # data={}
+        if self.verbose>1:
+            for item in counter.items():
+                print(item)
+            # print(dd,"@{dd}")
+            # print(dd.keys())
         # 临时属性用于notebook中调试
         self.dd_debug = dd
         # print(dd)
@@ -792,13 +836,14 @@ class AudioExtractor:
         else:
             res = {e: 0 for e in self.categories_rgr.values()}
 
-        if verbose:
-            print("{res}:")
-            print(res)
+        if self.verbose > 1:
+            print("初始化统计字典{res}:", res)
         return res
 
     def parse_balanced_data(self, dd):
+        # 创建3个不同的空列表容器(不可用a=b=c=[],在统计数据时会混在一起)
         emotions_tags, features, audio_paths = [[] for _ in range(3)]
+
         for emo, f_ap in dd.items():
             for feature, audio_path in f_ap:
                 emotions_tags.append(emo)
@@ -837,17 +882,35 @@ class AudioExtractor:
             self.test_features = features
             self.test_audio_paths = audio_paths
 
-    def emotions_counter(self, partition):
+    def dataset_counter(self, partition):
+        """根据partition,统计当前AE对象中的train/test数据集信息
+
+        Parameters
+        ----------
+        partition : _type_
+            _description_
+
+        Returns
+        -------
+        tuple
+            audio_paths, counter, emotions_tags, features
+
+        Raises
+        ------
+        TypeError
+            _description_
+        """
         # 统一变量名
         data = [None] * 3
+
+        validate_partition(partition=partition)
         if partition == "train":
             data = (self.train_emotions, self.train_features, self.train_audio_paths)
         elif partition == "test":
             data = (self.test_emotions, self.test_features, self.test_audio_paths)
-        else:
-            raise TypeError("Invalid partition, must be either train/test")
+
         emotions_tags, features, audio_paths = data
-        # 为了使各中情感的文件数量相等,分别统计不同情感的文件数
+        # 分别统计self.e_config中不同情感的文件数
         counter = []  # count中的元素个数等于len(self.emotions)
         # 分类预测
         if self.classification_task:
@@ -861,6 +924,7 @@ class AudioExtractor:
             # regression, take actual numbers, not label emotion
             for emo in self.categories_rgr.values():
                 counter.append(len([e for e in emotions_tags if e == emo]))
+
         return audio_paths, counter, emotions_tags, features
         # return counter
 
@@ -900,8 +964,9 @@ def load_data_from_meta(
     e_config=None,
     classification_task=True,
     shuffle=True,
-    balance=False,
+    balance=True,
     feature_transforms=None,
+    verbose=0,
 ) -> dict:
     """
     根据meta文件,提取/导入语音数据(numpy特征),并返回numpy打包train/test dataset相关属性的ndarray类型
@@ -928,6 +993,7 @@ def load_data_from_meta(
     -------
     dict
         返回载入情感特征文件的矩阵构成的字典
+        tips:可以通过调用字典的.keys来获取可用的键（特别是这里存在大型矩阵，完全打印出来不容易查看）
     """
     # instantiate the class(实例化一个AudioExtractor实例)
     ae = AudioExtractor(
@@ -936,7 +1002,7 @@ def load_data_from_meta(
         classification_task=classification_task,
         balance=balance,
         shuffle=shuffle,
-        verbose=True,
+        verbose=verbose,
         feature_transforms_dict=feature_transforms,
     )
 
@@ -969,19 +1035,19 @@ def load_data_from_meta(
     }
 
 
-
 def load_data_from_meta_demo():
-    meta_dict=dict(
-        train_meta_files=meta_dir/'train_emodb_HNS.csv',
-        test_meta_files=meta_dir/'test_emodb_HNS.csv',
+    meta_dict = dict(
+        train_meta_files=meta_dir / "train_emodb_HNS.csv",
+        test_meta_files=meta_dir / "test_emodb_HNS.csv",
     )
-    res=load_data_from_meta(**meta_dict,f_config=f_config_def)
+    res = load_data_from_meta(**meta_dict, verbose=1)
 
     return res
 
-if __name__ == "__main__":
 
-    load_data_from_meta_demo()
+if __name__ == "__main__":
+    res = load_data_from_meta_demo()
+    res["balance"]
 
     # ftd = dict(std_scaler=False, pca_params=dict(n_components=3))
     # ae = AudioExtractor(
@@ -997,4 +1063,3 @@ if __name__ == "__main__":
     #     # balance=False,
     #     balance=True,
     # )
-    

@@ -334,16 +334,22 @@ def best_estimators(classification_task=True,fast=True):
         False:回归任务,读取各个回归模型及其最优超参数
     """
     if classification_task:
-        res= load(bclf)
+        best= load(bclf)
     else:
-        res= load(brgr)
+        best= load(brgr)
     if fast:
-        for i,estimator_tuple in enumerate(res):
+        jump_estimator = 'GradientBoosting'
+        skip_estimator(best, jump_estimator)
+    return best
+
+def skip_estimator(best_estimators, skip_estimator):
+    for i,estimator_tuple in enumerate(best_estimators):
             # print(estimator.__class__.__name__)
-            estimator,_,_ = estimator_tuple
-            if 'GradientBoosting' in estimator.__class__.__name__:
-                res.remove(res[i])
-    return res
+        estimator,_,_ = estimator_tuple
+
+        if skip_estimator in estimator.__class__.__name__:
+            best_estimators.remove(best_estimators[i])
+            break
 
 def test1():
 

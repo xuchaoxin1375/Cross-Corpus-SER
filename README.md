@@ -11,6 +11,22 @@
 - 采用深度学习的方法可以进一步提高识别性能
 - 然而对于跨库识别而言,传统的机器学习算法表现的有些力不从心,近几年利用深度学习的方法对跨库识别的研究成为了情感计算的新热点
 
+## 语音识别vs语音情感识别vs跨库语音情感识别
+
+为了解释本文为何没有采用语音识别技术，需要先明确以下基本概念：
+
+1. 语音识别：语音识别是一种将人类语音转换为计算机可理解的文本的技术。它的主要目标是识别说话者的语言内容。这项技术广泛应用于智能语音助手、语音搜索和自动语音转录等领域。
+2. 语音情感（情绪）识别：语音情感识别关注的是分析说话者的情感状态，例如愤怒、快乐、悲伤等。这需要对声音的音调、语速、语调等特征进行分析。语音情感识别可以应用于客户服务、心理健康评估和人机交互等领域。为了提高识别性能，近年来许多关于情感的深度特征被研究出来应用于语音情感识别。
+3. 跨语料库语音情感识别：这是一种在多种语言和文化背景下进行情感识别的技术。它需要考虑不同语言和文化背景下的语音特征和情感表达方式的差异。
+
+本课题并未采用语音识别技术，因为语音中包含的文本信息不一定能准确表达语音的情感信息，尤其是短语音中的短文本，不适合用于情感识别。例如：甲对乙做恶作剧，乙向丙诉苦的时候说“甲一直笑个不停“，这是时候的语音情感和可能是愤怒的，但是仅从语音文本内容来看不容易判断出这句话是愤怒的。
+
+### 异同点
+
+-  语音识别和语音情感识别的主要区别在于关注点不同。语音识别关注语言内容，而语音情感识别关注情感状态。
+
+-  语音情感识别和跨语料库语音情感识别的主要区别在于应用范围。语音情感识别通常针对单一语言或文化背景，而跨语料库语音情感识别需要处理多种语言和文化背景下的情感识别问题。并且通常是在单个库（而非混合库）上训练识别模型，在其他库上进行语音情感识别任务。
+
 ## Requirements
 
 - 在conda环境中(推荐使用全新创建的环境)
@@ -1013,11 +1029,11 @@ SVR（Support Vector Regression）是一种基于支持向量机（SVM）的回�
 
 ##  识别系统的模块和结构🎈
 
-- [ProjectStructure](ProjectStructure)
+- 另见文档:[ProjectStructure.md](ProjectStructure)
 
-## 客户端
+## 客户端开发文档
 
-- [ccser_client](ccser_client.md)
+- 另见文档:[ccser_client.md](ccser_client.md)
 
 ## 开发工具
 
@@ -1036,9 +1052,16 @@ SVR（Support Vector Regression）是一种基于支持向量机（SVM）的回�
 
 # 部分实验结果
 
+## 同库识别
+
+- 同库识别相对简单,识别率还可以,自行实验
+
 ## 跨库识别
 
-#### 
+- 许多实验记录保存在`recognizer\cross_SER_result`目录中(相对有项目的根目录的路径)
+- 这些结果放在各自的`ipynb`文件中,代码部分一并保留,如果只想查看实验结果,可以折叠代码
+
+
 
 ### angry&sad@emodb-ravdess
 
@@ -1147,130 +1170,6 @@ test_score=0.9473684210526315
 n_splits=5
 cv_score=0.9508196721311475
 (d:\condaPythonEnvs\tf2.10) PS D:\repos\CCSER\SER>
-```
-
-
-
-#### angry&happy&sad
-
-- AHS情感识别
-
-  - ```bash
-    @{model}
-    partition='train'
-    D:\repos\CCSER\SER\meta_files\train_ravdess_HNS.csv @🎈{meta_file}
-    [I] Loading audio file paths and its corresponding labels...
-    meta_file存在D:\repos\CCSER\SER\meta_files\train_ravdess_HNS.csv文件!
-    检查特征文件D:\repos\CCSER\SER\features\ravdess_chroma-mel-mfcc_HNS_1653.npy是否存在...
-    self.e_config=['happy', 'neutral', 'sad']
-    特征矩阵文件(.npy)已经存在,直接导入:loading...
-    (1653, 180) @{feature.shape}
-    [Info] Adding  train samples
-    partition='test'
-    D:\repos\CCSER\SER\meta_files\test_emodb_HNS.csv @🎈{meta_file}
-    [I] Loading audio file paths and its corresponding labels...
-    meta_file存在D:\repos\CCSER\SER\meta_files\test_emodb_HNS.csv文件!
-    检查特征文件D:\repos\CCSER\SER\features\emodb_chroma-mel-mfcc_HNS_43.npy是否存在...
-    self.e_config=['happy', 'neutral', 'sad']
-    特征矩阵文件(.npy)已经存在,直接导入:loading...
-    (43, 180) @{feature.shape}
-    [Info] Adding  test samples
-    [I] Data loaded
-    
-    @{self.model}:
-    None
-    Evaluating <SVC>:   0%|          | 0/5 [00:00<?, ?it/s]
-    @{model}
-    @{self.model}:
-    SVC(C=10, gamma=0.001)
-    Evaluating <RandomForestClassifier>:  20%|██        | 1/5 [00:00<00:01,  2.57it/s]
-    @{self.model}:
-    SVC(C=10, gamma=0.001)
-    
-    [I] SVC with 0.37209302325581395 test accuracy
-    @{model}
-    @{self.model}:
-    RandomForestClassifier(max_depth=7, max_features=0.5, n_estimators=40)
-    @{self.model}:
-    RandomForestClassifier(max_depth=7, max_features=0.5, n_estimators=40)
-    Evaluating <KNeighborsClassifier>:  40%|████      | 2/5 [00:06<00:11,  3.70s/it]  
-    
-    [I] RandomForestClassifier with 0.4186046511627907 test accuracy
-    @{model}
-    @{self.model}:
-    KNeighborsClassifier(n_neighbors=3, p=1, weights='distance')
-    Evaluating <MLPClassifier>:  60%|██████    | 3/5 [00:06<00:04,  2.14s/it]       
-    @{self.model}:
-    KNeighborsClassifier(n_neighbors=3, p=1, weights='distance')
-    
-    [I] KNeighborsClassifier with 0.6744186046511628 test accuracy
-    @{model}
-    @{self.model}:
-    MLPClassifier(alpha=0.01, batch_size=512, hidden_layer_sizes=(300,),
-                  learning_rate='adaptive', max_iter=400)
-    @{self.model}:
-    MLPClassifier(alpha=0.01, batch_size=512, hidden_layer_sizes=(300,),
-                  learning_rate='adaptive', max_iter=400)
-    Evaluating <BaggingClassifier>:  80%|████████  | 4/5 [00:12<00:03,  3.40s/it]
-    
-    [I] MLPClassifier with 0.46511627906976744 test accuracy
-    @{model}
-    @{self.model}:
-    BaggingClassifier(max_features=0.5, n_estimators=50)
-    @{self.model}:
-    BaggingClassifier(max_features=0.5, n_estimators=50)
-    Evaluating <BaggingClassifier>: 100%|██████████| 5/5 [00:23<00:00,  4.60s/it]
-    
-    [I] BaggingClassifier with 0.5348837209302325 test accuracy
-    [🎈] Best model : KNeighborsClassifier with 67.442% test accuracy
-    test_score=0.6744186046511628
-    ```
-
-
-### HNS
-
-```bash
-@{model}
-partition='train'
-D:\repos\CCSER\SER\meta_files\train_emodb_HNS.csv @🎈{meta_file}
-[I] Loading audio file paths and its corresponding labels...
-meta_file存在D:\repos\CCSER\SER\meta_files\train_emodb_HNS.csv文件!
-检查特征文件D:\repos\CCSER\SER\features\emodb_chroma-mel-mfcc_HNS_169_@std_scaler=False.npy是否存在...
-self.e_config=['happy', 'neutral', 'sad']
-use StandardScaler to transform features
-特征矩阵文件(.npy)已经存在,直接导入:loading...
-(169, 180) @{feature.shape}
-[Info] Adding  train samples
-partition='test'
-D:\repos\CCSER\SER\meta_files\test_ravdess_HNS.csv @🎈{meta_file}
-[I] Loading audio file paths and its corresponding labels...
-meta_file存在D:\repos\CCSER\SER\meta_files\test_ravdess_HNS.csv文件!
-检查特征文件D:\repos\CCSER\SER\features\ravdess_chroma-mel-mfcc_HNS_552_@std_scaler=False.npy是否存在...
-self.e_config=['happy', 'neutral', 'sad']
-use StandardScaler to transform features
-npy文件不存在,尝试创建...
-Extracting features for : 100%|██████████| 552/552 [00:23<00:00, 23.56it/s]
-(552, 180) @{feature.shape}
-[Info] Adding  test samples
-[I] Data loaded
-
-@{self.model}:
-SVC(C=0.001, gamma=0.001, kernel='poly', probability=True)
-train_score=1.0
-verbose=0               precision    recall  f1-score   support
-
-       happy       0.97      0.29      0.44       215
-     neutral       0.00      0.00      0.00       145
-         sad       0.39      1.00      0.56       192
-
-    accuracy                           0.46       552
-   macro avg       0.45      0.43      0.34       552
-weighted avg       0.51      0.46      0.37       552
- SVC
-test_score=0.4601449275362319
-(169, 180) (169,) 🎈
-n_splits=5
-cv_score=0.9
 ```
 
 

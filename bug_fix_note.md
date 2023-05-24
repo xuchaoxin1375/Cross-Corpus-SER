@@ -8,6 +8,8 @@
 
 - write new record below:(Tightly connect new content below)
 - <>
+- 2023-05-11@20:34:54
+  - fix some serious bugs.
 - 2023-04-30@09:46:19
   - fix some bugs about pca_params
   - update `npy` save strategy

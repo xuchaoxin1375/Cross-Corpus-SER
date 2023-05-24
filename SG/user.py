@@ -1,6 +1,9 @@
 import sqlite3
 import PySimpleGUI as sg
 import constants.beauty as bt
+from SG.multilanguage import get_language_translator
+# 临时试验
+lang=get_language_translator('zh')
 
 ccser_theme = bt.ccser_theme
 
@@ -100,13 +103,13 @@ class UserAuthenticatorGUI:
 
         # 定义Tab页布局
         self.layout = [
-            [sg.Text("Welcome:"), sg.Text("User", key=current_user_key)],
+            [sg.Text(lang.welcome), sg.Text(lang.user, key=current_user_key)],
             [
                 sg.TabGroup(
                     [
                         [
-                            sg.Tab("Register", register_layout),
-                            sg.Tab("Login", login_layout),
+                            sg.Tab(lang.register, register_layout),
+                            sg.Tab(lang.login, login_layout),
                         ]
                     ]
                 )
@@ -116,44 +119,44 @@ class UserAuthenticatorGUI:
 
     def register_login_layout(self):
         register_layout = [
-            [sg.Text("Welcome to CCSER client", font=("Helvetica", 20))],
-            [sg.Text("Please enter your registration information:")],
+            [sg.Text(lang.welcome_login_title, font=("Helvetica", 20))],
+            [sg.Text(lang.input_register_info_prompt)],
             [
-                sg.Text("Username", size=(15, 1)),
+                sg.Text(lang.user_name, size=(15, 1)),
                 sg.InputText(key=username_register_key),
             ],
             [
-                sg.Text("Password", size=(15, 1)),
+                sg.Text(lang.password, size=(15, 1)),
                 sg.InputText(
                     key=password_register_key, password_char="*", enable_events=True
                 ),
             ],
             [
-                sg.Text("Confirm Password", size=(15, 1)),
+                sg.Text(lang.confirm_password, size=(15, 1)),
                 sg.InputText(
                     key="confirm_password", password_char="*", enable_events=True
                 ),
             ],
             # sg.Submit默认绑定了enter快捷键,为了避免误操作,需要谨慎使用
-            [sg.Submit(button_text="Register",bind_return_key=False), sg.Cancel(button_text="Cancel")],
+            [sg.Submit(button_text=lang.register,bind_return_key=False), sg.Cancel(button_text=lang.cancel)],
         ]
 
         # 定义登录Tab页布局
 
         login_layout = [
-            [sg.Text("Welcome to CCSER client", font=("Helvetica", 20))],
-            [sg.Text("Please enter your login information:")],
+            [sg.Text(lang.welcome_login_title, font=("Helvetica", 20))],
+            [sg.Text(lang.input_login_info_prompt)],
             [
-                sg.Text("Username", size=(15, 1)),
+                sg.Text(lang.user_name, size=(15, 1)),
                 sg.InputText(key=username_login_key, enable_events=True),
             ],
             [
-                sg.Text("Password", size=(15, 1)),
+                sg.Text(lang.password, size=(15, 1)),
                 sg.InputText(
                     key=passowrd_login_key, password_char="*", enable_events=True
                 ),
             ],
-            [sg.Submit(button_text="Login",bind_return_key=False), sg.Cancel(button_text="Cancel")],
+            [sg.Submit(button_text=lang.login,bind_return_key=False), sg.Cancel(button_text=lang.cancel)],
         ]
 
         return register_layout, login_layout

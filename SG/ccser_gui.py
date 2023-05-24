@@ -1,4 +1,5 @@
 ##
+
 from multilanguage import get_language_translator
 
 lang = get_language_translator("en")
@@ -6,14 +7,7 @@ lang = get_language_translator("cn")
 
 import inspect
 import os
-import constants.beauty as bt
-import constants.uiconfig as ufg
-import data_visualization as dv
-import fviewer
-import ipdb
-import numpy as np
-import PySimpleGUI as sg
-import query as q
+
 from constants.beauty import (
     ccser_theme,
     db_introduction,
@@ -21,26 +15,42 @@ from constants.beauty import (
     option_frame,
     result_frame,
 )
+import constants.beauty as bt
 import constants.logo as logo
-
-logo = logo.ASCII_Art_logo
+import constants.uiconfig as ufg
 from constants.uiconfig import ML_KEY, __version__
+import data_visualization as dv
+import PySimpleGUI as sg
+import numpy as np
+import query as q
+import SG.pandas_table as ptable
+
+import sys
+import fviewer
+import ipdb
+import user
+
+
 from demo_programs.Demo_Nice_Buttons import image_file_to_bytes, red_pill64, wcolor
-from fviewer import audio_viewer_layout, fviewer_events, selected_files
+from fviewer import audio_viewer_layout, fviewer_events
 from joblib import load
 from user import UserAuthenticatorGUI
+
 from config.algoparams import ava_cv_modes
-import sys
+from config.EF import ava_emotions, ava_features
 from SG.pandas_table import TablePandas
-fviewer.lang=lang
-q.lang=lang
-import SG.pandas_table as ptable
-ptable.lang=lang
-# from psgdemos import *
-# from SG.psgdemos import find_in_file, get_editor, get_explorer, get_file_list, filter_tooltip, find_re_tooltip, find_tooltip, get_file_list_dict, settings_window, using_local_editor, window_choose_line_to_edit
+
+fviewer.lang = lang
+q.lang = lang
+user.lang = lang
+logo = logo.ASCII_Art_logo
+
+
+ptable.lang = lang
+
 from audio.core import get_used_keys
 from audio.graph import showFreqGraph, showMelFreqGraph, showWaveForm
-from config.EF import ava_algorithms, ava_emotions, ava_features, ava_svd_solver
+from config.algoparams import ava_algorithms, ava_svd_solver, get_ML_bclf_dict
 from config.MetaPath import (
     ava_dbs,
     bclf,
@@ -53,27 +63,18 @@ from config.MetaPath import (
 )
 
 
-def import_config_bookmark():
-    pass
-
-
-def define_constants():
-    pass
-
-
 ## constants
 
 
-size = (1500, 1000)
-# size=None
-# ava_cv_modes=("kfold","ss","sss")
+main_window_size = (1500, 1000)
+
 train = "trian"
 test = "test"
 algorithm = ""
 audio_selected = ""
 speech_folder = speech_dbs_dir
-start_train_key = "start train"
 
+start_train_key = "start train"
 predict_res_key = "emotion_predict_res"
 std_scaler_key = "std_scaler"
 pca_key = "pca_params"
@@ -95,7 +96,7 @@ current_model_tip_key = "current_model_tip"
 predict_proba_tips_key = "predict_proba"
 cv_splits_slider_key = "cv_splits_slider"
 language_switch_key = "language_switch"
-set_theme_key="set theme"
+set_theme_key = "set theme"
 train_cv_result_table_key = "train_cv_result_table"
 # test_score&train_score view
 train_result_table_key = "train_result_table"
@@ -121,11 +122,13 @@ def get_algos_elements_list(ava_algorithms=ava_algorithms):
         _description_
     """
     algos_radios = []
+    option_length = len(max(ava_algorithms, key=len))
     for i, algo in enumerate(ava_algorithms):
         algos_radios.append(
             sg.Radio(
-                algo.title(),
-                "algorithm",
+                # algo.title(),
+                text=f"{format(f'{algo}',f'<{option_length}')}",
+                group_id="algorithm",
                 key=f"{algo}",
                 default=(i == 0),
                 enable_events=True,
@@ -135,16 +138,19 @@ def get_algos_elements_list(ava_algorithms=ava_algorithms):
 
 
 def get_train_fit_start_layout():
+    start_trian_btn = sg.Button(
+        lang.start_train,
+    )
     train_fit_start_layout = [
         [
             # sg.Button('start train'),
             sg.RButton(
                 lang.start_train,
-                image_data=image_file_to_bytes(red_pill64, (100, 50)),
-                button_color=("white", "white"),
-                # button_color=wcolor,
-                font="Any 15",
-                pad=(0, 0),
+                # image_data=image_file_to_bytes(red_pill64, (100, 50)),
+                # button_color=("white", "white"),
+                button_color=("blue", "pink"),
+                # font="Any 15",
+                # pad=(0, 0),
                 key="start train",
             ),
             sg.pin(
@@ -364,7 +370,7 @@ def get_theme_layout():
                 enable_events=True,
             )
         ],
-        [sg.Button(lang.set_theme,key=set_theme_key)],
+        [sg.Button(lang.set_theme, key=set_theme_key)],
     ]
 
     return theme_layout
@@ -372,12 +378,14 @@ def get_theme_layout():
 
 def get_file_choose_layout():
     file_choose_layout = [
+        # "请选择一个音频样本文件以识别其情感"
         [bt.h2(lang.choose_audio)],
         [
             sg.Combo(
                 sorted(sg.user_settings_get_entry("-filenames-", [])),
                 default_value=sg.user_settings_get_entry("-last filename-", ""),
-                size=(50, 1),
+                # size=(50, 1),
+                expand_x=True,
                 key="-FILENAME-",
             ),
             sg.FileBrowse(
@@ -434,7 +442,7 @@ def get_train_res_tables_layout():
 
 
 def get_title_layout():
-    return [
+    title_layout = [
         [
             sg.Text(
                 # "Welcome to experience CCSER Client!",
@@ -449,6 +457,8 @@ def get_title_layout():
             )
         ],
     ]
+    title_layout = [[]]
+    return title_layout
 
 
 def get_draw_layout():
@@ -466,7 +476,7 @@ def get_draw_layout():
         # todo reset
         [
             sg.Button(lang.draw_diagram, key="draw diagram"),
-            sg.Button("Reset", key="reset graph Checkbox"),
+            # sg.Button(lang.reset, key="reset graph Checkbox"),
         ],
     ]
 
@@ -673,14 +683,12 @@ def get_other_settings_layout():
 
 def get_algo_layout():
     algos = get_algos_elements_list()
-    len_of_algos = len(algos)
+    algos_num = len(algos)
 
+    k = bt.columns_limit
     algo_frame = option_frame(
         title=lang.algorithmes_chooser_title,
-        layout=[
-            algos[: len_of_algos // 2],
-            algos[len_of_algos // 2 :],
-        ],
+        layout=[algos[i : min(i + k, algos_num)] for i in range(0, algos_num, k)],
         frame_key="algo_border_frame",
     )
     algos_layout = [
@@ -692,17 +700,40 @@ def get_algo_layout():
 
 
 def get_e_config_layout():
-    emotion_config_checboxes_layout = [
-        [
-            sg.Checkbox("angry", key="angry", default=False, enable_events=True),
-            sg.Checkbox("happy", key="happy", default=True, enable_events=True),
-            sg.Checkbox("neutral", key="neutral", default=True, enable_events=True),
-            sg.Checkbox("ps", key="ps", enable_events=True),
-            sg.Checkbox("sad", key="sad", default=True, enable_events=True),
-            sg.Checkbox("others", key="others", default=False, enable_events=True),
-        ]
+    emotion_checkbox_list = [
+        sg.Checkbox("angry", key="angry", default=False, enable_events=True),
+        sg.Checkbox("happy", key="happy", default=True, enable_events=True),
+        sg.Checkbox("neutral", key="neutral", default=True, enable_events=True),
+        sg.Checkbox("ps", key="ps", enable_events=True),
+        sg.Checkbox("sad", key="sad", default=True, enable_events=True),
+        sg.Checkbox("others", key="others", default=False, enable_events=True),
     ]
+    # 居左对齐版:
+    emotion_config_checboxes_layout = [emotion_checkbox_list]
+    # 两端对齐版:
+    ## checkbox打包:借助sg.Column做两端对齐
+    e_config_sg_layout = []
+    for checkbox in emotion_checkbox_list[1:-1]:
+        col = sg.Column(
+            layout=[[checkbox]],
+            justification="center",
+            expand_x=True,
+        )
+        e_config_sg_layout.append(col)
+    first = sg.Column(
+        [[emotion_checkbox_list[0]]],
+        justification="left",
+        expand_x=True,
+    )
+    last = sg.Column(
+        layout=[[emotion_checkbox_list[-1]]],
+        justification="right",
+        expand_x=False,
+    )
+    ## 打包:
+    emotion_config_checboxes_layout = [[first, *e_config_sg_layout, last]]
 
+    # 整理情感选择模块界面
     e_config_layout = [
         [
             bt.h2(
@@ -724,19 +755,44 @@ def get_e_config_layout():
 
 
 def get_f_config_layout():
+    """情感特征选择布局
+
+    Returns
+    -------
+    layout
+        _description_
+    """
+    features_checkbox_list = [
+        sg.Checkbox("MFCC", key="mfcc", default=True, enable_events=True),
+        sg.Checkbox("Mel", key="mel", enable_events=True),
+        sg.Checkbox("Contrast", key="contrast", enable_events=True),
+        sg.Checkbox("Chromagram", key="chroma", enable_events=True),
+        sg.Checkbox("Tonnetz", key="tonnetz", enable_events=True),
+    ]
+    # 居左对齐版
+    # features_checkbox_layout=[features_checkbox_list]
+    # 两端对齐版
+    ## 借助sg.Column做两端对齐:
+    features_checkbox_sg_list = []
+    for checkbox in features_checkbox_list[1:-1]:
+        col = sg.Column(layout=[[checkbox]], justification="center", expand_x=True)
+        features_checkbox_sg_list.append(col)
+    first = sg.Column(
+        layout=[[features_checkbox_list[0]]],
+        justification="left",
+        expand_x=True,
+    )
+    last = sg.Column(
+        layout=[[features_checkbox_list[-1]]], justification="right", expand_x=False
+    )
+    features_checkbox_layout = [[first, *features_checkbox_sg_list, last]]
+    # 打包成一个框
     f_config_option_frame = option_frame(
         title=lang.feature_config_legend,
-        layout=[
-            [
-                sg.Checkbox("MFCC", key="mfcc", default=True, enable_events=True),
-                sg.Checkbox("Mel", key="mel", enable_events=True),
-                sg.Checkbox("Contrast", key="contrast", enable_events=True),
-                sg.Checkbox("Chromagram", key="chroma", enable_events=True),
-                sg.Checkbox("Tonnetz", key="tonnetz", enable_events=True),
-            ],
-        ],
+        layout=features_checkbox_layout,
         frame_key="f_config_layout",
     )
+    # 将特征选择模块的标题和checkbox框组合打包成布局
     f_config_layout = [
         [bt.h2(lang.choose_feature_config)],
         [f_config_option_frame],
@@ -766,6 +822,7 @@ def get_f_transform_layout():
                     key=pca_components_key,
                     default_text="None",
                     tooltip=lang.pca_components_tooltip,
+                    expand_x=True,
                     enable_events=True,
                 ),
                 sg.Combo(
@@ -983,20 +1040,14 @@ def start_train_model(
     if verbose:
         check_training_arguments(train_db, test_db, e_config, f_config, algorithm)
 
-    bclf_estimators = load(bclf)
+    ML_estimators_dict = get_ML_bclf_dict()
 
-    # audio_selected=get_example_audio_file()
-    # None表示自动计算best_ML_model
-    ML_estimators_dict = {
-        estimator.__class__.__name__: estimator for estimator, _, _ in bclf_estimators
-    }
     # ipdb.set_trace()
     if isinstance(algorithm, list):
         sys.exit()
+    # 通过赋值的方式添加一个字典元素"BEST_ML_MODEL":None
     ML_estimators_dict["BEST_ML_MODEL"] = None
-    # if algorithm=='BEST_ML_MODEL':
-    model = ML_estimators_dict[algorithm]
-    print(train_db, test_db, e_config, f_config, algorithm, model, audio_selected)
+    print(train_db, test_db, e_config, f_config, algorithm, audio_selected)
 
     # 设置特征预处理(transform)参数
     fts_preserved = fts_params_process(values, verbose)
@@ -1010,6 +1061,9 @@ def start_train_model(
         )
         er = der
     else:
+        # 使用sklearn的机器学习算法
+        model = ML_estimators_dict[algorithm]
+        print("model: ", model)
         er = EmotionRecognizer(
             model=model,
             train_dbs=train_db,
@@ -1068,30 +1122,31 @@ def model_res(er, verbose=1):
     return train_score, test_score
 
 
-##
 def main(verbose=1):
     # lang=lang
     global theme
     global lang
     theme = ccser_theme
-    window = make_window(theme=theme, size=size)
     # Initialize the selected databases list
-    event, values = window.read()
     e_config = []
     f_config = []
     train_db = ""
     test_db = ""
     algorithm = ""
     er = None
+    #创建窗口
+    window = make_window(theme=theme, size=main_window_size)
+    # window=sg.Window(theme, main_window_size)
+    event, values = window.read()
     # 初始化!
     train_db, test_db, e_config, algorithm, f_config = initial(values=values, verbose=2)
 
     while True:
         if verbose >= 2:
             check_training_arguments(train_db, test_db, e_config, f_config, algorithm)
+            if event:  # 监听任何event
+                print(event, "@{event}", __file__)
 
-        if event:  # 监听任何event
-            print(event, "@{event}", __file__)
         # 检测是否窗口要被关闭
         if event in (ufg.close, sg.WIN_CLOSED):
             print(ufg.close, "关闭窗口")
@@ -1100,7 +1155,6 @@ def main(verbose=1):
         elif event == "train_db":
             train_db = values["train_db"]
             if verbose > 1:
-            
                 print(train_db, "@{trian_db}")
         elif event == "test_db":
             test_db = values["test_db"]
@@ -1200,20 +1254,21 @@ def main(verbose=1):
             if verbose:
                 print(select_items_list, "@{select_item}")
                 print("[LOG] User Chose Theme: " + str(theme_chosen))
-            #TODO why the call of window.close cause the GUI broken?
+            # TODO why the call of window.close cause the GUI broken?
             window.close()
             print("the window was closed!")
-            # window = make_window(theme=theme_chosen)
-            # if(window):
-            #     print("restart successful!")
+
+            window = make_window(theme=theme_chosen)
+            if(window):
+                print("restart successful!")
             # window = make_window()
         elif event == language_select_key:
             language = values[language_select_key][0]
-            lang=get_language_translator(language=language)
+            lang = get_language_translator(language=language)
             if verbose:
                 print("language: ", language)
-                print('lang: ', lang)
-            
+                print("lang: ", lang)
+
             window.Refresh()
 
         elif event == "Introduction":
@@ -1221,7 +1276,6 @@ def main(verbose=1):
             res = "\n".join(content)
             sg.popup_scrolled(res, size=(150, 100), title="Introduction")
         elif event == show_confusion_matrix_key:
-
             cm = er.confusion_matrix()
             tp = TablePandas(df=cm)
             tp.show_confution_matrix_window()

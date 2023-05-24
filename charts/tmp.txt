@@ -1,0 +1,3 @@
+$$
+D={(\boldsymbol{z}_i,y_i)}^{m}_{i=1}
+$$

@@ -3,6 +3,7 @@ from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor, B
 from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 from sklearn.neural_network import MLPClassifier, MLPRegressor
+from sklearn.tree import DecisionTreeClassifier
 """
 根据给定的超参数范围(序列),从中求解出较好的超参数值
 本模块定义2个字典,用来指定各个分类(回归)模型需要计算的超参数范围
@@ -24,6 +25,15 @@ classification_grid_parameters = {
         'min_samples_split': [0.2, 0.5, 0.7, 2],
         'min_samples_leaf': [0.2, 0.5, 1, 2],
         'max_features': [0.2, 0.5, 1, 2],
+    },
+    # 定义决策树参数空间
+    DecisionTreeClassifier(): {
+        "criterion": ["gini", "entropy"],
+        "splitter": ["best", "random"],
+        "max_depth": [None, 5, 7, 10, 13],
+        "min_samples_split": [1,2, 5, 10],
+        "min_samples_leaf": [1, 2, 4],
+        "max_features": ["sqrt", "log2"],
     },
     # GradientBoostingClassifier():   {
     #     'learning_rate': [0.05, 0.1, 0.3],

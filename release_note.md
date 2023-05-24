@@ -25,7 +25,9 @@
   - new notes:"Sort update records in descending order of time".That would be convenient to update new version notes in the future.
 - *<u>current modifing:</u>*
   - ...
-
+  - improve the UI alignment(make almost all `input` and `frame` type elements using the expand_x=True,to autofit the width availible)
+  - fix the audio file viewer language inconsistent bugs.
+  
 - 2023-05-10@20:06:02
   - initially support the interface language switch:between Chinese and English
     - the approch to achieve the multilanguage support depending on language string resource py file:
