@@ -14,8 +14,6 @@ headingDivider: 1
 
 ![bg contain left:45% 98% ](https://img-blog.csdnimg.cn/be61e759517a4f038c3eb69928e097aa.png)
 
-计科1902 徐超信
-指导老师：蒋海华
 
 ---
 
