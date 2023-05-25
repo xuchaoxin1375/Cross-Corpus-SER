@@ -24,6 +24,8 @@
 - 语音识别和语音情感识别的主要区别在于关注点不同。语音识别关注语言内容，而语音情感识别关注情感状态。
 - 语音情感识别和跨语料库语音情感识别的主要区别在于应用范围。语音情感识别通常针对单一语言或文化背景，而跨语料库语音情感识别需要处理多种语言和文化背景下的情感识别问题。并且通常是在单个库（而非混合库）上训练识别模型，在其他库上进行语音情感识别任务。
 
+# Deploy
+
 ## Requirements
 
 - 在conda环境中(推荐使用全新创建的环境)
@@ -87,21 +89,21 @@
   - 例如 `KNeighborsClassifier`训练完毕后,用它预测新的样本或在训练集上预测会报错:
 
     - ```python
-
+      
       File d:\condaPythonEnvs\tf210\lib\site-packages\sklearn\neighbors\_classification.py:237, in KNeighborsClassifier.predict(self, X)
           235     neigh_dist = None
           236 else:
       --> 237     neigh_dist, neigh_ind = self.kneighbors(X)
           239 classes_ = self.classes_
           240 _y = self._y
-
+      
           643 get_config = getattr(self._dynlib, "openblas_get_config",
           644                      lambda: None)
           645 get_config.restype = ctypes.c_char_p
       --> 646 config = get_config().split()
           647 if config[0] == b"OpenBLAS":
           648     return config[1].decode("utf-8")
-
+      
       AttributeError: 'NoneType' object has no attribute 'split'
       ```
     - 而当我切换到另一个环境又可以工作,说明是应该不是系统问题,而更可能是环境出了问题
@@ -181,9 +183,9 @@ for i in tqdm(range(10), leave=False):
       PS C:\Users\cxxu> $ccser="D:\repos\CCSER\SER"
       PS C:\Users\cxxu> $ccser
       D:\repos\CCSER\SER
-
+      
       PS D:\repos\configs\env> setx PYTHONPATH "$ccser;$env:PYTHONPATH"
-
+      
       SUCCESS: Specified value was saved.
       ```
 
@@ -410,7 +412,7 @@ $ du -h --max-depth=1 |sort -hr
 
   ```python
   from sklearn.preprocessing import StandardScaler
-
+  
   # X为特征矩阵，axis=0对每列进行归一化
   scaler = StandardScaler()
   X = scaler.fit_transform(X)
@@ -423,14 +425,14 @@ $ du -h --max-depth=1 |sort -hr
   ```python
   from sklearn.preprocessing import MinMaxScaler
   import librosa
-
+  
   # y为语音信号，sr为采样率
   S = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=128, fmax=8000)
   log_S = librosa.power_to_db(S, ref=np.max)
-
+  
   # 计算每个帧的能量
   frame_energy = np.sum(np.exp(log_S), axis=0)
-
+  
   # 对帧级别的能量进行归一化
   scaler = MinMaxScaler()
   frame_energy = scaler.fit_transform(frame_energy.reshape(-1, 1)).reshape(-1)
@@ -442,14 +444,14 @@ $ du -h --max-depth=1 |sort -hr
 
   ```python
   import librosa
-
+  
   # y为语音信号，sr为采样率
   S = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=128, fmax=8000)
   log_S = librosa.power_to_db(S, ref=np.max)
-
+  
   # 将语音信号转换为分贝表示
   db_S = librosa.amplitude_to_db(S, ref=np.max)
-
+  
   # 检测语音活动部分
   onset_frames = librosa.onset.onset_detect(y=y, sr=sr)
   onset_times = librosa.frames_to_time(onset_frames, sr=sr)
@@ -461,7 +463,7 @@ $ du -h --max-depth=1 |sort -hr
 
   ```python
   import librosa
-
+  
   # y为语音信号，sr为采样率
   y_stretch = librosa.effects.time_stretch(y, rate=0.8)
   y_pitch = librosa.effects.pitch_shift(y, sr=sr, n_steps=-3)
@@ -475,7 +477,7 @@ $ du -h --max-depth=1 |sort -hr
   ```python
   from sklearn.feature_selection import SelectKBest
   from sklearn.feature_selection import mutual_info_classif
-
+  
   # X为特征矩阵，y为情感标签
   selector = SelectKBest(mutual_info_classif, k=10)
   X_new = selector.fit_transform(X, y)
@@ -518,7 +520,7 @@ $ du -h --max-depth=1 |sort -hr
 
 - `grid.search`模块提供了计算各个算法最优超参数的实现
 
-# 本项目使用的算法(分类模型)😂
+# 本项目使用的算法(分类模型)🎈
 
 ## ML Classifiers
 
@@ -526,23 +528,54 @@ $ du -h --max-depth=1 |sort -hr
 - RandomForestClassifier
 - GradientBoostingClassifier
 - KNeighborsClassifier
+- DecisionTreeClassifer
 - MLPClassifier
 - BaggingClassifier
+- AdaBoostingClassifer
+- StackingClassifier
 - Recurrent Neural Networks (Keras)
 
-### 选择合适的分类器(用k-fold评估)
+## 其他
+
+### 一个基础的分类教程
+
+- [How to Make a Speech Emotion Recognizer Using Python And Scikit-learn - Python Code (thepythoncode.com)](https://www.thepythoncode.com/article/building-a-speech-emotion-recognizer-using-sklearn)
+
+### 相关api
+
+### skearn.ensemble
+
+- sklearn.ensemble是sklearn库中的一个模块，用于实现集成学习相关的算法。集成学习是一种通过结合多个基学习器来构建一个更强大的学习器的方法，常用于解决各种分类和回归问题。
+
+  sklearn.ensemble模块中包含了许多经典的集成学习算法，例如：
+
+  - Bagging：基于袋装法的集成学习算法，用于构建多个独立的基学习器。
+  - RandomForest：基于随机森林的集成学习算法，也是一种基于决策树的集成方法。
+  - AdaBoost：基于自适应增强的集成学习算法，用于加权组合多个基学习器。
+  - GradientBoosting：基于梯度提升的集成学习算法，用于逐步提升模型的预测能力。
+  - Voting：基于投票法的集成学习算法，用于组合多个不同类型的基学习器。
+
+  除了以上常见的集成学习算法外，sklearn.ensemble模块还包含了一些其他的集成学习算法，例如ExtraTreesRegressor和ExtraTreesClassifier等。
+
+  sklearn.ensemble模块提供了统一的API接口，方便用户调用不同的集成学习算法。同时，它也提供了许多参数可以调整，以便更好地适应不同的数据集和任务要求。例如，可以通过调整n_estimators、max_depth、min_samples_split等参数来控制模型的复杂度和泛化能力。
+
+  在使用sklearn.ensemble模块时，需要根据具体的数据集和任务需求，选择合适的算法和参数来构建模型。同时，还可以通过交叉验证等技术来评估模型的性能和调整参数，以获得更好的预测结果。需要注意的是，集成学习算法在处理高方差低偏差的模型时效果比较好，例如决策树等模型。
+
+
+
+## 模型评估方案(交叉验证法评估)
 
 - ```python
   from sklearn.datasets import load_iris
   from sklearn.linear_model import LinearRegression
   from sklearn.model_selection import cross_val_score
-
+  
   # 加载iris(鸢尾花)数据集
   X, y = load_iris(return_X_y=True)
-
+  
   # 使用线性回归模型进行交叉验证
   model = LinearRegression()
-
+  
   scores = cross_val_score(model, X, y, cv=5)
   print("Scores:", scores)
   print("Mean score:", scores.mean())
@@ -552,10 +585,11 @@ $ du -h --max-depth=1 |sort -hr
     Scores: [0.96666667 0.96666667 0.9        0.96666667 1.        ]
     Mean score: 0.9600000000000002
     ```
+
 - ```python
   # 加载iris(鸢尾花)数据集
   X, y = load_iris(return_X_y=True)
-
+  
   # model=RandomForestClassifier()
   model=SVC()
   scores = cross_val_score(model, X, y, cv=5,verbose=3)
@@ -567,25 +601,26 @@ $ du -h --max-depth=1 |sort -hr
     Scores: [0.96666667 0.96666667 0.96666667 0.93333333 1.        ]
     Mean score: 0.9666666666666666
     ```
+
 - 而使用决策树模型进行分类,效果比较好,在5折叠验证中,都在0.9以上
+
 - 使用SVC或者RF,效果更加好
 
-#### 使用shuffle
+### 使用shuffle
 
 - 不对有序数据集iris洗牌,效果:
 
   ```python
-
   # 加载iris(鸢尾花)数据集
   X, y = load_iris(return_X_y=True)
-
+  
   # 定义5折交叉验证
   kf = KFold(
       n_splits=5,
       #    shuffle=True,
       # random_state=42,
   )
-
+  
   # 使用线性回归模型进行训练和测试
   model = LinearRegression()
   # model=RandomForestClassifier()
@@ -609,8 +644,11 @@ $ du -h --max-depth=1 |sort -hr
     Score: 0.0
     mean_score=0.32256072489000853
     ```
+
   - 通常出现这种情况的话,可以认为是数据集读入策略有问题
+
 - 解开shuffle=True的注释,得到正常的预测性能
+
 - ```bash
   Score: 0.9468960016420045
   Score: 0.9315787260143983
@@ -620,304 +658,15 @@ $ du -h --max-depth=1 |sort -hr
   mean_score=0.9239837362538135
   ```
 
-#### SVC
 
-- Scikit-learn中的SVC是一种支持向量机（Support Vector Machine）分类器，用于解决二分类和多分类问题。SVC是一种非常强大的模型，可以处理高维度的数据，并且能够有效地处理非线性可分的数据。
-- SVC的主要思想是在特征空间中找到一个最优的超平面（hyperplane），将不同类别的数据分开。
-- 在二维空间中，超平面是一条直线，而在高维空间中，超平面是一个超平面。
-- SVC的训练过程是通过寻找一个**最大间隔**（maximum margin）的超平面来实现的，即找到一个超平面，使得所有训练样本离该超平面的距离最大化。这个最大间隔的超平面是通过拉格朗日乘子法（Lagrange multipliers）求解一个二次规划（quadratic programming）问题来实现的。
-- SVC可以使用不同的**核函数**（kernel function）来学习非线性的决策边界。
-
-  - 常用的核函数包括线性核函数、多项式核函数、径向基函数（Radial Basis Function，RBF）核函数等。
-  - 这些核函数可以将低维空间中的数据映射到高维空间中，从而使得`<u>`数据在高维空间中变得线性可分`</u>`。
-- SVC还具有一些重要的超参数，包括C、kernel、gamma等。
-
-  - C是正则化参数，用于控制模型的复杂度和对训练数据的拟合程度。
-  - kernel是核函数的选择，
-  - gamma是径向基函数核的系数，它们都影响着模型的性能和复杂度。
-- 在Scikit-learn中，SVC的使用非常简单，只需要创建一个SVC对象，设置一些超参数，然后调用fit()方法训练模型。可以使用predict()方法对新数据进行分类预测。
-- 总之，SVC是一种强大的分类器，适用于解决二分类和多分类问题，尤其擅长处理高维度和非线性可分的数据。
-
-##### sklearn.svm.svc
-
-- [`sklearn.svm`](https://scikit-learn.org/stable/modules/classes.html#module-sklearn.svm).SVC
-- SVC类是一种支持向量机分类器，用于二元和多元分类。
-- 它的实现基于libsvm。拟合时间至少与样本数的平方成比例，并且在数万个样本之外可能是不切实际的。
-- 对于大型数据集，请考虑使用LinearSVC或SGDClassifier，可能需要使用Nystroem转换器或其他核逼近。多类支持根据一对一方案处理。
-- 有关提供的核函数的精确数学公式以及gamma、coef0和degree如何相互影响的详细信息，请参见叙述性文档中的相应部分：[kernel-function核函数](https://scikit-learn.org/stable/modules/kernel_approximation.html#kernel-approximation)。
-- 在机器学习中，核函数是一种用于度量数据点之间相似性的方法，它可以将低维的非线性数据映射到高维的线性空间，从而使得一些线性算法，如支持向量机（SVM），能够处理非线性问题。然而，核函数的一个缺点是计算复杂度很高，尤其是当数据集很大时，因为需要计算每对数据点之间的核值。
-- 为了解决这个问题，scikit-learn提供了一些核近似方法，它们可以用低维的特征向量来近似高维的核空间，从而降低计算成本和内存需求。
-- `sklearn.kernel_approximation`模块包含一些函数，用于近似与某些内核（如支持向量机中使用的内核）相对应的特征映射。
-
-  - 以下特征函数执行输入的非线性变换，可以作为线性分类或其他算法的基础。
-  - 使用近似显式特征映射的优点与使用内核技巧相比，内核技巧隐式地使用特征映射，显式映射可以更适合在线学习，并且可以显著降低使用非常大的数据集进行学习的成本。标准的核化支持向量机不适用于大型数据集，但是使用近似核映射可以使用更高效的线性支持向量机。特别是，将核映射近似与 SGDClassifier 结合可以使大型数据集上的非线性学习成为可能。
-
-##### 补充
-
-- "Nystroem" 是一种用于解决大规模机器学习问题的方法，它是由计算机科学家 William N. Nystrom 在2002年提出的。该方法主要用于解决核矩阵的计算问题，可以大大减少计算复杂度和内存使用，从而使得处理大规模数据集的机器学习问题变得更加高效和可行。
-
-  在传统的核方法中，需要计算样本之间的核矩阵，这个矩阵往往是比较大且密集的，计算和存储都会带来很大的困难。而 Nystroem 方法则是通过随机采样的方式来估计核矩阵，从而避免了计算和存储大型矩阵的问题。具体来说，该方法先从原始数据集中随机选择一部分样本，然后计算这些样本之间的核矩阵，再利用这个估计的核矩阵来近似计算全部样本之间的核矩阵。
-
-  Nystroem 方法在实践中被广泛应用于各种机器学习问题，如分类、回归、聚类等。它可以提高处理大规模数据集的效率，同时保持较高的预测精度
-- "SGDClassifier" 是 Scikit-learn （一个流行的 Python 机器学习库）中的一个分类器，它使用随机梯度下降算法来进行模型训练。
-
-  随机梯度下降（Stochastic Gradient Descent，简称 SGD）是一种常用的优化算法，它可以在大规模数据集上进行快速的模型训练。SGDClassifier 利用 SGD 算法来最小化分类误差（或者其他损失函数），从而学习出一个分类模型。
-
-  SGDClassifier 可以用于二分类问题和多分类问题，可以处理稀疏数据和高维数据。在使用 SGDClassifier 进行模型训练时，需要设置一些超参数，如学习率、正则化系数、损失函数等，这些超参数可以影响模型的性能和泛化能力。
-
-  SGDClassifier 在实践中被广泛应用于各种分类问题，如文本分类、图像分类、音频分类等。它具有高效、可扩展、灵活等优点，是机器学习领域中常用的分类器之一。
-
-##### 超参
-
-- SVC（Support Vector Classification）是一种支持向量机分类器，其参数比较多且较为复杂，需要逐个进行解释。
-
-  以下是SVC的参数及其含义：
-
-  1. kernel：核函数类型。SVC支持多种核函数，包括线性核、多项式核、径向基函数（RBF）核等。默认值为'rbf'。
-  2. degree：多项式核函数的次数。如果使用多项式核函数，需要指定degree参数。默认值为3。
-  3. gamma：核函数的系数。当使用'RBF'、'poly'或'sigmoid'核函数时，需要指定gamma参数。较大的gamma值会导致决策边界更加复杂，对训练集的拟合程度更高，但容易出现过拟合。默认值为'scale'，表示使用1 / (n_features * X.var())作为gamma的值。
-  4. coef0：核函数中的常数项。如果使用多项式核函数或sigmoid核函数，需要指定coef0参数。默认值为0。
-  5. C：正则化参数。C控制了分类器的容错能力，即决策边界的软硬程度。较小的C值会导致决策边界更加平滑，较大的C值会导致决策边界更加复杂，对训练集的拟合程度更高。默认值为1.0。
-  6. shrinking：是否使用缩小启发式。当数据集较大时，启用缩小启发式可以加快模型训练速度，但可能会影响模型性能。默认值为True。
-  7. probability：是否启用概率估计。如果启用概率估计，在预测时会输出每个类别的概率估计值。默认值为False。
-  8. tol：训练停止的容忍度。当模型的训练误差减少到tol时，训练过程停止。默认值为1e-3。
-  9. max_iter：最大迭代次数。如果模型在指定的最大迭代次数内未收敛，则停止训练。默认值为-1，表示不限制迭代次数。
-  10. class_weight：类别权重。如果数据集中的某些类别比其他类别更重要，则可以使用class_weight参数来平衡类别权重。默认值为None，表示所有类别的权重相等。
-  11. verbose：输出详细信息的级别。默认值为0，表示不输出任何信息。
-  12. cache_size：用于存储核矩阵的缓存大小。如果数据集较大，可以增大cache_size以提高模型训练速度。默认值为200MB。
-
-##### tips
-
-在使用SVC时，需要根据具体的问题选择合适的参数。以下是一些设置SVC参数的技巧：
-
-1. 根据数据集的特征选择核函数：在选择核函数时，需要根据数据集的特征选择合适的核函数。对于线性可分的数据集，使用线性核函数可以获得较好的分类效果；对于非线性可分的数据集，可以尝试使用多项式核函数或径向基函数（RBF）核函数。
-2. 调整正则化参数C：正则化参数C控制了决策边界的软硬程度。在模型欠拟合时，可以尝试增大C值；在模型过拟合时，可以尝试减小C值。
-3. 调整核函数的参数：如果使用多项式核函数或RBF核函数，需要调整degree和gamma参数。在模型欠拟合时，可以尝试增大degree或gamma值；在模型过拟合时，可以尝试减小degree或gamma值。
-4. 使用交叉验证选择最优参数：可以使用交叉验证来选择最优的参数组合，以获得最佳的分类效果。在训练模型时，可以将数据集分成多份，每次使用其中一份作为验证集，其余部分作为训练集，计算模型在验证集上的分类精度，并记录最佳的参数组合。
-
-如果模型在使用合理的参数组合时仍然无法收敛，可以尝试以下技巧：
-
-1. 增大正则化参数C：在模型欠拟合时，可以尝试增大正则化参数C，以增强模型的泛化能力。
-2. 减小复杂度：可以尝试减小模型的复杂度，如减小多项式核函数的次数、减小RBF核函数的gamma值等。
-3. 数据预处理：可以尝试对数据进行预处理，如归一化、标准化等，以提高模型的训练效果。
-4. 增加训练时间：可以尝试增加模型的训练时间，以增加模型的训练次数，提高模型的分类精度。
-
-需要注意的是，调整参数时需要谨慎，避免在训练集上出现过拟合。在使用SVC时，建议先使用默认参数进行训练，再根据实际情况进行调整。
-
-#### RandomForestClassifier
-
-- RandomForestClassifier是一个基于随机森林算法的分类器，常用于机器学习任务中。
-- 随机森林是一种集成学习算法，它将多个决策树组合起来形成一个更强大的分类器。随机森林算法的基本思想是，构建多个决策树，每个树都使用随机选取的特征和样本进行训练，然后将所有树的结果进行投票，选择得票最多的类别作为最终的分类结果。这个过程可以有效地减少随机误差和过拟合。
-- 本项目RandomForestClassifier是sklearn库中实现随机森林分类器的类。它提供了许多参数可以调整，以便更好地适应不同的数据集和任务要求，例如：
-
-  - n_estimators：森林中决策树的数量。
-  - criterion：用于衡量分裂质量的度量标准，可以是gini或entropy。
-  - max_depth：决策树的最大深度。
-  - min_samples_split：拆分内部节点所需的最小样本数。
-  - min_samples_leaf：在叶节点处所需的最小样本数。
-
-使用RandomForestClassifier可以对数据集进行分类，例如：
-
-```python
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.datasets import make_classification
-from sklearn.model_selection import train_test_split
-
-# 生成示例数据集
-X, y = make_classification(n_samples=1000, n_features=4, n_informative=2, n_redundant=0, random_state=0, shuffle=False)
-
-# 将数据集分成训练集和测试集
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=0)
-
-# 创建随机森林分类器
-clf = RandomForestClassifier(n_estimators=100, max_depth=2, random_state=0)
-
-# 在训练集上拟合模型
-clf.fit(X_train, y_train)
-
-# 在测试集上进行预测
-y_pred = clf.predict(X_test)
-
-# 输出分类器的准确率
-print("Accuracy:", clf.score(X_test, y_test))
-```
-
-在上面的示例中，首先使用make_classification函数生成一个示例数据集，然后将数据集分成训练集和测试集。接着创建一个随机森林分类器，并在训练集上拟合模型。最后，在测试集上进行预测，并输出分类器的准确率。
-
-#### GradientBoostingRegressor
-
-- GradientBoostingRegressor是一种基于梯度提升算法的回归模型，常用于机器学习中。
-
-  梯度提升算法是一种集成学习算法，它通过不断迭代来构建多个弱学习器，并将它们组合成一个更强大的学习器。在回归任务中，GradientBoostingRegressor算法的基本思想是，首先用一个简单的回归模型来拟合数据集，然后计算残差，将残差作为新的目标值，再用另一个回归模型来拟合残差，以此类推，直到达到预定的迭代次数或达到指定的误差限制。最终将所有回归模型的结果加权组合起来，形成最终的预测结果。
-
-  GradientBoostingRegressor是sklearn库中实现梯度提升回归的类。它提供了许多参数可以调整，以便更好地适应不同的数据集和任务要求，例如：
-
-  - n_estimators：拟合的树的数量，也就是迭代次数。
-  - learning_rate：学习率，控制每个弱学习器对最终结果的贡献大小。
-  - max_depth：每个决策树的最大深度，控制模型的复杂度。
-  - min_samples_split：每个节点在分裂时需要的最小样本数，用于控制过拟合。
-  - loss：损失函数，可以选择平方误差、绝对误差等不同的损失函数。
-
-  在使用GradientBoostingRegressor时，需要根据具体的数据集和任务需求，选择合适的参数来构建模型。同时，还可以通过交叉验证等技术来评估模型的性能和调整参数，以获得更好的预测结果。
-
-#### KNeighborsRegressor
-
-- KNeighborsRegressor是一种基于**K最近邻算法**的回归模型。
-
-  K最近邻算法是一种基于实例的学习方法，它通过比较新样本与训练集中的样本之间的距离来预测新样本的标签。具体而言，对于每个新样本，K最近邻算法会找到它在训练集中K个最近邻居，并将它们的标签的平均值作为新样本的标签。在回归任务中，KNeighborsRegressor算法的基本思想是，根据K个最近邻居的标签的平均值来预测新样本的标签。
-
-  KNeighborsRegressor是sklearn库中实现K最近邻回归的类。它提供了许多参数可以调整，以便更好地适应不同的数据集和任务要求，例如：
-
-  - n_neighbors：所选取的K值，即最近邻居的数量。
-  - weights：指定如何计算最近邻居的权重，可以是uniform（所有邻居的权重相等）或distance（邻居的权重与距离成反比）。
-  - algorithm：指定用于计算最近邻居的算法，可以是brute（暴力搜索）、kd_tree（基于KD树的搜索）或ball_tree（基于球树的搜索）。
-  - metric：指定用于计算距离的度量方法，可以是欧氏距离、曼哈顿距离等不同的度量方法。
-
-  在使用KNeighborsRegressor时，需要根据具体的数据集和任务需求，选择合适的参数来构建模型。同时，还可以通过交叉验证等技术来评估模型的性能和调整参数，以获得更好的预测结果。需要注意的是，KNeighborsRegressor算法对于高维稠密的数据集表现良好，但对于稀疏数据和高维稀疏数据的处理效果可能不好，因此需要根据具体的数据集和任务需求选择合适的算法和度量方法。
-- KNN是一种基于实例的机器学习算法，其中的参数包括K值和距离度量方法。在使用KNN算法时，需要注意以下几点：
-
-  1. K值的选择：K值表示在进行分类或回归预测时，考虑的最近邻居的个数。K值的选择对算法性能和预测结果有重要影响。如果K值太小，模型容易受到噪声的影响，导致过拟合；如果K值太大，模型可能会过于简单，导致欠拟合。因此，需要通过交叉验证等方法选择合适的K值。
-
-     - 当K值为偶数时，在进行分类或回归预测时，可能会出现两个或多个最近邻居的标签或值相同的情况，从而无法确定样本的分类或回归值。这种情况下，需要使用一些额外的规则来解决这种歧义。
-     - 一种常用的解决方法是使用加权平均法。具体而言，对于K个最近邻居中的每个样本，可以计算它与测试样本之间的距离，并将其作为权重，对它们的标签或值进行加权平均。例如，对于K=4的情况，可以计算测试样本与4个最近邻居之间的距离，并将它们的标签或值分别乘以对应的权重，然后将它们加权平均，以得到测试样本的预测值。
-     - 另一种解决方法是随机选择一个标签或值作为最终的预测结果。例如，对于K=4的情况，可以随机选择其中一个最近邻居的标签或值作为预测结果。
-     - 需要注意的是，当K值为奇数时，可以避免上述歧义的情况，因为K个最近邻居中必然有一个标签或值出现的次数多于一半，从而可以确定样本的分类或回归值。因此，在实际应用中，通常建议将K值设置为奇数。
-  2. 距离度量方法的选择：KNN算法的核心是基于距离度量来计算样本之间的相似度。常用的距离度量方法包括欧式距离、曼哈顿距离、闵可夫斯基距离等。在选择距离度量方法时，需要根据具体的数据特点和任务需求进行选择。
-  3. 数据预处理：KNN算法对数据的分布和尺度敏感，因此需要对数据进行预处理，例如标准化、归一化等操作，以使得数据分布更加均匀，尺度更加一致。
-  4. 计算效率：KNN算法需要计算每个测试样本与所有训练样本之间的距离，因此当数据集较大时，算法计算复杂度会变得很高。因此，需要考虑使用一些优化技术，例如使用KD树等数据结构，以提高算法的计算效率。
-
-需要注意的是，KNN算法虽然简单易用，但也存在一些局限性，例如对噪声敏感、对维数敏感、计算复杂度高等。因此，在实际应用中需要综合考虑算法的优缺点，选择适合的算法并进行参数调整和优化。
-
-- KNN是K-Nearest Neighbors的缩写，中文翻译为K近邻算法，是一种基于实例的机器学习算法。该算法的核心思想是根据已有的训练样本，通过计算测试样本与训练样本之间的距离，找到与测试样本最近的K个训练样本，然后根据这K个训练样本的标签进行分类或回归。
-
-  KNeighborsRegressor是sklearn库中的一个实现了KNN算法的回归模型。该模型是基于最近邻算法实现的，可以用于连续型数值的预测。KNeighborsRegressor模型接收一个整数K作为参数，该参数表示要考虑的最近邻居的个数。该模型还支持不同的距离度量方法，例如欧式距离、曼哈顿距离等。
-
-  因此，KNeighborsRegressor模型是KNN算法在回归问题上的一种具体实现。和其他机器学习模型一样，KNeighborsRegressor模型也有一些需要注意的参数和超参数，例如K值、距离度量方法、权重函数等，需要根据具体的数据和任务进行设置和调整
-
-#### MLPRegressor
-
-- MLPRegressor是一种基于多层感知器（MLP）神经网络的回归模型，常用于机器学习中。
-
-  多层感知器（MLP）神经网络是一种具有多个隐层的前馈神经网络，它可以用于解决各种分类和回归问题。在回归任务中，MLPRegressor算法的基本思想是，通过多层非线性变换将输入数据映射到一个高维空间中，然后通过输出层将高维空间中的结果映射回原始空间中的标签。具体而言，MLPRegressor算法会在每个隐层中使用多个神经元来学习非线性特征，最终输出一个连续的预测值。
-
-  MLPRegressor是sklearn库中实现MLP神经网络回归的类。它提供了许多参数可以调整，以便更好地适应不同的数据集和任务要求，例如：
-
-  - hidden_layer_sizes：指定每个隐层中的神经元数量和隐层的数量。
-  - activation：指定激活函数，可以是sigmoid、ReLU等不同的激活函数。
-  - solver：指定用于优化权重的求解器，可以是adam、lbfgs、sgd等不同的求解器。
-  - alpha：指定正则化参数，用于控制模型的复杂度。
-  - learning_rate：指定学习率的调整策略，可以是constant、invscaling、adaptive等不同的策略。
-
-  在使用MLPRegressor时，需要根据具体的数据集和任务需求，选择合适的参数来构建模型。同时，还可以通过交叉验证等技术来评估模型的性能和调整参数，以获得更好的预测结果。需要注意的是，MLPRegressor算法对于数据集的特征缩放和标准化非常敏感，因此在使用MLPRegressor时需要对数据进行预处理。
-
-#### BaggingClassifier
-
-A Bagging classifier.
-
-A Bagging classifier is an ensemble meta-estimator that fits base classifiers each on random subsets of the original dataset and then aggregate their individual predictions (either by voting or by averaging) to form a final prediction. Such a meta-estimator can typically be used as a way to reduce the variance of a black-box estimator (e.g., a decision tree), by introducing randomization into its construction procedure and then making an ensemble out of it.
-
-This algorithm encompasses several works from the literature. When random subsets of the dataset are drawn as random subsets of the samples, then this algorithm is known as Pasting [[1\]](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.BaggingClassifier.html#rb1846455d0e5-1). If samples are drawn with replacement, then the method is known as Bagging [[2\]](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.BaggingClassifier.html#rb1846455d0e5-2). When random subsets of the dataset are drawn as random subsets of the features, then the method is known as Random Subspaces [[3\]](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.BaggingClassifier.html#rb1846455d0e5-3). Finally, when base estimators are built on subsets of both samples and features, then the method is known as Random Patches [[4\]](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.BaggingClassifier.html#rb1846455d0e5-4).
-
-Bagging分类器是一种元估计器集成方法，它在原始数据集的随机子集上分别拟合基分类器，然后聚合它们的个体预测结果（通过投票或平均）以形成最终预测。这种元估计器通常可以用作一种降低黑盒估计器（例如决策树）方差的方法，通过将随机化引入其构建过程，然后将其组合起来。
-
-此算法包括文献中的几项工作。当随机抽取数据集的子集作为样本的随机子集时，此算法称为Pasting [1]。如果使用放回抽样，则该方法称为Bagging [2]。当随机抽取数据集的子集作为特征的随机子集时，该方法称为随机子空间方法[3]。最后，当基估计器基于样本和特征的子集构建时，该方法称为Random Patches [4]。
-
-In ensemble algorithms, bagging methods form a class of algorithms which build several instances of a black-box estimator on random subsets of the original training set and then aggregate their individual predictions to form a final prediction. These methods are used as a way to reduce the variance of a base estimator (e.g., a decision tree), by introducing randomization into its construction procedure and then making an ensemble out of it. In many cases, bagging methods constitute a very simple way to improve with respect to a single model, without making it necessary to adapt the underlying base algorithm. As they provide a way to reduce overfitting, bagging methods work best with strong and complex models (e.g., fully developed decision trees), in contrast with boosting methods which usually work best with weak models (e.g., shallow decision trees).
-
-Bagging methods come in many flavours but mostly differ from each other by the way they draw random subsets of the training set:
-
-> - When random subsets of the dataset are drawn as random subsets of the samples, then this algorithm is known as Pasting [[B1999\]](https://scikit-learn.org/stable/modules/ensemble.html#b1999).
-> - When samples are drawn with replacement, then the method is known as Bagging [[B1996\]](https://scikit-learn.org/stable/modules/ensemble.html#b1996).
-> - When random subsets of the dataset are drawn as random subsets of the features, then the method is known as Random Subspaces [[H1998\]](https://scikit-learn.org/stable/modules/ensemble.html#h1998).
-> - Finally, when base estimators are built on subsets of both samples and features, then the method is known as Random Patches [[LG2012\]](https://scikit-learn.org/stable/modules/ensemble.html#lg2012).
-
-In scikit-learn, bagging methods are offered as a unified [`BaggingClassifier`](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.BaggingClassifier.html#sklearn.ensemble.BaggingClassifier) meta-estimator (resp. [`BaggingRegressor`](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.BaggingRegressor.html#sklearn.ensemble.BaggingRegressor)), taking as input a user-specified estimator along with parameters specifying the strategy to draw random subsets. In particular, `max_samples` and `max_features` control the size of the subsets (in terms of samples and features), while `bootstrap` and `bootstrap_features` control whether samples and features are drawn with or without replacement. When using a subset of the available samples the generalization accuracy can be estimated with the out-of-bag samples by setting `oob_score=True`. As an example, the snippet below illustrates how to instantiate a bagging ensemble of `KNeighborsClassifier` estimators, each built on random subsets of 50% of the samples and 50% of the features.
-
-在集成算法中，bagging方法是一类算法，它在原始训练集的随机子集上构建多个黑盒估计器实例，然后聚合它们的个体预测结果以形成最终预测。这些方法通过将随机化引入其构建过程，并将其组合起来，以降低基本估计器（例如决策树）的方差。在许多情况下，bagging方法是一种非常简单的改进单个模型的方法，而无需调整底层基础算法。由于它们提供了一种减少过拟合的方法，因此bagging方法适用于强大而复杂的模型（例如完全发展的决策树），而提升方法通常适用于弱模型（例如浅层决策树）。
-
-Bagging方法有许多变种，但它们主要通过绘制训练集的随机子集的方式而不同：
-
-当随机抽取数据集的子集作为样本的随机子集时，此算法称为Pasting [B1999]。
-
-如果使用放回抽样，则该方法称为Bagging [B1996]。
-
-当随机抽取数据集的子集作为特征的随机子集时，该方法称为随机子空间方法[ H1998]。
-
-最后，当基估计器基于样本和特征的子集构建时，该方法称为Random Patches [LG2012]。
-
-在scikit-learn中，Bagging方法提供了一个统一的BaggingClassifier元估计器（resp. BaggingRegressor），以用户指定的估计器为输入，并指定绘制随机子集的策略的参数。特别地，max_samples和max_features控制子集的大小（以样本和特征为单位），而bootstrap和bootstrap_features控制是否使用有放回或无放回的方式来抽取样本和特征。当使用可用样本的子集时，可以通过设置oob_score=True来估计外部样本的泛化精度。例如，下面的代码段说明如何实例化一个KNeighborsClassifier估计器的bagging集合，每个估计器都是在50％的样本和50％的特征的随机子集上构建的。
-
-#### BaggingRegressor
-
-BaggingRegressor是一种基于袋装法（Bagging）的回归模型，常用于机器学习中。
-
-袋装法是一种集成学习方法，它通过随机抽样生成多个训练数据集，并使用这些训练数据集来构建多个基学习器。在回归任务中，BaggingRegressor算法的基本思想是，将训练数据随机分成多个子集，然后使用每个子集来训练一个独立的回归模型，并将所有模型的结果进行平均或加权平均。
-
-BaggingRegressor是sklearn库中实现袋装法回归的类。它提供了许多参数可以调整，以便更好地适应不同的数据集和任务要求，例如：
-
-- base_estimator：指定基学习器的类型，可以是任意的回归模型。
-- n_estimators：指定袋装法中的基学习器数量，也就是子模型的数量。
-- max_samples：指定每个子集中的样本数量，用于控制过拟合。
-- max_features：指定每个子集中的特征数量，用于控制模型的复杂度。
-- bootstrap：指定是否进行有放回的随机抽样。
-
-在使用BaggingRegressor时，需要根据具体的数据集和任务需求，选择合适的参数来构建模型。同时，还可以通过交叉验证等技术来评估模型的性能和调整参数，以获得更好的预测结果。需要注意的是，BaggingRegressor算法在处理高偏差低方差的模型时效果比较好，例如决策树等模型。
-
-### 其他
-
-#### 一个基础的分类教程
-
-- [How to Make a Speech Emotion Recognizer Using Python And Scikit-learn - Python Code (thepythoncode.com)](https://www.thepythoncode.com/article/building-a-speech-emotion-recognizer-using-sklearn)
-
-#### 相关api
-
-#### skearn.ensemble
-
-- sklearn.ensemble是sklearn库中的一个模块，用于实现集成学习相关的算法。集成学习是一种通过结合多个基学习器来构建一个更强大的学习器的方法，常用于解决各种分类和回归问题。
-
-  sklearn.ensemble模块中包含了许多经典的集成学习算法，例如：
-
-  - Bagging：基于袋装法的集成学习算法，用于构建多个独立的基学习器。
-  - RandomForest：基于随机森林的集成学习算法，也是一种基于决策树的集成方法。
-  - AdaBoost：基于自适应增强的集成学习算法，用于加权组合多个基学习器。
-  - GradientBoosting：基于梯度提升的集成学习算法，用于逐步提升模型的预测能力。
-  - Voting：基于投票法的集成学习算法，用于组合多个不同类型的基学习器。
-
-  除了以上常见的集成学习算法外，sklearn.ensemble模块还包含了一些其他的集成学习算法，例如ExtraTreesRegressor和ExtraTreesClassifier等。
-
-  sklearn.ensemble模块提供了统一的API接口，方便用户调用不同的集成学习算法。同时，它也提供了许多参数可以调整，以便更好地适应不同的数据集和任务要求。例如，可以通过调整n_estimators、max_depth、min_samples_split等参数来控制模型的复杂度和泛化能力。
-
-  在使用sklearn.ensemble模块时，需要根据具体的数据集和任务需求，选择合适的算法和参数来构建模型。同时，还可以通过交叉验证等技术来评估模型的性能和调整参数，以获得更好的预测结果。需要注意的是，集成学习算法在处理高方差低偏差的模型时效果比较好，例如决策树等模型。
-
-#### SVR
-
-SVR（Support Vector Regression）是一种基于支持向量机（SVM）的回归模型
-
-支持向量机是一种二分类模型，它通过寻找一个最优超平面来将数据分成两类。在回归任务中，SVR算法的基本思想是，通过寻找一个最优的超平面来拟合数据，并将预测结果限制在一定的范围内。具体而言，SVR算法会将训练数据映射到高维空间中，然后在高维空间中寻找一个最优的超平面，使得所有样本点到超平面的距离都小于一个给定的阈值。最终，SVR算法会输出一个连续的预测值，可以通过调整阈值来控制预测的精度和泛化能力。
-
-- SVR是sklearn库中实现SVM回归的类。它提供了许多参数可以调整，以便更好地适应不同的数据集和任务要求，例如：
-
-  - kernel：指定核函数的类型，常用的有线性核、多项式核和径向基函数（RBF）核等。
-  - C：指定正则化参数，用于控制模型的复杂度和泛化能力。
-  - epsilon：指定预测结果的精度范围，用于控制模型的鲁棒性和稳定性。
-- 在使用SVR时，需要根据具体的数据集和任务需求，选择合适的参数来构建模型。同时，还可以通过交叉验证等技术来评估模型的性能和调整参数，以获得更好的预测结果。需要注意的是，SVR算法在处理高维度、少样本、非线性问题时效果比较好，但在数据量较大时可能会耗费大量的计算资源。
-- SVC用于处理分类问题，而SVR用于处理回归问题。但它们的核心思想和算法是相似的，都是通过寻找最优的超平面来拟合数据。同时，它们都可以调整正则化参数和核函数等参数来控制模型的复杂度和泛化能力。
-
-#### 用回归器解决分类问题
-
-虽然回归模型通常用于解决连续变量的预测问题，但在某些情况下可以将回归模型用于解决分类问题。具体而言，可以将回归模型的输出转换为分类标签，从而实现分类任务。
-
-其中一种常见的方法是使用阈值来将回归输出二值化。具体而言，可以选择一个阈值，将回归输出大于该阈值的样本标记为正类，小于该阈值的样本标记为负类。这种方法常用于解决二分类问题。例如，在线性回归模型中，可以选择0.5作为阈值，将输出大于0.5的样本标记为正类，小于0.5的样本标记为负类。
-
-另一种常见的方法是使用逻辑函数（如sigmoid函数）将回归输出映射到[0,1]区间上，并将映射后的输出视为正类概率。
 
 ## scikit-learn 加速
 
     Windows 64-bit packages of scikit-learn can be accelerated using scikit-learn-intelex.
     More details are available here: https://intel.github.io/scikit-learn-intelex
-
+    
     For example:
-
+    
     $ conda install scikit-learn-intelex
         $ python -m sklearnex my_application.py
 
@@ -981,11 +730,11 @@ SVR（Support Vector Regression）是一种基于支持向量机（SVM）的回�
 - 往往数据集都是有序的,这就容易导致样本不均衡导致的模型泛化能力下降等不良影响
 - 在本项目中,shuffle被安排在 `audio.create_meta`模块中实现,也就是创建语音文件元数据的地方,
 
-## 识别系统的模块和结构🎈
+# 识别系统的模块和结构🎈
 
 - 另见文档:[ProjectStructure.md](ProjectStructure)
 
-## 客户端开发文档
+# 客户端开发文档
 
 - 另见文档:[ccser_client.md](ccser_client.md)
 
