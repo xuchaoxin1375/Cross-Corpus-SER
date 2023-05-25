@@ -4,3 +4,9 @@
 *.csv
 *.fts
 *.h5
+*.pkl
+*.pickle
+.idea/
+.vscode/
+**/.archive/
+**/log

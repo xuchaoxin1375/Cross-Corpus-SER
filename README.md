@@ -1,7 +1,5 @@
 [toc]
 
-
-
 # Cross-corpus speech emotion recognition
 
 ## Introduction
@@ -23,20 +21,19 @@
 
 ### 异同点
 
--  语音识别和语音情感识别的主要区别在于关注点不同。语音识别关注语言内容，而语音情感识别关注情感状态。
-
--  语音情感识别和跨语料库语音情感识别的主要区别在于应用范围。语音情感识别通常针对单一语言或文化背景，而跨语料库语音情感识别需要处理多种语言和文化背景下的情感识别问题。并且通常是在单个库（而非混合库）上训练识别模型，在其他库上进行语音情感识别任务。
+- 语音识别和语音情感识别的主要区别在于关注点不同。语音识别关注语言内容，而语音情感识别关注情感状态。
+- 语音情感识别和跨语料库语音情感识别的主要区别在于应用范围。语音情感识别通常针对单一语言或文化背景，而跨语料库语音情感识别需要处理多种语言和文化背景下的情感识别问题。并且通常是在单个库（而非混合库）上训练识别模型，在其他库上进行语音情感识别任务。
 
 ## Requirements
 
 - 在conda环境中(推荐使用全新创建的环境)
   - 根据我的经验来看,我们只用conda创建环境,以及按照python
-  - 但是安装第三方包的时候`conda install`往往不是一个好的选择
-  - 如果不是包官方推荐,那么建议都用`pip install`安装
+  - 但是安装第三方包的时候 `conda install`往往不是一个好的选择
+  - 如果不是包官方推荐,那么建议都用 `pip install`安装
     - 例如pytorch支持用conda安装
     - tensorflow推荐用pip 安装
-  - 特别是当包的依赖关系复杂,每次安装要分析很久,当项目依赖的包版本都清楚可用,那么意味着检查依赖这一步不需要了,使用`pip install`会高效的多
-- 安装python`conda install python=3.9`
+  - 特别是当包的依赖关系复杂,每次安装要分析很久,当项目依赖的包版本都清楚可用,那么意味着检查依赖这一步不需要了,使用 `pip install`会高效的多
+- 安装python `conda install python=3.9`
 - 执行安装命令行:`pip install -r requirements.txt`
 
 ### python version
@@ -52,72 +49,61 @@
 - ```bash
   pip3 install -r requirements.txt
   ```
-
 - 通常,越是基础的库越应该放在后面安装,例如librosa的可能会依赖于特定版本而不是最新版本的基础库(例如numpy,matplotlib)
-
 - 而一些可以独立工作的包安装位置相对不那么严格
-
-- 创建环境的时候注意带上python,或者创建一个空环境后,先使用`conda install python=3.9`来安装python,否则后续的`pip install`将无法正常工作
-
-- python的版本受到许多依赖的限制,尤其是深度学习框架(比如`tensorflow`),初次之外,python的版本可以根据需要调整,为了兼容性起见,通常推荐python的版本举例最新发布的python版本低2到3个中版本,例如当前的最新版本是`3.m.n`那么推荐那安装`3.(m-2)`,最后的n通常无关紧要,在这种情况下一些第三方包一般都适配到了`3.(m-n)`
+- 创建环境的时候注意带上python,或者创建一个空环境后,先使用 `conda install python=3.9`来安装python,否则后续的 `pip install`将无法正常工作
+- python的版本受到许多依赖的限制,尤其是深度学习框架(比如 `tensorflow`),初次之外,python的版本可以根据需要调整,为了兼容性起见,通常推荐python的版本举例最新发布的python版本低2到3个中版本,例如当前的最新版本是 `3.m.n`那么推荐那安装 `3.(m-2)`,最后的n通常无关紧要,在这种情况下一些第三方包一般都适配到了 `3.(m-n)`
 
 #### 需要注意的包
 
-- librosa 
+- librosa
+
   - librosa 0.9.2 is not the lastes version,but the newest version don't work well with some matplotlib version
   - these problems appeared that I install `matplotlib` with `conda install` and `librosa`with `pip isntall`
   - The compatibility issues may be caused by mixing two installation methods.
   - so I just use 0.9.2 version instead of the lastest one
   - However, the newer version may become the more preferred choice in the future, once the bugs or compatibility issues have been fixed.
-
 - pluggy
-  - the pluggy may installed automatically or not(I write here becases it when I test the `requirements.txt` in a brand new conda environment ,the pip prompt me that the pluggy was not installed 
 
+  - the pluggy may installed automatically or not(I write here becases it when I test the `requirements.txt` in a brand new conda environment ,the pip prompt me that the pluggy was not installed
 - tensorflow
+
   - if you just want to experience the basic ML alogrithms' working on SER task,it's no need for you to install tensorflow
   - in may case , I use tensorflow==2.10,but other version of tensorflow above 2.6 may work well too
 
-
 ### 其他情况说明
 
-- 我在一次调试matplotlib backend设置的过程中,偶然发现在notebook中使用`%matplotlib qt`失败
-
+- 我在一次调试matplotlib backend设置的过程中,偶然发现在notebook中使用 `%matplotlib qt`失败
 - 后来我尝试卸载重装matplotlib和pyside
-
-- 然而提示我一些`dll`问题和权限错误问题
-
+- 然而提示我一些 `dll`问题和权限错误问题
 - 这些问题时平时不曾遇到
-
 - 我猜测可能时机器太久没有关机了(平时我都是休眠),导致系统出现了一些错误
 
-  - 机器发生错误是很有可能的,就比如学校图书馆的刷脸系统,`验证成功`平时的话屏幕显示绿色提醒,然而最近`验证成功`显示的也是红色
+  - 机器发生错误是很有可能的,就比如学校图书馆的刷脸系统,`验证成功`平时的话屏幕显示绿色提醒,然而最近 `验证成功`显示的也是红色
   - 而在早期的windows7上,有时候从休眠中回复直接会失败
-
 - 然后我重启机器,发现任务栏多出了个搜索框,系统更新了没有重启可能也造成了一些影响
-
 - 有时候还会出现各种意外的问题
 
-  - 例如`KNeighborsClassifier`训练完毕后,用它预测新的样本或在训练集上预测会报错:
+  - 例如 `KNeighborsClassifier`训练完毕后,用它预测新的样本或在训练集上预测会报错:
 
     - ```python
-      
+
       File d:\condaPythonEnvs\tf210\lib\site-packages\sklearn\neighbors\_classification.py:237, in KNeighborsClassifier.predict(self, X)
           235     neigh_dist = None
           236 else:
       --> 237     neigh_dist, neigh_ind = self.kneighbors(X)
           239 classes_ = self.classes_
           240 _y = self._y
-      
+
           643 get_config = getattr(self._dynlib, "openblas_get_config",
           644                      lambda: None)
           645 get_config.restype = ctypes.c_char_p
       --> 646 config = get_config().split()
           647 if config[0] == b"OpenBLAS":
           648     return config[1].decode("utf-8")
-      
+
       AttributeError: 'NoneType' object has no attribute 'split'
       ```
-
     - 而当我切换到另一个环境又可以工作,说明是应该不是系统问题,而更可能是环境出了问题
 
 #### 意料之外的错误的解决方案
@@ -129,7 +115,6 @@
 
 - `tqdm` 是一个Python的进度条库，用于在控制台中展示循环的进度，并可以根据已经完成的工作量估计剩余时间。它的使用非常简单，以下是一些常见的用法：
 - `tqdm` derives from the Arabic word *`taqaddum`* (تقدّم) which can mean "progress," and is an abbreviation for "I love you so much" in Spanish (*te quiero demasiado*).
-
 - 在循环中使用tqdm来展示进度条：
 
 ```python
@@ -142,7 +127,7 @@ for i in tqdm(range(10)):
 
 这将展示一个进度条，表示在循环中的迭代次数。在每个迭代中，进度条将更新并显示已经完成的进度百分比。
 
-- 可以通过设置`desc`参数来为进度条添加描述信息：
+- 可以通过设置 `desc`参数来为进度条添加描述信息：
 
 ```python
 from tqdm import tqdm
@@ -154,7 +139,7 @@ for i in tqdm(range(10), desc="Processing data"):
 
 这将在进度条上方添加一个描述信息，描述当前正在执行的任务。
 
-- 可以通过设置`leave`参数来控制进度条是否应该在循环结束后保留：
+- 可以通过设置 `leave`参数来控制进度条是否应该在循环结束后保留：
 
 ```python
 from tqdm import tqdm
@@ -166,10 +151,9 @@ for i in tqdm(range(10), leave=False):
 
 这将在循环结束后清除进度条。
 
-这些是`tqdm`的一些常见用法，它还具有许多其他有用的功能，如支持多线程和多进程，可以自定义进度条的样式等。
+这些是 `tqdm`的一些常见用法，它还具有许多其他有用的功能，如支持多线程和多进程，可以自定义进度条的样式等。
 
-- 本项目中遍历`estimators`
-
+- 本项目中遍历 `estimators`
 - ```python
   from tqdm import tqdm
   from time import sleep
@@ -181,30 +165,25 @@ for i in tqdm(range(10), leave=False):
       print(x)
   ```
 
-  
-
 ### PYTHONPATH环境变量
 
-- 为了放便地运行本项目,请配置环境变量`PYTHONPATH`,并至少向其中添加本项目的根目录
-
-- 例如,我的项目放在`$ccser=D:\repos\CCSER\SER`,根据自己的clone/download位置情况修改这个值
-
+- 为了放便地运行本项目,请配置环境变量 `PYTHONPATH`,并至少向其中添加本项目的根目录
+- 例如,我的项目放在 `$ccser=D:\repos\CCSER\SER`,根据自己的clone/download位置情况修改这个值
 - 例如,在使用powershell配置(windows系统下)
 
   - ```powershell
     $ccser="D:\repos\CCSER\SER"
     setx PYTHONPATH "$ccser;$env:PYTHONPATH"
     ```
-
   - 执行:
 
-    - ``` powershell
+    - ```powershell
       PS C:\Users\cxxu> $ccser="D:\repos\CCSER\SER"
       PS C:\Users\cxxu> $ccser
       D:\repos\CCSER\SER
-      
+
       PS D:\repos\configs\env> setx PYTHONPATH "$ccser;$env:PYTHONPATH"
-      
+
       SUCCESS: Specified value was saved.
       ```
 
@@ -229,7 +208,6 @@ for i in tqdm(range(10), leave=False):
   - Statement (01 = "Kids are talking by the door", 02 = "Dogs are sitting by the door").
   - Repetition (01 = 1st repetition, 02 = 2nd repetition).
   - Actor (01 to 24. Odd numbered actors are male, even numbered actors are female).
-
 - *Filename example: 03-01-06-01-02-01-12.wav*
 
   1. Audio-only (03)
@@ -240,7 +218,6 @@ for i in tqdm(range(10), leave=False):
   6. 1st Repetition (01)
   7. 12th Actor (12)
      Female, as the actor ID number is even.
-
 - RAVDESS语料库（Ryerson Audio-Visual Database of Emotional Speech and Song）是一个包含了人类语音和歌曲记录的数据库。该数据库包含了24名演员在读出短语时表现出八种情感状态的语音记录，以及12首歌曲的音频记录。
 
   RAVDESS语料库的语音记录包含了两种语言（英语和法语），以及四种情感状态的强度（高、中、低和中性）。情感状态包括愤怒、厌恶、恐惧、快乐、悲伤、惊讶和中性。每个演员都会读出两个句子，每个句子表达了四种不同的情感状态。每个短语的长度为三到五个单词。RAVDESS语料库的音频文件格式为WAV，采样率为48kHz，16位量化。
@@ -249,16 +226,15 @@ for i in tqdm(range(10), leave=False):
 
   RAVDESS语料库是一个广泛应用于语音情感识别和分类领域的标准数据集，它已经被广泛应用于语音情感识别和分类算法的开发和评估。该数据库的开放访问使得研究人员可以更方便地进行情感识别和分类算法的开发和评估，同时也为智能语音应用的开发提供了有用的资源。
 
-###  SAVEE
+### SAVEE
 
 #### Speakers
 
 'DC', 'JE', 'JK' and 'KL' are four male speakers recorded for the SAVEE database
 
+---
 
---------------------------------------
-
-#### Audio data 
+#### Audio data
 
 Audio files consist of audio WAV files sampled at 44.1 kHz
 
@@ -266,9 +242,8 @@ There are 15 sentences for each of the 7 emotion categories.
 
 The initial letter(s) of the file name represents the emotion class, and the following digits represent the sentence number.
 
-- The letters 'a', 'd', 'f', 'h', 'n', 'sa' and 'su' represent 'anger', 'disgust', 'fear', 'happiness', 'neutral', 'sadness' and 'surprise' emotion classes respectively. 
-
-- E.g., 'd03.wav' is the 3rd disgust sentence. 
+- The letters 'a', 'd', 'f', 'h', 'n', 'sa' and 'su' represent 'anger', 'disgust', 'fear', 'happiness', 'neutral', 'sadness' and 'surprise' emotion classes respectively.
+- E.g., 'd03.wav' is the 3rd disgust sentence.
 
 ### EMODB
 
@@ -283,14 +258,13 @@ The initial letter(s) of the file name represents the emotion class, and the fol
 
   | letter | emotion (english) | emotion (german) | letter              |
   | ------ | ----------------- | ---------------- | ------------------- |
-  | W      | anger             | Ärger (Wut)      | A                   |
+  | W      | anger             | Ärger (Wut)     | A                   |
   | L      | boredom           | Langeweile       | B                   |
   | E      | disgust           | Ekel             | D                   |
   | A      | anxiety/fear      | Angst            | F                   |
   | F      | happiness         | Freude           | H                   |
   | T      | sadness           | Trauer           | S                   |
   |        |                   |                  | N = neutral version |
-
 - EMODB是一个包含了演员表演不同情感的音视频记录的数据库，其中语音文件的命名方式比较规范，以下是一个示例文件名的分析：
 
   03a01Wa.wav
@@ -324,22 +298,19 @@ The initial letter(s) of the file name represents the emotion class, and the fol
 ### 添加其他语料库到本项目
 
 - 添加语料库(记为db)到本项目中比较简单,只需要在config模块中执行一定的配置即可
-- 不过由于语料库的命名规范的不同,您或许要亲自编写针对于db的`create_{db}_meta()`函数,
-
-
+- 不过由于语料库的命名规范的不同,您或许要亲自编写针对于db的 `create_{db}_meta()`函数,
 
 ## 语料库文件在项目中的组织与划分
 
-- 将EMODB语料库放在单独的目录`data/emodb`
+- 将EMODB语料库放在单独的目录 `data/emodb`
 - 将RAVDESS语料库
-  - 大部分样本放在了训练集目录`data/ravdess`
 
-- 测试集(验证集)目录`data/validation`
+  - 大部分样本放在了训练集目录 `data/ravdess`
+- 测试集(验证集)目录 `data/validation`
 
 #### powershell递归统计脚本:
 
 - `ls -r -File |measure|select Count`
-
 - ```powershell
   $path=".";
   Get-ChildItem $path -Directory -Recurse | ForEach-Object {
@@ -348,24 +319,43 @@ The initial letter(s) of the file name represents the emotion class, and the fol
   }
   ```
 
-  
-
 #### 文件统计结果
 
-
-
 - 各个子目录的文件统计
-
 - `ls  |%{$_;(ls $_| measure)|select count}`可以统计子目录的文件数
 
+### 统计项目大小
 
-### desc_files(csv 元数据文件)🎈
+```bash
+# cxxu_u22 @ cxxuWn11 in /mnt/d/repos/CCSER/SER on git:main x [10:21:23]
+$ du -h --max-depth=1 |sort -hr
+1.8G    .
+1.6G    ./data
+96M     ./.git
+19M     ./SG
+18M     ./.vscode
+16M     ./features
+14M     ./charts
+11M     ./test_playground
+4.6M    ./recognizer
+1.2M    ./assets
+1.1M    ./meta_files
+932K    ./audio
+92K     ./__pycache__
+76K     ./config
+32K     ./grid
+16K     ./archive
+16K     ./.idea
+8.0K    ./recognize_result
+```
+
+### meta_files(csv 元数据文件)🎈
 
 - 由于不同语料库的文件名规范不同,所以在使用前应该进行基本的统一处理(主要抽取语音文件路径和文件的情感标签)
 - 可以利用pandas将抽取结果持久化保存到磁盘,以便后续使用
-  - 特别是对于大量文件来说,保存处理结果有利于提高重复试验的效率
 
-- desc_files (csv)文件存储的是语料库的语音文件的路径(path),情感类别(emotion),存放在项目根目录的`meta_files`目录下
+  - 特别是对于大量文件来说,保存处理结果有利于提高重复试验的效率
+- desc_files (csv)文件存储的是语料库的语音文件的路径(path),情感类别(emotion),存放在项目根目录的 `meta_files`目录下
 
 ### Emotions available@情感类别
 
@@ -375,18 +365,12 @@ The initial letter(s) of the file name represents the emotion class, and the fol
   - angry,happy,sad
   - angry,happy,sad,neutral,pleasant
 
-
 ## Feature Extraction@特征提取🎈
 
-- 
-  特征提取是语音情感识别系统的主要部分。它基本上是通过将语音波形转换为参数形式的表示形式，以相对较低的数据速率完成的。
-
+- 特征提取是语音情感识别系统的主要部分。它基本上是通过将语音波形转换为参数形式的表示形式，以相对较低的数据速率完成的。
 - “数据速率("Data rate")”，它是指在特定时间内传输的数据量。在语音情感识别系统中，数据速率是指每秒钟传输的语音数据量，通常以比特率（bits per second）或千位每秒（kilobits per second）为单位进行度量。需要注意的是，数据速率还可以用于描述其他类型的数据传输，例如网络传输或存储介质的读取速度。在这些情况下，它通常指在特定时间内传输或处理的数据量，通常以比特率或字节率（bytes per second）为单位进行度量。
-
 - 特征提取的过程通过将语音波形转换为参数形式的表示形式，可以减少语音信号的数据速率。这是因为，原始语音信号通常包含大量冗余信息，而通过提取与情感状态相关的声学特征，可以压缩数据并减少传输所需的带宽和存储空间。
-
 - 因此，特征提取对于高效处理和分析大量语音数据是至关重要的。
-
 
 ### 常见的语音情感特征
 
@@ -426,7 +410,7 @@ The initial letter(s) of the file name represents the emotion class, and the fol
 
   ```python
   from sklearn.preprocessing import StandardScaler
-  
+
   # X为特征矩阵，axis=0对每列进行归一化
   scaler = StandardScaler()
   X = scaler.fit_transform(X)
@@ -439,14 +423,14 @@ The initial letter(s) of the file name represents the emotion class, and the fol
   ```python
   from sklearn.preprocessing import MinMaxScaler
   import librosa
-  
+
   # y为语音信号，sr为采样率
   S = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=128, fmax=8000)
   log_S = librosa.power_to_db(S, ref=np.max)
-  
+
   # 计算每个帧的能量
   frame_energy = np.sum(np.exp(log_S), axis=0)
-  
+
   # 对帧级别的能量进行归一化
   scaler = MinMaxScaler()
   frame_energy = scaler.fit_transform(frame_energy.reshape(-1, 1)).reshape(-1)
@@ -458,14 +442,14 @@ The initial letter(s) of the file name represents the emotion class, and the fol
 
   ```python
   import librosa
-  
+
   # y为语音信号，sr为采样率
   S = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=128, fmax=8000)
   log_S = librosa.power_to_db(S, ref=np.max)
-  
+
   # 将语音信号转换为分贝表示
   db_S = librosa.amplitude_to_db(S, ref=np.max)
-  
+
   # 检测语音活动部分
   onset_frames = librosa.onset.onset_detect(y=y, sr=sr)
   onset_times = librosa.frames_to_time(onset_frames, sr=sr)
@@ -477,7 +461,7 @@ The initial letter(s) of the file name represents the emotion class, and the fol
 
   ```python
   import librosa
-  
+
   # y为语音信号，sr为采样率
   y_stretch = librosa.effects.time_stretch(y, rate=0.8)
   y_pitch = librosa.effects.pitch_shift(y, sr=sr, n_steps=-3)
@@ -491,7 +475,7 @@ The initial letter(s) of the file name represents the emotion class, and the fol
   ```python
   from sklearn.feature_selection import SelectKBest
   from sklearn.feature_selection import mutual_info_classif
-  
+
   # X为特征矩阵，y为情感标签
   selector = SelectKBest(mutual_info_classif, k=10)
   X_new = selector.fit_transform(X, y)
@@ -512,9 +496,9 @@ The initial letter(s) of the file name represents the emotion class, and the fol
 
 - 其中test开头的文件是少量语音文件提取的特征保存文件,可以用来调试代码
 - train开头得到文件是大量的文件提取出来的特征文件
-- 他们的名称结构是`{partition}_{feature_label}_{first_letters}_{n_samples}.npy`
+- 他们的名称结构是 `{partition}_{feature_label}_{first_letters}_{n_samples}.npy`
   - partition$\in${'test','train'}
-  - feature_label表示提取了哪些特征(特征链,用`-`连接不同特征)
+  - feature_label表示提取了哪些特征(特征链,用 `-`连接不同特征)
   - first_letters表示情感种类(单词的首字母)
     - 为了控制数据大小,预设2种情感模式(HNS和AHNPS)
 
@@ -525,12 +509,10 @@ The initial letter(s) of the file name represents the emotion class, and the fol
 - 超参数是在训练过程中不会被学习的参数，但在训练前需要设置，可以对模型性能产生重要影响。
 - Grid Search 可以翻译为“网格搜索”或“网格调参”，是一种常用的机器学习超参数调优方法。
 - Grid Search 的目的是通过遍历给定的超参数组合，找到最优的超参数组合，以获得最佳的模型性能。它基于一个预定义的超参数网格（grid），对每个超参数组合进行评估和比较，从而选择最佳的超参数组合。
-- 网格搜索涉及 <u>定义一个超参数值的矩阵</u>，并且系统地搜索矩阵以寻找在验证数据集上表现最佳的超参数组合。
+- 网格搜索涉及 `<u>`定义一个超参数值的矩阵`</u>`，并且系统地搜索矩阵以寻找在验证数据集上表现最佳的超参数组合。
 - 具体来说，Grid Search 将每个超参数的取值范围划分成一组离散的值，然后对所有可能的超参数组合进行遍历，对每个组合训练一个模型，并使用交叉验证等方法评估模型性能。
 - 最后，选择具有最佳性能的超参数组合作为最终模型的超参数。
-- Grid Search 是一种简单而有效的调参方法，但它需要遍历所有可能的超参数组合，因此计算成本较高。为了减少计算成本，可以使用 <u>随机搜索（Random Search）</u>等其他调参方法。
-
-
+- Grid Search 是一种简单而有效的调参方法，但它需要遍历所有可能的超参数组合，因此计算成本较高。为了减少计算成本，可以使用 `<u>`随机搜索（Random Search）`</u>`等其他调参方法。
 
 ### 计算best_model
 
@@ -554,13 +536,13 @@ The initial letter(s) of the file name represents the emotion class, and the fol
   from sklearn.datasets import load_iris
   from sklearn.linear_model import LinearRegression
   from sklearn.model_selection import cross_val_score
-  
+
   # 加载iris(鸢尾花)数据集
   X, y = load_iris(return_X_y=True)
-  
+
   # 使用线性回归模型进行交叉验证
   model = LinearRegression()
-  
+
   scores = cross_val_score(model, X, y, cv=5)
   print("Scores:", scores)
   print("Mean score:", scores.mean())
@@ -570,11 +552,10 @@ The initial letter(s) of the file name represents the emotion class, and the fol
     Scores: [0.96666667 0.96666667 0.9        0.96666667 1.        ]
     Mean score: 0.9600000000000002
     ```
-
 - ```python
   # 加载iris(鸢尾花)数据集
   X, y = load_iris(return_X_y=True)
-  
+
   # model=RandomForestClassifier()
   model=SVC()
   scores = cross_val_score(model, X, y, cv=5,verbose=3)
@@ -586,9 +567,7 @@ The initial letter(s) of the file name represents the emotion class, and the fol
     Scores: [0.96666667 0.96666667 0.96666667 0.93333333 1.        ]
     Mean score: 0.9666666666666666
     ```
-
 - 而使用决策树模型进行分类,效果比较好,在5折叠验证中,都在0.9以上
-
 - 使用SVC或者RF,效果更加好
 
 #### 使用shuffle
@@ -596,17 +575,17 @@ The initial letter(s) of the file name represents the emotion class, and the fol
 - 不对有序数据集iris洗牌,效果:
 
   ```python
-  
+
   # 加载iris(鸢尾花)数据集
   X, y = load_iris(return_X_y=True)
-  
+
   # 定义5折交叉验证
   kf = KFold(
       n_splits=5,
       #    shuffle=True,
       # random_state=42,
   )
-  
+
   # 使用线性回归模型进行训练和测试
   model = LinearRegression()
   # model=RandomForestClassifier()
@@ -630,11 +609,8 @@ The initial letter(s) of the file name represents the emotion class, and the fol
     Score: 0.0
     mean_score=0.32256072489000853
     ```
-
   - 通常出现这种情况的话,可以认为是数据集读入策略有问题
-
 - 解开shuffle=True的注释,得到正常的预测性能
-
 - ```bash
   Score: 0.9468960016420045
   Score: 0.9315787260143983
@@ -644,19 +620,18 @@ The initial letter(s) of the file name represents the emotion class, and the fol
   mean_score=0.9239837362538135
   ```
 
-  
-
 #### SVC
 
 - Scikit-learn中的SVC是一种支持向量机（Support Vector Machine）分类器，用于解决二分类和多分类问题。SVC是一种非常强大的模型，可以处理高维度的数据，并且能够有效地处理非线性可分的数据。
-
 - SVC的主要思想是在特征空间中找到一个最优的超平面（hyperplane），将不同类别的数据分开。
 - 在二维空间中，超平面是一条直线，而在高维空间中，超平面是一个超平面。
 - SVC的训练过程是通过寻找一个**最大间隔**（maximum margin）的超平面来实现的，即找到一个超平面，使得所有训练样本离该超平面的距离最大化。这个最大间隔的超平面是通过拉格朗日乘子法（Lagrange multipliers）求解一个二次规划（quadratic programming）问题来实现的。
 - SVC可以使用不同的**核函数**（kernel function）来学习非线性的决策边界。
+
   - 常用的核函数包括线性核函数、多项式核函数、径向基函数（Radial Basis Function，RBF）核函数等。
-  - 这些核函数可以将低维空间中的数据映射到高维空间中，从而使得<u>数据在高维空间中变得线性可分</u>。
+  - 这些核函数可以将低维空间中的数据映射到高维空间中，从而使得`<u>`数据在高维空间中变得线性可分`</u>`。
 - SVC还具有一些重要的超参数，包括C、kernel、gamma等。
+
   - C是正则化参数，用于控制模型的复杂度和对训练数据的拟合程度。
   - kernel是核函数的选择，
   - gamma是径向基函数核的系数，它们都影响着模型的性能和复杂度。
@@ -666,7 +641,6 @@ The initial letter(s) of the file name represents the emotion class, and the fol
 ##### sklearn.svm.svc
 
 - [`sklearn.svm`](https://scikit-learn.org/stable/modules/classes.html#module-sklearn.svm).SVC
-
 - SVC类是一种支持向量机分类器，用于二元和多元分类。
 - 它的实现基于libsvm。拟合时间至少与样本数的平方成比例，并且在数万个样本之外可能是不切实际的。
 - 对于大型数据集，请考虑使用LinearSVC或SGDClassifier，可能需要使用Nystroem转换器或其他核逼近。多类支持根据一对一方案处理。
@@ -674,6 +648,7 @@ The initial letter(s) of the file name represents the emotion class, and the fol
 - 在机器学习中，核函数是一种用于度量数据点之间相似性的方法，它可以将低维的非线性数据映射到高维的线性空间，从而使得一些线性算法，如支持向量机（SVM），能够处理非线性问题。然而，核函数的一个缺点是计算复杂度很高，尤其是当数据集很大时，因为需要计算每对数据点之间的核值。
 - 为了解决这个问题，scikit-learn提供了一些核近似方法，它们可以用低维的特征向量来近似高维的核空间，从而降低计算成本和内存需求。
 - `sklearn.kernel_approximation`模块包含一些函数，用于近似与某些内核（如支持向量机中使用的内核）相对应的特征映射。
+
   - 以下特征函数执行输入的非线性变换，可以作为线性分类或其他算法的基础。
   - 使用近似显式特征映射的优点与使用内核技巧相比，内核技巧隐式地使用特征映射，显式映射可以更适合在线学习，并且可以显著降低使用非常大的数据集进行学习的成本。标准的核化支持向量机不适用于大型数据集，但是使用近似核映射可以使用更高效的线性支持向量机。特别是，将核映射近似与 SGDClassifier 结合可以使大型数据集上的非线性学习成为可能。
 
@@ -684,7 +659,6 @@ The initial letter(s) of the file name represents the emotion class, and the fol
   在传统的核方法中，需要计算样本之间的核矩阵，这个矩阵往往是比较大且密集的，计算和存储都会带来很大的困难。而 Nystroem 方法则是通过随机采样的方式来估计核矩阵，从而避免了计算和存储大型矩阵的问题。具体来说，该方法先从原始数据集中随机选择一部分样本，然后计算这些样本之间的核矩阵，再利用这个估计的核矩阵来近似计算全部样本之间的核矩阵。
 
   Nystroem 方法在实践中被广泛应用于各种机器学习问题，如分类、回归、聚类等。它可以提高处理大规模数据集的效率，同时保持较高的预测精度
-
 - "SGDClassifier" 是 Scikit-learn （一个流行的 Python 机器学习库）中的一个分类器，它使用随机梯度下降算法来进行模型训练。
 
   随机梯度下降（Stochastic Gradient Descent，简称 SGD）是一种常用的优化算法，它可以在大规模数据集上进行快速的模型训练。SGDClassifier 利用 SGD 算法来最小化分类误差（或者其他损失函数），从而学习出一个分类模型。
@@ -733,19 +707,13 @@ The initial letter(s) of the file name represents the emotion class, and the fol
 #### RandomForestClassifier
 
 - RandomForestClassifier是一个基于随机森林算法的分类器，常用于机器学习任务中。
-
 - 随机森林是一种集成学习算法，它将多个决策树组合起来形成一个更强大的分类器。随机森林算法的基本思想是，构建多个决策树，每个树都使用随机选取的特征和样本进行训练，然后将所有树的结果进行投票，选择得票最多的类别作为最终的分类结果。这个过程可以有效地减少随机误差和过拟合。
-
 - 本项目RandomForestClassifier是sklearn库中实现随机森林分类器的类。它提供了许多参数可以调整，以便更好地适应不同的数据集和任务要求，例如：
 
   - n_estimators：森林中决策树的数量。
-
   - criterion：用于衡量分裂质量的度量标准，可以是gini或entropy。
-
   - max_depth：决策树的最大深度。
-
   - min_samples_split：拆分内部节点所需的最小样本数。
-
   - min_samples_leaf：在叶节点处所需的最小样本数。
 
 使用RandomForestClassifier可以对数据集进行分类，例如：
@@ -806,23 +774,16 @@ print("Accuracy:", clf.score(X_test, y_test))
   - metric：指定用于计算距离的度量方法，可以是欧氏距离、曼哈顿距离等不同的度量方法。
 
   在使用KNeighborsRegressor时，需要根据具体的数据集和任务需求，选择合适的参数来构建模型。同时，还可以通过交叉验证等技术来评估模型的性能和调整参数，以获得更好的预测结果。需要注意的是，KNeighborsRegressor算法对于高维稠密的数据集表现良好，但对于稀疏数据和高维稀疏数据的处理效果可能不好，因此需要根据具体的数据集和任务需求选择合适的算法和度量方法。
-
 - KNN是一种基于实例的机器学习算法，其中的参数包括K值和距离度量方法。在使用KNN算法时，需要注意以下几点：
 
   1. K值的选择：K值表示在进行分类或回归预测时，考虑的最近邻居的个数。K值的选择对算法性能和预测结果有重要影响。如果K值太小，模型容易受到噪声的影响，导致过拟合；如果K值太大，模型可能会过于简单，导致欠拟合。因此，需要通过交叉验证等方法选择合适的K值。
 
      - 当K值为偶数时，在进行分类或回归预测时，可能会出现两个或多个最近邻居的标签或值相同的情况，从而无法确定样本的分类或回归值。这种情况下，需要使用一些额外的规则来解决这种歧义。
-
      - 一种常用的解决方法是使用加权平均法。具体而言，对于K个最近邻居中的每个样本，可以计算它与测试样本之间的距离，并将其作为权重，对它们的标签或值进行加权平均。例如，对于K=4的情况，可以计算测试样本与4个最近邻居之间的距离，并将它们的标签或值分别乘以对应的权重，然后将它们加权平均，以得到测试样本的预测值。
-
      - 另一种解决方法是随机选择一个标签或值作为最终的预测结果。例如，对于K=4的情况，可以随机选择其中一个最近邻居的标签或值作为预测结果。
-
      - 需要注意的是，当K值为奇数时，可以避免上述歧义的情况，因为K个最近邻居中必然有一个标签或值出现的次数多于一半，从而可以确定样本的分类或回归值。因此，在实际应用中，通常建议将K值设置为奇数。
-
   2. 距离度量方法的选择：KNN算法的核心是基于距离度量来计算样本之间的相似度。常用的距离度量方法包括欧式距离、曼哈顿距离、闵可夫斯基距离等。在选择距离度量方法时，需要根据具体的数据特点和任务需求进行选择。
-
   3. 数据预处理：KNN算法对数据的分布和尺度敏感，因此需要对数据进行预处理，例如标准化、归一化等操作，以使得数据分布更加均匀，尺度更加一致。
-
   4. 计算效率：KNN算法需要计算每个测试样本与所有训练样本之间的距离，因此当数据集较大时，算法计算复杂度会变得很高。因此，需要考虑使用一些优化技术，例如使用KD树等数据结构，以提高算法的计算效率。
 
 需要注意的是，KNN算法虽然简单易用，但也存在一些局限性，例如对噪声敏感、对维数敏感、计算复杂度高等。因此，在实际应用中需要综合考虑算法的优缺点，选择适合的算法并进行参数调整和优化。
@@ -937,13 +898,9 @@ SVR（Support Vector Regression）是一种基于支持向量机（SVM）的回�
 - SVR是sklearn库中实现SVM回归的类。它提供了许多参数可以调整，以便更好地适应不同的数据集和任务要求，例如：
 
   - kernel：指定核函数的类型，常用的有线性核、多项式核和径向基函数（RBF）核等。
-
   - C：指定正则化参数，用于控制模型的复杂度和泛化能力。
-
   - epsilon：指定预测结果的精度范围，用于控制模型的鲁棒性和稳定性。
-
 - 在使用SVR时，需要根据具体的数据集和任务需求，选择合适的参数来构建模型。同时，还可以通过交叉验证等技术来评估模型的性能和调整参数，以获得更好的预测结果。需要注意的是，SVR算法在处理高维度、少样本、非线性问题时效果比较好，但在数据量较大时可能会耗费大量的计算资源。
-
 - SVC用于处理分类问题，而SVR用于处理回归问题。但它们的核心思想和算法是相似的，都是通过寻找最优的超平面来拟合数据。同时，它们都可以调整正则化参数和核函数等参数来控制模型的复杂度和泛化能力。
 
 #### 用回归器解决分类问题
@@ -958,10 +915,10 @@ SVR（Support Vector Regression）是一种基于支持向量机（SVM）的回�
 
     Windows 64-bit packages of scikit-learn can be accelerated using scikit-learn-intelex.
     More details are available here: https://intel.github.io/scikit-learn-intelex
-    
+
     For example:
-    
-        $ conda install scikit-learn-intelex
+
+    $ conda install scikit-learn-intelex
         $ python -m sklearnex my_application.py
 
 ## DeepLearning method
@@ -981,23 +938,20 @@ SVR（Support Vector Regression）是一种基于支持向量机（SVM）的回�
 #### 主要内容
 
 - Keras主要内容包括以下方面：
+
   1. 模型构建：Keras提供了简单的API，使得用户可以轻松地构建各种深度学习模型，包括卷积神经网络(CNN)、循环神经网络(RNN)、自编码器(Autoencoder)等。
   2. 模型训练：Keras可以使用多种优化器和损失函数来训练模型，并支持多种训练技巧，如批量归一化、dropout等，以提高模型的性能和鲁棒性。
   3. 模型评估：Keras提供了多种评估指标，如准确率、精度、召回率等，可以帮助用户评估模型的性能。
   4. 模型部署：Keras支持多种后端引擎，包括TensorFlow、Theano和CNTK等，因此可以在不同的硬件和软件平台上运行，并支持多种部署方式，如本地部署、云端部署等。
   5. 模型调优：Keras支持网格搜索和随机搜索等方式来进行模型调优，并提供了可视化工具，帮助用户分析模型在训练中的表现。
   6. 社区支持：Keras拥有一个庞大的社区，在网站上提供了大量的文档、教程、示例和论坛等资源，用户可以方便地获取帮助和交流。
-
 - [KerasBasic](KerasBasic)
 
 ### RNN+LSTM
 
 - RNN（Recurrent Neural Network，循环神经网络）是一类用于处理序列数据的神经网络，它的每个时间步都会接收一个输入和一个来自上一个时间步的隐藏状态，并输出一个新的隐藏状态和一个输出。
-
 - LSTM（Long Short-Term Memory，长短时记忆网络）和GRU（Gated Recurrent Unit，门控循环单元）都是RNN的变体，旨在解决RNN的梯度消失和梯度爆炸问题，以及长期依赖性问题。LSTM和GRU都是通过引入门机制来控制信息的流动，从而使得模型可以更好地记忆长期依赖性信息。LSTM引入了三个门（输入门、遗忘门和输出门），GRU则引入了两个门（重置门和更新门）。这些门控制了状态的更新，使得模型可以更好地捕捉序列中的关键信息。因此，LSTM和GRU相对于传统的RNN具有更好的性能。
-
 - 总之，LSTM和GRU是RNN的改进版本，它们在处理序列数据时可以更好地捕捉长期依赖性信息。
-
 
 ## 优化
 
@@ -1005,17 +959,17 @@ SVR（Support Vector Regression）是一种基于支持向量机（SVM）的回�
 
 - Dropout是一种用于深度神经网络的正则化技术，旨在减少过拟合（overfitting）的发生。
 - Dropout在训练过程中**随机地**将一些神经元的输出设置为0，从而强制使神经网络中的**每个神经元**都变得不可或缺，因此可以更好地泛化到新数据上。
-- 具体来说，Dropout的操作是在**每个训练批次**中，随机选择一些**神经元**，并将它们的输出设置为0。这些被选择的神经元在<u>该批次中将不会收到反向传播的梯度更新</u>。这样一来，每个神经元都必须学会与其他神经元合作来完成任务，从而使得神经网络具有更好的泛化能力。
+- 具体来说，Dropout的操作是在**每个训练批次**中，随机选择一些**神经元**，并将它们的输出设置为0。这些被选择的神经元在`<u>`该批次中将不会收到反向传播的梯度更新`</u>`。这样一来，每个神经元都必须学会与其他神经元合作来完成任务，从而使得神经网络具有更好的泛化能力。
 - Dropout通常在深度神经网络的全连接层或卷积层中使用。
-- 在实践中，Dropout的使用可以通过在模型中添加**Dropout层**来实现，例如在Keras中，可以使用`keras.layers.Dropout()`函数来添加Dropout层。
+- 在实践中，Dropout的使用可以通过在模型中添加**Dropout层**来实现，例如在Keras中，可以使用 `keras.layers.Dropout()`函数来添加Dropout层。
 - 需Dropout只应该在训练过程中使用，而不应该在测试过程中使用。在测试过程中，应该使用所有的神经元来进行预测，以获得更准确的结果。
-- 因此，在测试过程中，可以通过在训练过程中使用Dropout时，对每个神经元的输出进行缩放来实现。这种缩放可以通过在Keras中使用`model.predict()`函数的`predict()`方法来实现。
+- 因此，在测试过程中，可以通过在训练过程中使用Dropout时，对每个神经元的输出进行缩放来实现。这种缩放可以通过在Keras中使用 `model.predict()`函数的 `predict()`方法来实现。
 
 ### 数据平衡balance@shuffle🎈
 
 #### balance
 
-- 机器学习的许多接口的参数中提供了`balance` 参数,一般是一个布尔值，用于控制是否在训练和测试数据集中进行数据平衡。
+- 机器学习的许多接口的参数中提供了 `balance` 参数,一般是一个布尔值，用于控制是否在训练和测试数据集中进行数据平衡。
 - 如果将 `balance` 设置为 `True`，则在划分训练和测试数据集之前，会对原始数据集进行重新采样，以使得每个类别的样本数量相等或接近相等。
 - 这可以避免训练和测试数据集中类别不平衡导致的模型偏差和泛化性能下降。
 - 注意,由于balance操作对于数据集划分有一定要求,不是任何数据集都可以执行balance操作(例如三分类中,test set中只缺失了某一个类别的样本,这中情况下执行balance,将导致测试集样本数量为空)
@@ -1025,9 +979,9 @@ SVR（Support Vector Regression）是一种基于支持向量机（SVM）的回�
 
 - 通常,只要数据集结构合理,那么利用shuffle操作(随机打乱样本顺序),可以有效减少balance失败的情况
 - 往往数据集都是有序的,这就容易导致样本不均衡导致的模型泛化能力下降等不良影响
-- 在本项目中,shuffle被安排在`audio.create_meta`模块中实现,也就是创建语音文件元数据的地方,
+- 在本项目中,shuffle被安排在 `audio.create_meta`模块中实现,也就是创建语音文件元数据的地方,
 
-##  识别系统的模块和结构🎈
+## 识别系统的模块和结构🎈
 
 - 另见文档:[ProjectStructure.md](ProjectStructure)
 
@@ -1039,7 +993,7 @@ SVR（Support Vector Regression）是一种基于支持向量机（SVM）的回�
 
 - IDEA
   - python plugin
-  - pylint 
+  - pylint
 - vscode
   - python extension
   - codeium AI extension
@@ -1048,7 +1002,7 @@ SVR（Support Vector Regression）是一种基于支持向量机（SVM）的回�
   - ...
 - 代码阅读
   - 使用大纲阅读一个大文件是好办法
-  - 对于没有封装在函数或者类中的代码,可以设置`fold level`折叠至level 2来快速把握代码结构
+  - 对于没有封装在函数或者类中的代码,可以设置 `fold level`折叠至level 2来快速把握代码结构
 
 # 部分实验结果
 
@@ -1058,10 +1012,8 @@ SVR（Support Vector Regression）是一种基于支持向量机（SVM）的回�
 
 ## 跨库识别
 
-- 许多实验记录保存在`recognizer\cross_SER_result`目录中(相对有项目的根目录的路径)
-- 这些结果放在各自的`ipynb`文件中,代码部分一并保留,如果只想查看实验结果,可以折叠代码
-
-
+- 许多实验记录保存在 `recognizer\cross_SER_result`目录中(相对有项目的根目录的路径)
+- 这些结果放在各自的 `ipynb`文件中,代码部分一并保留,如果只想查看实验结果,可以折叠代码
 
 ### angry&sad@emodb-ravdess
 
@@ -1171,8 +1123,3 @@ n_splits=5
 cv_score=0.9508196721311475
 (d:\condaPythonEnvs\tf2.10) PS D:\repos\CCSER\SER>
 ```
-
-
-
-
-
